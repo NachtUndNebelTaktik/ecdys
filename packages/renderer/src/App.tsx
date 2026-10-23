@@ -1,6 +1,8 @@
 import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
-import type { Profile, RequestType, Snapshot, WorkspaceStatus } from '../../shared/src/model';
+import type { Profile, RequestType, Snapshot, SnapshotPreview, MergePreview, WorkspaceStatus } from '../../shared/src/model';
 import SnapshotPanel from './SnapshotPanel';
+import DiffTable from './DiffTable';
+import BranchDialog,{type BranchDialogState} from './BranchDialog';
 
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 export default function App() {
@@ -17,7 +19,8 @@ export default function App() {
   const [name,setName]=createSignal(''); const [tags,setTags]=createSignal('');
   const [timezone,setTimezone]=createSignal('UTC'); const [language,setLanguage]=createSignal('en-US');
   const [screen,setScreen]=createSignal('1920 × 1080');
-  const [restoreTarget,setRestoreTarget]=createSignal<Snapshot>();
+  const [restoreTarget,setRestoreTarget]=createSignal<SnapshotPreview>();
+  const [branchDialog,setBranchDialog]=createSignal<BranchDialogState>();
   const current=createMemo(()=>profiles().find(p=>p.id===selected()));
   const filtered=createMemo(()=>profiles().filter(p=>`${p.name} ${p.tags.join(' ')}`.toLowerCase().includes(search().toLowerCase())));
   const bridge=!!window.styg;
@@ -34,9 +37,9 @@ export default function App() {
   }
   async function refresh(id?:string) {
     setStatus(await invoke<WorkspaceStatus>({action:'status'}));
-    if(!status()?.unlocked) {setProfiles([]);setSnapshots([]);setSelected(undefined);return;}
+    if(!status()?.unlocked) {setProfiles([]);setSnapshots([]);setSelected(undefined);setRestoreTarget(undefined);setBranchDialog(undefined);setEditing(undefined);setName('');setTags('');return;}
     const list=await invoke<Profile[]>({action:'profiles'}); setProfiles(list);
-    const next=id??selected()??list[0]?.id; setSelected(next);
+    const next=[id,selected(),list[0]?.id].find(candidate=>list.some(profile=>profile.id===candidate)); setSelected(next);
     setSnapshots(next?await invoke<Snapshot[]>({action:'snapshots',id:next}):[]);
   }
   onMount(()=>{if(bridge) void run(()=>refresh());});
@@ -60,6 +63,29 @@ export default function App() {
       setEditor(false);await refresh(profile.id);setNotice(active?'Changes saved. A pre-edit snapshot is available.':'Profile created with an encrypted baseline snapshot.');
     });
   }
+  function openBranch(kind:'create'|'promote'|'discard',profile:Profile){setError('');setBranchDialog({kind,profile});}
+  async function createBranch(name:string) {
+    await run(async()=>{
+      const dialog=branchDialog();if(dialog?.kind!=='create')return;
+      const branch=await invoke<Profile>({action:'createBranch',id:dialog.profile.id,name});
+      setBranchDialog(undefined);await refresh(branch.id);setNotice('Independent branch created with copied history and a pinned fork point.');
+    });
+  }
+  async function confirmBranch() {
+    await run(async()=>{
+      const dialog=branchDialog();if(!dialog||dialog.kind==='create')return;
+      if(dialog.kind==='merge') {
+        const preview=dialog.preview;const parent=await invoke<Profile>({action:'mergeBranch',id:preview.branch.id,branchRevision:preview.branchRevision,parentRevision:preview.parentRevision});
+        setBranchDialog(undefined);await refresh(parent.id);setNotice('Environment settings merged. Parent browser files, name and tags are unchanged.');
+      }else if(dialog.kind==='promote') {
+        const profile=await invoke<Profile>({action:'promoteBranch',id:dialog.profile.id,expectedRevision:dialog.profile.revision});
+        setBranchDialog(undefined);await refresh(profile.id);setNotice('Profile promoted. Files and snapshot history are unchanged.');
+      }else {
+        await invoke({action:'discardBranch',id:dialog.profile.id,expectedRevision:dialog.profile.revision});
+        setBranchDialog(undefined);await refresh(dialog.profile.parentProfileId??undefined);setNotice('Branch discarded. Its parent is unchanged.');
+      }
+    });
+  }
   return <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="#" onClick={e=>e.preventDefault()} aria-label="Styg home"><span class="brand-mark">s</span>styg<span class="brand-dot">.</span></a>
@@ -70,7 +96,7 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">STYG <span>0.2.0 · recovery preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">STYG <span>0.3.0 · branches preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
       <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{await invoke({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();})}>Lock workspace ↗</button></Show></div></header>
@@ -103,7 +129,7 @@ export default function App() {
             <Show when={filtered().length===0}><div class="empty"><div class="empty-icon">▦</div><h2>{profiles().length?'No matching profiles':'A clean slate'}</h2><p>{profiles().length?'Try another name or tag.':'Create your first profile. Styg will save its baseline automatically.'}</p><Show when={!profiles().length}><button class="secondary" onClick={()=>openEditor()}>Create first profile ↗</button></Show></div></Show>
             <For each={filtered()}>{profile=><article class={`profile-card ${selected()===profile.id?'is-selected':''}`}>
               <button class="profile-main" disabled={busy()} onClick={()=>void run(async()=>{setSelected(profile.id);setSnapshots(await invoke<Snapshot[]>({action:'snapshots',id:profile.id}));})}>
-                <div class="card-top"><span class="profile-avatar">{profile.name.slice(0,2).toUpperCase()}</span><span class="card-menu">↗</span></div>
+                <div class="card-top"><span class="profile-avatar">{profile.name.slice(0,2).toUpperCase()}</span><Show when={profile.parentProfileId} fallback={<span class="card-menu">↗</span>}><span class="branch-badge">BRANCH</span></Show></div>
                 <h2>{profile.name}</h2><div class="profile-id">{profile.id.slice(0,8)} · LOCAL PROFILE</div>
                 <div class="tag-row"><For each={profile.tags}>{tag=><span class="tag">{tag}</span>}</For><Show when={!profile.tags.length}><span class="muted">No tags</span></Show></div>
                 <div class="config-line"><span>◷</span>{profile.timezone}</div><div class="config-line"><span>▱</span>{profile.screen}<span class="config-language">{profile.language}</span></div>
@@ -119,29 +145,35 @@ export default function App() {
               setNotice(`Encrypted browser-state snapshot saved (${saved.fileCount} ${saved.fileCount===1?'file':'files'}).`);
             })}
             onPin={snapshot=>void run(async()=>{await invoke({action:'pin',id:profile().id,snapshotId:snapshot.id,pinned:!snapshot.pinned});await refresh(profile().id);})}
-            onRestore={snapshot=>setRestoreTarget(snapshot)}
+            canCreateBranch={profiles().length<99} parentName={profiles().find(p=>p.id===profile().parentProfileId)?.name}
+            onCreateBranch={()=>openBranch('create',profile())}
+            onMerge={()=>void run(async()=>{setBranchDialog({kind:'merge',preview:await invoke<MergePreview>({action:'previewMerge',id:profile().id})});})}
+            onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
+            onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg recovery preview / 0.2.0</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg branches preview / 0.3.0</span></footer>
         </Show>
       </main>
     </div>
     <Show when={editor()}><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-top"><span class="eyebrow">PROFILE CONFIGURATION</span><button class="close-button" aria-label="Close editor" disabled={busy()} onClick={()=>setEditor(false)}>×</button></div><h2 id="editor-title">{editing()?'Edit profile':'A new context'}</h2><p class="muted">{editing()?'Styg saves a snapshot before applying your changes.':'Start with a name. A baseline snapshot is saved automatically.'}</p><form onSubmit={save}><label>Profile name<input autofocus required maxLength={100} value={name()} onInput={e=>setName(e.currentTarget.value)} placeholder="e.g. Research — Europe"/></label><label>Tags <span class="muted">· comma separated</span><input value={tags()} onInput={e=>setTags(e.currentTarget.value)} placeholder="research, client-work"/></label><label>Timezone<input required list="timezones" value={timezone()} onInput={e=>setTimezone(e.currentTarget.value)}/><datalist id="timezones"><option>UTC</option><option>America/New_York</option><option>Europe/Berlin</option><option>Europe/London</option><option>Asia/Tokyo</option></datalist></label><div class="form-row"><label>Language<select value={language()} onChange={e=>setLanguage(e.currentTarget.value)}><option>en-US</option><option>en-GB</option><option>de-DE</option><option>fr-FR</option></select></label><label>Screen size<select value={screen()} onChange={e=>setScreen(e.currentTarget.value)}><option>1920 × 1080</option><option>1440 × 900</option><option>1366 × 768</option></select></label></div><Show when={error()}><p class="amber-text" role="status">{error()}</p></Show><div class="modal-actions"><button type="button" class="secondary" disabled={busy()} onClick={()=>setEditor(false)}>Cancel</button><button class="primary" disabled={busy()} type="submit">{busy()?'Saving…':editing()?'Save changes':'Create profile'} ↗</button></div></form></section></div></Show>
     <Show when={restoreTarget()}>{snapshot=><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="restore-title">
       <span class="eyebrow">RECOVERY</span>
-      <h2 id="restore-title">{snapshot().hasBrowserState?'Restore configuration and browser state?':'Restore this configuration?'}</h2>
-      <p class="muted">{snapshot().hasBrowserState
-        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().timestamp)}. Styg saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; cookie recovery is not yet verified.`
-        :`Replace the current settings with the configuration from ${time(snapshot().timestamp)}. Styg saves the current configuration as a rollback point. Browser files remain unchanged.`}</p>
+      <h2 id="restore-title">{snapshot().snapshot.hasBrowserState?'Restore configuration and browser state?':'Restore this configuration?'}</h2>
+      <p class="muted">{snapshot().snapshot.hasBrowserState
+        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().snapshot.timestamp)}. Styg saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; cookie recovery is not yet verified.`
+        :`Replace the current settings with the configuration from ${time(snapshot().snapshot.timestamp)}. Styg saves the current configuration as a rollback point. Browser files remain unchanged.`}</p>
+      <h3 class="diff-heading">Changes from current settings</h3><DiffTable changes={snapshot().changes}/>
       <Show when={error()}><p class="amber-text" role="alert">{error()}</p></Show>
       <div class="modal-actions">
         <button class="secondary" disabled={busy()} onClick={()=>setRestoreTarget(undefined)}>Cancel</button>
         <button class="primary" disabled={busy()} onClick={()=>void run(async()=>{
-          const target=snapshot();
-          await invoke({action:'restore',id:target.profileId,snapshotId:target.id});
+          const preview=snapshot(),target=preview.snapshot;
+          await invoke({action:'restore',id:target.profileId,snapshotId:target.id,expectedRevision:preview.currentRevision});
           setRestoreTarget(undefined);await refresh();
           setNotice(target.hasBrowserState?'Profile settings and browser files restored. A full rollback snapshot is available.':'Configuration restored. Browser files are unchanged; a configuration rollback point is available.');
-        })}>{busy()?'Restoring…':snapshot().hasBrowserState?'Restore profile and state':'Restore configuration'} ↶</button>
+        })}>{busy()?'Restoring…':snapshot().snapshot.hasBrowserState?'Restore profile and state':'Restore configuration'} ↶</button>
       </div>
     </section></div>}</Show>
+    <Show when={branchDialog()}>{dialog=><BranchDialog dialog={dialog()} busy={busy()} error={error()} onCancel={()=>setBranchDialog(undefined)} onCreate={name=>void createBranch(name)} onConfirm={()=>void confirmBranch()}/>}</Show>
   </div>;
 }

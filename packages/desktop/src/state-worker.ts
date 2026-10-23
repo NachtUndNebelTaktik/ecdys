@@ -70,9 +70,16 @@ async function stage(dir:string,target:string,operationId:string,envelope:Buffer
 }
 const key=Buffer.from(workerData.key);
 try {
-  const value=workerData.action==='capture'
-    ?await capture(workerData.dir,key,workerData.profileId,workerData.snapshotId)
-    :await stage(workerData.dir,workerData.target,workerData.operationId,Buffer.from(workerData.envelope),key,workerData.profileId,workerData.snapshotId);
+  let value:unknown;
+  if(workerData.action==='capture')value=await capture(workerData.dir,key,workerData.profileId,workerData.snapshotId);
+  else if(workerData.action==='stage')value=await stage(workerData.dir,workerData.target,workerData.operationId,Buffer.from(workerData.envelope),key,workerData.profileId,workerData.snapshotId);
+  else if(workerData.action==='rebind') {
+    const decoded=openStateManifest(Buffer.from(workerData.envelope),key,workerData.sourceProfileId,workerData.sourceSnapshotId);
+    try {
+      const manifest:StateManifest={version:1,directories:decoded.directories,files:decoded.files.map(file=>({path:file.path,data:file.bytes.toString('base64')}))};
+      value={envelope:sealStateManifest(manifest,key,workerData.profileId,workerData.snapshotId),fileCount:decoded.files.length,stateBytes:decoded.stateBytes};
+    }finally{for(const file of decoded.files)file.bytes.fill(0);}
+  }else throw new Error('Unsupported browser-state operation');
   parentPort!.postMessage({ok:true,value});
 }catch(error){parentPort!.postMessage({ok:false,error:error instanceof Error?error.message:'Browser-state operation failed'});}
 finally{key.fill(0);workerData.key.fill(0);parentPort!.close();}

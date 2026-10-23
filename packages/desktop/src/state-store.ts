@@ -1,14 +1,23 @@
 import {Worker} from 'node:worker_threads';
-import {mkdirSync,lstatSync,chmodSync,rmdirSync} from 'node:fs';
+import {mkdirSync,lstatSync,chmodSync,rmdirSync,openSync,fsyncSync,closeSync} from 'node:fs';
 import {lstat,readdir,readFile,rename,rm,unlink,open} from 'node:fs/promises';
-import {join} from 'node:path';
+import {join,dirname} from 'node:path';
 import {Id} from '../../shared/src/model';
 import {BROWSER_LOCKS,RESTORE_MARKER} from './state-archive';
 export type CapturedState={envelope:Buffer;fileCount:number;stateBytes:number};
+function syncDirectorySync(path:string) {
+  let fd:number|undefined;
+  try{fd=openSync(path,'r');fsyncSync(fd);}
+  catch(error){if(process.platform!=='win32'||!['EINVAL','EPERM','EISDIR'].includes((error as NodeJS.ErrnoException).code??''))throw error;}
+  finally{if(fd!==undefined)closeSync(fd);}
+}
 function privateDirectory(path:string) {
-  try{mkdirSync(path,{mode:0o700});}catch(error){if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;}
+  let created=false;
+  try{mkdirSync(path,{mode:0o700});created=true;}catch(error){if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;}
   const info=lstatSync(path);if(!info.isDirectory()||info.isSymbolicLink())throw new Error('Profile data boundary must be a directory, not a link');
   if(process.platform!=='win32')chmodSync(path,0o700);
+  // Publish each new ancestor before a durable database journal can reference it.
+  if(created){syncDirectorySync(path);syncDirectorySync(dirname(path));}
 }
 async function directoryExists(path:string) {
   try{const info=await lstat(path);if(!info.isDirectory()||info.isSymbolicLink())throw new Error('Restore path must be a regular directory');return true;}
@@ -48,7 +57,16 @@ export class StateStore {
     });
   }
   async capture(id:string,snapshotId:string,key:Buffer):Promise<CapturedState> {
-    Id.parse(snapshotId);const result=await this.run<CapturedState>({action:'capture',dir:this.ensureSync(id),key,profileId:id,snapshotId});
+    return this.captureFor(id,id,snapshotId,key);
+  }
+  async captureFor(sourceId:string,targetId:string,snapshotId:string,key:Buffer):Promise<CapturedState> {
+    Id.parse(targetId);Id.parse(snapshotId);
+    const result=await this.run<CapturedState>({action:'capture',dir:this.ensureSync(sourceId),key,profileId:targetId,snapshotId});
+    return {...result,envelope:Buffer.from(result.envelope)};
+  }
+  async rebind(sourceId:string,sourceSnapshotId:string,targetId:string,targetSnapshotId:string,envelope:Buffer,key:Buffer):Promise<CapturedState> {
+    for(const id of [sourceId,sourceSnapshotId,targetId,targetSnapshotId])Id.parse(id);
+    const result=await this.run<CapturedState>({action:'rebind',sourceProfileId:sourceId,sourceSnapshotId,profileId:targetId,snapshotId:targetSnapshotId,envelope,key});
     return {...result,envelope:Buffer.from(result.envelope)};
   }
   async stage(id:string,operationId:string,snapshotId:string,envelope:Buffer,key:Buffer):Promise<void> {
@@ -92,7 +110,23 @@ export class StateStore {
     try{const info=await lstat(path);if(!info.isFile()||info.isSymbolicLink()||info.size>100)throw new Error('Invalid restore marker');const op=await readFile(path,'utf8');Id.parse(op);await this.cleanupRestore(id,op);}
     catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
   }
-  removeEmptyProfileSync(id:string){const root=this.profileRoot(id);rmdirSync(join(root,'browser'));rmdirSync(root);}
+  removeEmptyProfileSync(id:string){
+    const root=this.profileRoot(id);
+    for(const path of [join(root,'browser'),root]){try{rmdirSync(path);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}}
+    syncDirectorySync(this.root);
+  }
+  async assertClosedProfile(id:string) {
+    const dir=this.ensureSync(id);await this.closedDirectory(dir);
+    if((await readdir(dir)).includes(RESTORE_MARKER))throw new Error('Browser-state recovery is pending');
+  }
+  async discardProfile(id:string,operationId:string) {
+    Id.parse(id);Id.parse(operationId);if(this.closed)throw new Error('Workspace is locked');privateDirectory(this.root);
+    const source=join(this.root,id),trash=join(this.root,`trash-${operationId}`);
+    const sourceExists=await directoryExists(source),trashExists=await directoryExists(trash);
+    if(sourceExists&&trashExists)throw new Error('Ambiguous branch discard; preserve both directories for review');
+    if(sourceExists){await this.assertClosedProfile(id);await rename(source,trash);await syncDirectory(this.root);}
+    if(await directoryExists(trash)){await rm(trash,{recursive:true});await syncDirectory(this.root);}
+  }
   async cleanupAbandonedStages(id:string) {
     const root=this.profileRoot(id);
     for(const name of await readdir(root)) {

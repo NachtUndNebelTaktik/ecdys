@@ -20,8 +20,13 @@ export const ProfileInput = ProfileFields.extend({
 export const ProfilePatch = ProfileFields.partial();
 export type ProfileInputType = z.input<typeof ProfileInput>;
 export type ProfileConfig = z.output<typeof ProfileInput>;
-export type Profile = ProfileConfig & {id:string; createdAt:number; updatedAt:number};
-export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'; pinned:boolean; size:number; hasBrowserState:boolean; fileCount:number; stateBytes:number; browserVersion:string|null};
+export type Profile = ProfileConfig & {id:string; createdAt:number; updatedAt:number; parentProfileId:string|null; branchName:string|null; revision:number};
+export type ConfigChange={field:keyof ProfileConfig;kind:'added'|'removed'|'modified';before:string|null;after:string|null};
+export type SnapshotPreview={snapshot:Snapshot;currentRevision:number;changes:ConfigChange[]};
+export type MergePreview={branch:Profile;parent:Profile;branchRevision:number;parentRevision:number;changes:ConfigChange[]};
+export const Revision=z.number().int().min(1).max(Number.MAX_SAFE_INTEGER);
+export const BranchName=z.string().trim().min(1).max(64).refine(value=>!/[\x00-\x1f]/.test(value),'Branch name cannot contain control characters');
+export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'|'fork'|'pre_merge'; pinned:boolean; size:number; hasBrowserState:boolean; fileCount:number; stateBytes:number; browserVersion:string|null};
 export const KdfParams = z.object({memoryMiB:z.union([z.literal(64),z.literal(256),z.literal(1024),z.literal(4096)]),iterations:z.literal(2)}).strict();
 export type KdfParameters = z.infer<typeof KdfParams>;
 export const Request = z.discriminatedUnion('action', [
@@ -34,7 +39,13 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('updateProfile'),id:Id,input:ProfilePatch}).strict(),
   z.object({action:z.literal('snapshots'),id:Id}).strict(),
   z.object({action:z.literal('saveStateSnapshot'),id:Id}).strict(),
-  z.object({action:z.literal('restore'),id:Id,snapshotId:Id}).strict(),
+  z.object({action:z.literal('previewSnapshot'),id:Id,snapshotId:Id}).strict(),
+  z.object({action:z.literal('restore'),id:Id,snapshotId:Id,expectedRevision:Revision}).strict(),
+  z.object({action:z.literal('createBranch'),id:Id,name:BranchName}).strict(),
+  z.object({action:z.literal('previewMerge'),id:Id}).strict(),
+  z.object({action:z.literal('mergeBranch'),id:Id,branchRevision:Revision,parentRevision:Revision}).strict(),
+  z.object({action:z.literal('promoteBranch'),id:Id,expectedRevision:Revision}).strict(),
+  z.object({action:z.literal('discardBranch'),id:Id,expectedRevision:Revision}).strict(),
   z.object({action:z.literal('pin'),id:Id,snapshotId:Id,pinned:z.boolean()}).strict(),
   z.object({action:z.literal('launch'),id:Id}).strict(),
 ]);

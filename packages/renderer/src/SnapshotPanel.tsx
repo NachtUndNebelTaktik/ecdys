@@ -1,11 +1,20 @@
-import {For} from 'solid-js';
+import {For,Show} from 'solid-js';
 import type {Profile,Snapshot} from '../../shared/src/model';
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-type Props={profile:Profile;snapshots:Snapshot[];busy:boolean;onSave:()=>void;onPin:(snapshot:Snapshot)=>void;onRestore:(snapshot:Snapshot)=>void};
+type Props={profile:Profile;snapshots:Snapshot[];busy:boolean;onSave:()=>void;onPin:(snapshot:Snapshot)=>void;onRestore:(snapshot:Snapshot)=>void;canCreateBranch:boolean;parentName?:string;onCreateBranch:()=>void;onMerge:()=>void;onPromote:()=>void;onDiscard:()=>void};
 export default function SnapshotPanel(props:Props) {
   return <aside class="detail-panel">
     <div class="detail-heading"><span class="eyebrow">PROFILE DETAILS</span><span>◈</span></div>
     <h2>{props.profile.name}</h2><p class="muted detail-desc">Snapshots and recovery</p>
+    <Show when={props.profile.parentProfileId}><p class="branch-ancestry">Branch: {props.profile.branchName}<br/>Parent: {props.parentName??props.profile.parentProfileId}</p></Show>
+    <div class="branch-actions">
+      <button class="secondary wide" disabled={props.busy||!props.canCreateBranch} onClick={props.onCreateBranch}>Create branch</button>
+      <Show when={props.profile.parentProfileId}>
+        <button class="secondary wide" disabled={props.busy} onClick={props.onMerge}>Review merge</button>
+        <button class="text-button wide" disabled={props.busy} onClick={props.onPromote}>Promote to standalone</button>
+        <button class="text-button danger-text wide" disabled={props.busy} onClick={props.onDiscard}>Discard branch</button>
+      </Show>
+    </div>
     <div class="divider"/>
     <div class="detail-row"><span>Network route</span><span class="amber-text">Unverified</span></div>
     <div class="detail-row"><span>Session</span><span>Not running</span></div>

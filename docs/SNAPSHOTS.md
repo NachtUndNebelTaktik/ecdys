@@ -4,8 +4,8 @@ Styg now supports two explicit snapshot contents:
 
 | Contents | Trigger in this build | Restores |
 |---|---|---|
-| Configuration only | Baseline, pre-edit, configuration restore rollback | Profile settings; browser files remain untouched |
-| Configuration + browser state | Manual save, full restore rollback | Profile settings and regular browser-directory files |
+| Configuration only | Baseline, pre-edit, pre-merge, configuration restore rollback | Profile settings; browser files remain untouched |
+| Configuration + browser state | Manual save, fork point, full restore rollback | Profile settings and regular browser-directory files |
 
 The UI labels every snapshot. A state snapshot containing zero files is valid and is labelled as zero files; it does not imply a browser session has run.
 
@@ -27,6 +27,8 @@ Lock markers and inventory stability are additional checks, not proof that an ar
 
 ## Restore sequence
 
+The confirmation first shows allowlisted configuration differences and captures the current profile revision. A changed revision rejects confirmation before any restore mutation. Restoring configuration does not replace identity or ancestry. See [branches and previews](BRANCHES.md).
+
 1. Authenticate and validate all archived contents before creating staging files.
 2. Write a private staging directory, sync its files/directories, and record a unique operation marker.
 3. Capture an encrypted full rollback snapshot of the current closed directory. Refuse the restore if that rollback cannot be safely captured.
@@ -42,4 +44,4 @@ The tests simulate the interruption states using real filesystem operations. Act
 
 The 20 newest unpinned snapshots are retained in addition to pinned snapshots, regardless of content type. Configuration, state BLOBs and pin/prune changes participate in SQLite transactions. Before a state restore, a full rollback snapshot is added.
 
-Unlock migrates original database schema v1 to v2 transactionally; existing configuration profiles and snapshots remain readable. `workspace.json` format stays v1 because its encryption metadata is unchanged. The original Styg 0.1 build cannot open database schema v2. Back up the complete workspace while Styg is closed before upgrading; rollback to that build requires the matching pre-migration backup.
+Unlock migrates database schemas v1/v2 to v3 transactionally; existing configuration profiles and encrypted state snapshots remain readable. `workspace.json` format stays v1 because its encryption metadata is unchanged. Older Styg 0.1/0.2 builds cannot open database schema v3. Back up the complete workspace while Styg is closed before upgrading; rollback to an older build requires the matching pre-migration backup.

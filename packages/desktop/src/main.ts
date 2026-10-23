@@ -30,7 +30,13 @@ async function handle(raw:unknown):Promise<unknown> {
     case 'updateProfile': return active.updateProfile(request.id,request.input);
     case 'snapshots': return active.snapshots(request.id);
     case 'saveStateSnapshot': return active.saveStateSnapshot(request.id);
-    case 'restore': return active.restoreSnapshot(request.id,request.snapshotId);
+    case 'previewSnapshot': return active.previewSnapshot(request.id,request.snapshotId);
+    case 'restore': return active.restoreSnapshot(request.id,request.snapshotId,request.expectedRevision);
+    case 'createBranch': return active.createBranch(request.id,request.name);
+    case 'previewMerge': return active.previewMerge(request.id);
+    case 'mergeBranch': return active.mergeBranch(request.id,request.branchRevision,request.parentRevision);
+    case 'promoteBranch': return active.promoteBranch(request.id,request.expectedRevision);
+    case 'discardBranch': return active.discardBranch(request.id,request.expectedRevision);
     case 'pin': active.pin(request.id,request.snapshotId,request.pinned); return null;
     case 'launch': assertRouteReady();
   }

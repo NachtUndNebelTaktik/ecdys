@@ -17,6 +17,10 @@ it.skipIf(process.env.STYG_LARGE_STATE_TEST!=='1')('round trips 64 MiB of incomp
     await writeFile(join(dir,'binary-state'),'changed');
     await store.stage(id,op,sid,saved.envelope,key);await store.finishRestore(id,op);await store.cleanupRestore(id,op);
     const restored=await readFile(join(dir,'binary-state'));
-    expect(createHash('sha256').update(restored).digest('hex')).toBe(expected);key.fill(0);restored.fill(0);
+    expect(createHash('sha256').update(restored).digest('hex')).toBe(expected);restored.fill(0);
+    const child=randomUUID(),childSnapshot=randomUUID(),childOp=randomUUID(),childDir=await store.ensure(child);
+    const clone=await store.rebind(id,sid,child,childSnapshot,saved.envelope,key);
+    await store.stage(child,childOp,childSnapshot,clone.envelope,key);await store.finishRestore(child,childOp);await store.cleanupRestore(child,childOp);
+    const copied=await readFile(join(childDir,'binary-state'));expect(createHash('sha256').update(copied).digest('hex')).toBe(expected);copied.fill(0);key.fill(0);
   }finally{store.close();await rm(root,{recursive:true,force:true});}
 },120000);

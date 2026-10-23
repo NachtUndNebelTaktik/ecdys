@@ -1,5 +1,5 @@
 import {test,expect,_electron as electron} from '@playwright/test';
-import {mkdtemp,rm,mkdir,writeFile,readFile} from 'node:fs/promises';
+import {mkdtemp,rm,mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -49,6 +49,7 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await writeFile(join(browser,'Preferences'),'changed browser bytes');
     await page.locator('.timeline-item').filter({has:page.getByText('manual',{exact:true})}).getByRole('button',{name:'Restore'}).click();
     await expect(page.getByRole('heading',{name:'Restore configuration and browser state?'})).toBeVisible();
+    await expect(dialog.getByRole('table',{name:'Configuration changes'})).toContainText('Europe/Berlin');
     await page.getByRole('button',{name:'Restore profile and state'}).click();
     await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
     expect(await readFile(join(browser,'Preferences'),'utf8')).toBe('baseline browser bytes');
@@ -56,6 +57,48 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await page.getByRole('button',{name:'Restore configuration'}).click();
     await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
     await expect(page.locator('.profile-card').getByText('Europe/Berlin')).toBeVisible();
+    const stale=await page.evaluate(async()=>{
+      const list=await window.styg!.invoke<any[]>({action:'profiles'});if(!list.ok)throw new Error(list.error);
+      const id=list.value[0].id;
+      const history=await window.styg!.invoke<any[]>({action:'snapshots',id});if(!history.ok)throw new Error(history.error);
+      const snapshotId=history.value.find(s=>s.trigger==='baseline').id;
+      const preview=await window.styg!.invoke<any>({action:'previewSnapshot',id,snapshotId});if(!preview.ok)throw new Error(preview.error);
+      await window.styg!.invoke({action:'updateProfile',id,input:{language:'de-DE'}});
+      const result=await window.styg!.invoke({action:'restore',id,snapshotId,expectedRevision:preview.value.currentRevision});
+      await window.styg!.invoke({action:'updateProfile',id,input:{language:'en-US'}});return result;
+    });
+    expect(stale.ok).toBe(false);
+    await page.getByRole('button',{name:'Create branch',exact:true}).click();
+    await dialog.getByLabel('Branch name').fill('test-region');
+    await dialog.getByRole('button',{name:'Create branch',exact:true}).click();
+    await expect(page.locator('.profile-card h2')).toHaveCount(2);
+    await expect(page.locator('.branch-badge')).toBeVisible();
+    await page.locator('.profile-card.is-selected').getByRole('button',{name:'Edit profile'}).click();
+    await dialog.getByLabel('Profile name').fill('Standalone experiment');
+    await dialog.getByLabel('Tags').fill('test-only');await dialog.getByLabel('Timezone').fill('Asia/Tokyo');
+    await dialog.getByRole('button',{name:'Save changes'}).click();
+    const all=await page.evaluate(()=>window.styg!.invoke<any[]>({action:'profiles'}));if(!all.ok)throw new Error(all.error);
+    const branch=all.value.find(x=>x.parentProfileId);const branchPath=join(userData,'workspace','profiles',branch.id,'browser','Preferences');
+    await writeFile(branchPath,'branch bytes');
+    await page.getByRole('button',{name:'Review merge'}).click();
+    await expect(dialog.getByRole('table',{name:'Configuration changes'})).toContainText('Asia/Tokyo');
+    await page.screenshot({path:'test-results/styg-merge-preview.png',fullPage:true});
+    await dialog.getByRole('button',{name:'Merge settings'}).click();
+    await expect(page.locator('.profile-card.is-selected h2')).toHaveText('Research — Europe');
+    await expect(page.locator('.profile-card.is-selected').getByText('Asia/Tokyo')).toBeVisible();
+    expect(await readFile(join(browser,'Preferences'),'utf8')).toBe('baseline browser bytes');
+    expect(await readFile(branchPath,'utf8')).toBe('branch bytes');
+    await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:'test-results/styg-branches.png',fullPage:true});
+    await page.locator('.profile-card').filter({has:page.getByRole('heading',{name:'Standalone experiment',exact:true})}).locator('.profile-main').click();
+    await page.getByRole('button',{name:'Promote to standalone'}).click();
+    await dialog.getByRole('button',{name:'Promote profile'}).click();
+    await expect(page.locator('.branch-badge')).toHaveCount(0);
+    await page.getByRole('button',{name:'Create branch',exact:true}).click();
+    await dialog.getByLabel('Branch name').fill('discard-me');await dialog.getByRole('button',{name:'Create branch',exact:true}).click();
+    await expect(page.locator('.profile-card h2')).toHaveCount(3);
+    await page.getByRole('button',{name:'Discard branch',exact:true}).click();
+    await dialog.getByRole('button',{name:'Discard branch',exact:true}).click();
+    await expect(page.locator('.profile-card h2')).toHaveCount(2);expect(await readdir(join(userData,'workspace','profiles'))).toHaveLength(2);
     await page.evaluate(()=>window.scrollTo(0,0));
     await page.screenshot({path:'test-results/styg-workspace.png',fullPage:true});
     await page.getByRole('button',{name:'Lock workspace'}).click();
@@ -69,7 +112,7 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await expect(reopened.getByRole('heading',{name:'Unlock Styg'})).toBeVisible();
     await reopened.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
     await reopened.getByRole('button',{name:/^Unlock workspace/}).click();
-    await expect(reopened.locator('.profile-card h2')).toHaveText('Research — Europe');
+    await expect(reopened.locator('.profile-card h2')).toHaveText(['Research — Europe','Standalone experiment']);
     await expect(reopened.getByText('pre restore',{exact:true}).first()).toBeVisible();
   } finally {await application?.close();await rm(root,{recursive:true,force:true});}
 });
