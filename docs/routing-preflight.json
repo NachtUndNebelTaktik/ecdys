@@ -1,34 +1,35 @@
 {
+  "passed": false,
   "status": "blocked",
-  "checks": [
-    {
-      "name": "Linux host",
-      "passed": true
-    },
-    {
-      "name": "ip executable",
-      "passed": true
-    },
-    {
-      "name": "nft executable",
-      "passed": false
-    },
-    {
-      "name": "curl executable",
-      "passed": true
-    },
-    {
-      "name": "python3 executable",
-      "passed": true
-    },
-    {
-      "name": "CAP_NET_ADMIN",
-      "passed": false
-    },
-    {
-      "name": "CAP_SYS_ADMIN (namespace mounting)",
-      "passed": false
-    }
-  ],
-  "scope": "Local IPv4 namespace/firewall laboratory. Does not validate a provider VPN or production browser routing."
+  "reason": "missing_prerequisites",
+  "preflight": {
+    "status": "blocked",
+    "checks": [
+      {
+        "name": "Linux host",
+        "passed": true
+      },
+      {
+        "name": "ip executable",
+        "passed": true
+      },
+      {
+        "name": "nft executable",
+        "passed": false
+      },
+      {
+        "name": "python3 executable",
+        "passed": true
+      },
+      {
+        "name": "CAP_NET_ADMIN",
+        "passed": false
+      },
+      {
+        "name": "CAP_SYS_ADMIN (namespace mounting)",
+        "passed": false
+      }
+    ],
+    "scope": "Local IPv4/IPv6 HTTP, UDP and DNS namespace/firewall laboratory. Does not validate a provider VPN or production browser routing."
+  }
 }
