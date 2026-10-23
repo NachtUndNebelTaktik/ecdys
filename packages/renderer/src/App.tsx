@@ -96,10 +96,10 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">STYG <span>0.3.0 · branches preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">STYG <span>0.4.0 · session core preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
-      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{await invoke({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();})}>Lock workspace ↗</button></Show></div></header>
+      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');})}>Lock workspace ↗</button></Show></div></header>
       <main>
         <Show when={error()}><div class="message error" role="alert">{error()}<button aria-label="Dismiss error" onClick={()=>setError('')}>×</button></div></Show>
         <Show when={notice()}><div class="message success" role="status">{notice()}</div></Show>
@@ -151,7 +151,7 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg branches preview / 0.3.0</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg session core preview / 0.4.0</span></footer>
         </Show>
       </main>
     </div>
@@ -160,7 +160,7 @@ export default function App() {
       <span class="eyebrow">RECOVERY</span>
       <h2 id="restore-title">{snapshot().snapshot.hasBrowserState?'Restore configuration and browser state?':'Restore this configuration?'}</h2>
       <p class="muted">{snapshot().snapshot.hasBrowserState
-        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().snapshot.timestamp)}. Styg saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; cookie recovery is not yet verified.`
+        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().snapshot.timestamp)}. Styg saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; protected cookies may also require the original OS key store.`
         :`Replace the current settings with the configuration from ${time(snapshot().snapshot.timestamp)}. Styg saves the current configuration as a rollback point. Browser files remain unchanged.`}</p>
       <h3 class="diff-heading">Changes from current settings</h3><DiffTable changes={snapshot().changes}/>
       <Show when={error()}><p class="amber-text" role="alert">{error()}</p></Show>

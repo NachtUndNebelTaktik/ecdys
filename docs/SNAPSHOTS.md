@@ -5,7 +5,7 @@ Styg now supports two explicit snapshot contents:
 | Contents | Trigger in this build | Restores |
 |---|---|---|
 | Configuration only | Baseline, pre-edit, pre-merge, configuration restore rollback | Profile settings; browser files remain untouched |
-| Configuration + browser state | Manual save, fork point, full restore rollback | Profile settings and regular browser-directory files |
+| Configuration + browser state | Manual save, pre-launch, clean close, fork point, full restore rollback | Profile settings and regular browser-directory files |
 
 The UI labels every snapshot. A state snapshot containing zero files is valid and is labelled as zero files; it does not imply a browser session has run.
 
@@ -23,7 +23,7 @@ Archives are encrypted at rest. Working browser files and temporary restore stag
 
 Close the browser before saving. Styg refuses known Chromium singleton/lock markers, symbolic links, hard links, special files, unsafe/absolute/traversal paths, case-folded or Unicode-normalized path collisions, and directories that change during capture. File reads are bounded to the inventoried size. Capture applies the same path/size rules needed to restore successfully, including for rollback archives.
 
-Lock markers and inventory stability are additional checks, not proof that an arbitrary external browser has exited. Future browser lifecycle integration must supply a managed process/quiescence guarantee, particularly on Windows. This increment has not launched a browsing profile or validated real Chromium cookie/IndexedDB recovery. Tests use regular-file fixtures. OS-protected cookies require the same OS account and a compatible browser build; portability between machines is not promised.
+Lock markers and inventory stability are additional checks, not proof that an arbitrary external browser has exited. Future browser lifecycle integration must supply a managed process/quiescence guarantee, particularly on Windows. The internal Linux session core supplies an exclusive profile lease and waits for owned process-group quiescence; it is not yet enabled for normal app launches. The managed-session integration now validates real persistent cookies, localStorage and IndexedDB recovery using local Debian Chromium with a test basic password store, including restore after a killed browser. Production launches remain blocked. OS-protected cookies, cross-machine portability, sessionStorage and tab history are not verified. See [session test boundaries](SESSIONS.md).
 
 ## Restore sequence
 

@@ -23,7 +23,7 @@ export default function SnapshotPanel(props:Props) {
     <div class="divider"/>
     <h3>Snapshot history <span class="muted">{props.snapshots.length}</span></h3>
     <button class="secondary wide state-save-button" disabled={props.busy} onClick={props.onSave} aria-label="Save browser state">＋ Save browser state</button>
-    <p class="fine-print">Close the browser before saving. Snapshots include up to 64 MiB of browser files. Recovery needs the same OS account and a compatible browser build. Cookie recovery has not yet been verified.</p>
+    <p class="fine-print">Close the browser before saving. Snapshots include up to 64 MiB of browser files. Recovery needs the same OS account and a compatible browser build. Protected cookies may require the original OS key store.</p>
     <p class="fine-print">Saved snapshots are encrypted. Browser working files are ordinary files; protect them with OS disk encryption.</p>
     <div class="timeline"><For each={props.snapshots}>{snapshot=><div class="timeline-item">
       <div class="timeline-dot"/>

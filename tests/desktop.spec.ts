@@ -41,6 +41,9 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
       return window.styg!.invoke({action:'launch',id:result.value[0].id});
     });
     expect(launchResult.ok).toBe(false);
+    const sessionList=await page.evaluate(()=>window.styg!.invoke({action:'sessions'}));expect(sessionList).toEqual({ok:true,value:[]});
+    const bypass=await page.evaluate(async()=>{const result=await window.styg!.invoke<any[]>({action:'profiles'});if(!result.ok)throw new Error(result.error);return window.styg!.invoke({action:'launch',id:result.value[0].id,routeReady:true} as any);});
+    expect(bypass.ok).toBe(false);
     await page.getByRole('button',{name:'Edit profile'}).click();
     await dialog.getByLabel('Profile name').fill('Temporary experiment');
     await dialog.getByLabel('Timezone').fill('UTC');

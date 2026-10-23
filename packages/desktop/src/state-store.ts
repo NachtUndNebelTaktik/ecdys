@@ -39,8 +39,13 @@ export class StateStore {
   ensureSync(id:string):string {const dir=join(this.profileRoot(id),'browser');privateDirectory(dir);return dir;}
   async ensure(id:string){return this.ensureSync(id);}
   assertIdle(id:string){Id.parse(id);if(this.leases.has(id))throw new Error('Profile is busy saving or restoring browser state');}
+  acquireLease(id:string):()=>void {
+    if(this.closed)throw new Error('Workspace is locked');
+    this.assertIdle(id);this.leases.add(id);let active=true;
+    return ()=>{if(active){active=false;this.leases.delete(id);}};
+  }
   async withLease<T>(id:string,operation:()=>Promise<T>):Promise<T> {
-    this.assertIdle(id);this.leases.add(id);try{return await operation();}finally{this.leases.delete(id);}
+    const release=this.acquireLease(id);try{return await operation();}finally{release();}
   }
   private run<T>(data:Record<string,unknown>):Promise<T> {
     if(this.closed)return Promise.reject(new Error('Workspace is locked'));

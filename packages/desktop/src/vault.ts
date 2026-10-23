@@ -23,8 +23,10 @@ CREATE TABLE discard_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON 
 CREATE UNIQUE INDEX branch_names ON profiles(parentProfileId,branchName COLLATE NOCASE) WHERE parentProfileId IS NOT NULL AND status<>'deleting';
 PRAGMA user_version=3;`;
 
+export type BrowserProfileLease={directory:string;snapshotClosed:(browserVersion:string)=>Promise<Snapshot>;release:()=>void};
 export class Vault {
   private locked=false;
+  private browserOwners=new Set<string>();
   private recoveryBlocked=false;
   private states:StateStore;
   private branches:BranchManager;
@@ -90,7 +92,7 @@ export class Vault {
     try {vault=new Vault(db,key,root);await vault.recover();return vault;}
     catch(error) {if(vault)vault.close();else {db.close();key.fill(0);}throw new Error(`Browser-state recovery could not finish. Preserve profile folders and retry unlock: ${error instanceof Error?error.message:'unknown recovery error'}`);}
   }
-  close() {if(this.locked)return;this.states.close();this.db.close();this.key.fill(0);this.locked=true;}
+  close() {if(this.locked)return;if(this.browserOwners.size)throw new Error('Stop managed browser sessions before locking the workspace');this.states.close();this.db.close();this.key.fill(0);this.locked=true;}
   private guard() {
     if(this.locked)throw new Error('Workspace is locked');
     if(this.recoveryBlocked||this.db.prepare('SELECT 1 FROM restore_jobs UNION ALL SELECT 1 FROM discard_jobs LIMIT 1').get())throw new Error('Browser-state recovery is pending. Lock and reopen the workspace to retry.');
@@ -149,17 +151,33 @@ export class Vault {
       this.prune(profileId);
     })(); return this.get(profileId);
   }
-  private insertFullSnapshot(profile:Profile,id:string,trigger:Snapshot['trigger'],state:CapturedState) {
+  private insertFullSnapshot(profile:Profile,id:string,trigger:Snapshot['trigger'],state:CapturedState,browserVersion:string|null=null) {
     const config=profileConfiguration(profile);
-    this.db.prepare('INSERT INTO snapshots(id,profileId,timestamp,trigger,envelope,stateEnvelope,fileCount,stateBytes) VALUES(?,?,?,?,?,?,?,?)').run(id,profile.id,Date.now(),trigger,sealSnapshot(config,this.key,profile.id,id),state.envelope,state.fileCount,state.stateBytes);
+    this.db.prepare('INSERT INTO snapshots(id,profileId,timestamp,trigger,envelope,stateEnvelope,fileCount,stateBytes,browserVersion) VALUES(?,?,?,?,?,?,?,?,?)').run(id,profile.id,Date.now(),trigger,sealSnapshot(config,this.key,profile.id,id),state.envelope,state.fileCount,state.stateBytes,browserVersion);
+  }
+  private async captureClosedState(profile:Profile,trigger:Snapshot['trigger'],browserVersion:string|null=null):Promise<Snapshot> {
+    const id=randomUUID(),state=await this.states.capture(profile.id,id,this.key);this.guard();
+    this.db.transaction(()=>{this.insertFullSnapshot(profile,id,trigger,state,browserVersion);this.prune(profile.id);})();
+    return this.snapshots(profile.id).find(snapshot=>snapshot.id===id)!;
   }
   async saveStateSnapshot(profileId:string):Promise<Snapshot> {
     const profile=this.get(profileId);
-    return this.states.withLease(profileId,async()=>{
-      const id=randomUUID(),state=await this.states.capture(profileId,id,this.key);this.guard();
-      this.db.transaction(()=>{this.insertFullSnapshot(profile,id,'manual',state);this.prune(profileId);})();
-      return this.snapshots(profileId).find(snapshot=>snapshot.id===id)!;
-    });
+    return this.states.withLease(profileId,()=>this.captureClosedState(profile,'manual'));
+  }
+  async claimBrowser(profileId:string):Promise<BrowserProfileLease> {
+    const profile=this.get(profileId),releaseState=this.states.acquireLease(profileId);let active=true;
+    this.browserOwners.add(profileId);
+    const release=()=>{if(active){active=false;this.browserOwners.delete(profileId);releaseState();}};
+    try {
+      await this.states.assertClosedProfile(profileId);
+      await this.captureClosedState(profile,'pre_launch');
+      return {directory:this.states.ensureSync(profileId),release,snapshotClosed:async browserVersion=>{
+        if(!active)throw new Error('Browser ownership has ended');
+        if(!browserVersion||browserVersion.length>120)throw new Error('Invalid browser version');
+        await this.states.assertClosedProfile(profileId);
+        return this.captureClosedState(profile,'auto_close',browserVersion);
+      }};
+    }catch(error){release();throw error;}
   }
   async restoreSnapshot(profileId:string,snapshotId:string,expectedRevision?:number):Promise<Profile> {
     const profile=this.checkedProfile(profileId,expectedRevision);Id.parse(snapshotId);

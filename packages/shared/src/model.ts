@@ -26,7 +26,8 @@ export type SnapshotPreview={snapshot:Snapshot;currentRevision:number;changes:Co
 export type MergePreview={branch:Profile;parent:Profile;branchRevision:number;parentRevision:number;changes:ConfigChange[]};
 export const Revision=z.number().int().min(1).max(Number.MAX_SAFE_INTEGER);
 export const BranchName=z.string().trim().min(1).max(64).refine(value=>!/[\x00-\x1f]/.test(value),'Branch name cannot contain control characters');
-export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'|'fork'|'pre_merge'; pinned:boolean; size:number; hasBrowserState:boolean; fileCount:number; stateBytes:number; browserVersion:string|null};
+export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'|'fork'|'pre_merge'|'pre_launch'|'auto_close'; pinned:boolean; size:number; hasBrowserState:boolean; fileCount:number; stateBytes:number; browserVersion:string|null};
+export type ManagedSession={id:string;profileId:string;status:'launching'|'active'|'closing'|'stopped'|'crashed'|'failed';startedAt:number;pid?:number;browserVersion?:string;snapshotId?:string;exitCode?:number|null;error?:string};
 export const KdfParams = z.object({memoryMiB:z.union([z.literal(64),z.literal(256),z.literal(1024),z.literal(4096)]),iterations:z.literal(2)}).strict();
 export type KdfParameters = z.infer<typeof KdfParams>;
 export const Request = z.discriminatedUnion('action', [
@@ -48,6 +49,8 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('discardBranch'),id:Id,expectedRevision:Revision}).strict(),
   z.object({action:z.literal('pin'),id:Id,snapshotId:Id,pinned:z.boolean()}).strict(),
   z.object({action:z.literal('launch'),id:Id}).strict(),
+  z.object({action:z.literal('sessions')}).strict(),
+  z.object({action:z.literal('closeSession'),id:Id}).strict(),
 ]);
 export type RequestType = z.input<typeof Request>;
 export type WorkspaceStatus = {exists:boolean; unlocked:boolean; routing:{status:'blocked'; message:string}; browserVersion:string; platform:string};

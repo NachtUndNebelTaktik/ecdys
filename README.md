@@ -1,6 +1,6 @@
 # Styg
 
-Desktop session and profile management. This is the Styg 0.3 branches and recovery preview, not the full v1.0 blueprint.
+Desktop session and profile management. This is the Styg 0.4 managed-session core preview, not the full v1.0 blueprint.
 
 ## What works
 
@@ -11,9 +11,10 @@ Desktop session and profile management. This is the Styg 0.3 branches and recove
 - Configuration diffs before restore, revision-checked confirmations, and independent branches with copied files/history and a pinned fork point.
 - Environment-setting merges with parent rollback, promotion to standalone, and recoverable branch discard.
 - Random AES-256-GCM snapshot keys wrapped by a master-derived key, authenticated snapshot/profile identity, gzip level 9, pinning and retention of 20 unpinned snapshots.
+- Internal managed Chromium lifecycle with private DevTools pipes, exclusive profile ownership, automatic closed-state snapshots and crash cleanup; exercised by local fixture tests.
 - A backend/UI block on unverified networked launches and a Linux routing laboratory.
 
-**Browser session launch, VPN integration, fingerprint injection, billing and team services are not implemented yet.** Timezone, screen size and language are saved settings, not browser overrides. Closed browser-directory bytes can be archived/restored, but actual Chromium cookie/IndexedDB recovery is not yet verified. OS-protected cookies need the same OS account and compatible build.
+**Normal browser launches remain disabled until a verified route supervisor and browser distribution are available.** VPN integration, fingerprint injection, billing and team services are not implemented yet. Timezone, screen size and language are saved settings, not browser overrides. Real Chromium recovery tests restore persistent cookies, localStorage and IndexedDB on Linux with the same build/account and a test basic password store. OS-protected/cross-device cookies, tab history and sessionStorage recovery remain unverified.
 
 ## Run
 
@@ -48,7 +49,7 @@ pnpm test:desktop
 
 The optional maximum-size round trip and branch rebinding check runs with `STYG_LARGE_STATE_TEST=1 pnpm test tests/state-large.test.ts`.
 
-The browser test defaults to `/usr/bin/chromium`; override with `STYG_TEST_CHROMIUM`. The desktop test runs the actual application with a temporary workspace. It uses headless Ozone and disables the sandbox only for the constrained test executor. Normal launch commands never disable the sandbox.
+The backend real-browser recovery test and browser preview expect Linux Chromium. Tests default to `/usr/bin/chromium`; override with `STYG_TEST_CHROMIUM`. The desktop test runs the actual application with a temporary workspace. It uses headless Ozone and disables the sandbox only for the constrained test executor. Normal launch commands never disable the sandbox.
 
 Native database builds worked under both Node and Electron here. If another platform reports an ABI mismatch, run `pnpm native:electron` for Electron or `pnpm native:node` before Node tests.
 
@@ -62,7 +63,7 @@ sudo node scripts/routing-proof.mjs --run
 
 Exit 2 means prerequisites are missing, not that isolation passed. The lab uses simulated tunnel interfaces and checks IPv4/IPv6 HTTP, UDP and DNS, usable fallback controls and repeated disconnect blocking. Its privileged run remains unvalidated here; real loopback tests validate the probes only. It is not a provider VPN or full browser validation. A lab pass never enables launches.
 
-See [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [current implementation plan](docs/superpowers/plans/2026-10-23-branches-and-previews.md).
+See [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [current implementation plan](docs/superpowers/plans/2026-10-23-managed-session-core.md).
 
 ## Security boundaries
 
