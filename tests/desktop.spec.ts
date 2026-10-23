@@ -1,0 +1,62 @@
+import {test,expect,_electron as electron} from '@playwright/test';
+import {mkdtemp,rm,mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+
+test('real Electron workspace creates, edits, restores, locks and reopens persisted profiles',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'styg-desktop-'));
+  const config=join(root,'config'); await mkdir(config);
+  let application:Awaited<ReturnType<typeof electron.launch>>|undefined;
+  const launch=()=>electron.launch({args:['--no-sandbox','--ozone-platform=headless','--disable-gpu','.'],cwd:process.cwd(),env:{...process.env,XDG_CONFIG_HOME:config}});
+  try {
+    application=await launch(); const page=await application.firstWindow();
+    const userData=await application.evaluate(({app})=>app.getPath('userData'));
+    expect(userData.startsWith(config)).toBe(true);
+    await expect(page.getByRole('button',{name:'Create encrypted workspace'})).toBeEnabled();
+    await page.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
+    await page.getByLabel('Confirm passphrase').fill('test-only passphrase for Styg');
+    await page.getByText('Key derivation settings').click();
+    await page.getByLabel('Argon2id memory').selectOption('64');
+    await page.getByRole('button',{name:'Create encrypted workspace'}).click();
+    await expect(page.getByRole('button',{name:'＋ New profile'})).toBeVisible();
+    await page.getByRole('button',{name:'＋ New profile'}).click();
+    const dialog=page.getByRole('dialog');
+    await dialog.getByLabel('Profile name').fill('Research — Europe');
+    await dialog.getByLabel('Tags').fill('research, test');
+    await dialog.getByLabel('Timezone').fill('Europe/Berlin');
+    await dialog.getByRole('button',{name:'Create profile'}).click();
+    await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
+    await expect(page.getByRole('button',{name:'Launch blocked'})).toBeDisabled();
+    // Direct IPC must enforce the gate as well as the UI.
+    const launchResult=await page.evaluate(async()=>{
+      const result=await window.styg!.invoke<any[]>({action:'profiles'});
+      if(!result.ok)throw new Error(result.error);
+      return window.styg!.invoke({action:'launch',id:result.value[0].id});
+    });
+    expect(launchResult.ok).toBe(false);
+    await page.getByRole('button',{name:'Edit profile'}).click();
+    await dialog.getByLabel('Profile name').fill('Temporary experiment');
+    await dialog.getByLabel('Timezone').fill('UTC');
+    await dialog.getByRole('button',{name:'Save changes'}).click();
+    await expect(page.locator('.profile-card h2')).toHaveText('Temporary experiment');
+    await page.locator('.timeline-item').filter({has:page.getByText('baseline',{exact:true})}).getByRole('button',{name:'Restore'}).click();
+    await page.getByRole('button',{name:'Restore configuration'}).click();
+    await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
+    await expect(page.locator('.profile-card').getByText('Europe/Berlin')).toBeVisible();
+    await page.evaluate(()=>window.scrollTo(0,0));
+    await page.screenshot({path:'test-results/styg-workspace.png',fullPage:true});
+    await page.getByRole('button',{name:'Lock workspace'}).click();
+    await expect(page.getByRole('heading',{name:'Unlock Styg'})).toBeVisible();
+    await expect(page.getByText('Research — Europe',{exact:true})).toHaveCount(0);
+    await page.getByLabel('Workspace passphrase',{exact:true}).fill('incorrect passphrase');
+    await page.getByRole('button',{name:/^Unlock workspace/}).click();
+    await expect(page.getByRole('alert')).toContainText('Unable to unlock');
+    await application.close(); application=undefined;
+    application=await launch(); const reopened=await application.firstWindow();
+    await expect(reopened.getByRole('heading',{name:'Unlock Styg'})).toBeVisible();
+    await reopened.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
+    await reopened.getByRole('button',{name:/^Unlock workspace/}).click();
+    await expect(reopened.locator('.profile-card h2')).toHaveText('Research — Europe');
+    await expect(reopened.getByText('pre restore',{exact:true})).toBeVisible();
+  } finally {await application?.close();await rm(root,{recursive:true,force:true});}
+});
