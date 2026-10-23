@@ -21,7 +21,7 @@ export const ProfilePatch = ProfileFields.partial();
 export type ProfileInputType = z.input<typeof ProfileInput>;
 export type ProfileConfig = z.output<typeof ProfileInput>;
 export type Profile = ProfileConfig & {id:string; createdAt:number; updatedAt:number};
-export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'; pinned:boolean; size:number};
+export type Snapshot = {id:string; profileId:string; timestamp:number; trigger:'baseline'|'pre_edit'|'pre_restore'|'manual'; pinned:boolean; size:number; hasBrowserState:boolean; fileCount:number; stateBytes:number; browserVersion:string|null};
 export const KdfParams = z.object({memoryMiB:z.union([z.literal(64),z.literal(256),z.literal(1024),z.literal(4096)]),iterations:z.literal(2)}).strict();
 export type KdfParameters = z.infer<typeof KdfParams>;
 export const Request = z.discriminatedUnion('action', [
@@ -33,6 +33,7 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('createProfile'),input:ProfileInput}).strict(),
   z.object({action:z.literal('updateProfile'),id:Id,input:ProfilePatch}).strict(),
   z.object({action:z.literal('snapshots'),id:Id}).strict(),
+  z.object({action:z.literal('saveStateSnapshot'),id:Id}).strict(),
   z.object({action:z.literal('restore'),id:Id,snapshotId:Id}).strict(),
   z.object({action:z.literal('pin'),id:Id,snapshotId:Id,pinned:z.boolean()}).strict(),
   z.object({action:z.literal('launch'),id:Id}).strict(),

@@ -29,7 +29,8 @@ async function handle(raw:unknown):Promise<unknown> {
     case 'createProfile': return active.createProfile(request.input);
     case 'updateProfile': return active.updateProfile(request.id,request.input);
     case 'snapshots': return active.snapshots(request.id);
-    case 'restore': return active.restore(request.id,request.snapshotId);
+    case 'saveStateSnapshot': return active.saveStateSnapshot(request.id);
+    case 'restore': return active.restoreSnapshot(request.id,request.snapshotId);
     case 'pin': active.pin(request.id,request.snapshotId,request.pinned); return null;
     case 'launch': assertRouteReady();
   }

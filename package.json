@@ -1,8 +1,8 @@
 {
   "name": "styg",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Styg desktop session and profile manager \u2014 foundation",
+  "description": "Styg desktop session and profile manager \u2014 closed-state recovery",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@11.25.0",
   "engines": {

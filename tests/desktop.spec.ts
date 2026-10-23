@@ -1,5 +1,5 @@
 import {test,expect,_electron as electron} from '@playwright/test';
-import {mkdtemp,rm,mkdir} from 'node:fs/promises';
+import {mkdtemp,rm,mkdir,writeFile,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -27,6 +27,13 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await dialog.getByRole('button',{name:'Create profile'}).click();
     await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
     await expect(page.getByRole('button',{name:'Launch blocked'})).toBeDisabled();
+    await expect(page.getByRole('button',{name:'Save browser state'})).toBeEnabled();
+    const profileResult=await page.evaluate(()=>window.styg!.invoke<{id:string}[]>({action:'profiles'}));
+    if(!profileResult.ok)throw new Error(profileResult.error);
+    const browser=join(userData,'workspace','profiles',profileResult.value[0].id,'browser');
+    await writeFile(join(browser,'Preferences'),'baseline browser bytes');
+    await page.getByRole('button',{name:'Save browser state'}).click();
+    await expect(page.getByText('Config + browser state · 1 file',{exact:true})).toBeVisible();
     // Direct IPC must enforce the gate as well as the UI.
     const launchResult=await page.evaluate(async()=>{
       const result=await window.styg!.invoke<any[]>({action:'profiles'});
@@ -39,6 +46,12 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await dialog.getByLabel('Timezone').fill('UTC');
     await dialog.getByRole('button',{name:'Save changes'}).click();
     await expect(page.locator('.profile-card h2')).toHaveText('Temporary experiment');
+    await writeFile(join(browser,'Preferences'),'changed browser bytes');
+    await page.locator('.timeline-item').filter({has:page.getByText('manual',{exact:true})}).getByRole('button',{name:'Restore'}).click();
+    await expect(page.getByRole('heading',{name:'Restore configuration and browser state?'})).toBeVisible();
+    await page.getByRole('button',{name:'Restore profile and state'}).click();
+    await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
+    expect(await readFile(join(browser,'Preferences'),'utf8')).toBe('baseline browser bytes');
     await page.locator('.timeline-item').filter({has:page.getByText('baseline',{exact:true})}).getByRole('button',{name:'Restore'}).click();
     await page.getByRole('button',{name:'Restore configuration'}).click();
     await expect(page.locator('.profile-card h2')).toHaveText('Research — Europe');
@@ -57,6 +70,6 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await reopened.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
     await reopened.getByRole('button',{name:/^Unlock workspace/}).click();
     await expect(reopened.locator('.profile-card h2')).toHaveText('Research — Europe');
-    await expect(reopened.getByText('pre restore',{exact:true})).toBeVisible();
+    await expect(reopened.getByText('pre restore',{exact:true}).first()).toBeVisible();
   } finally {await application?.close();await rm(root,{recursive:true,force:true});}
 });

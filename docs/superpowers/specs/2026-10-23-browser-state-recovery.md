@@ -1,0 +1,13 @@
+# Styg closed browser-state recovery
+
+Continue the approved recovery-first desktop blueprint. This increment implements separate profile browser directories, encrypted snapshots of closed directories, explicit snapshot contents, restore rollback/recovery, and a manual snapshot UI. Actual networked browser launch remains blocked by the existing routing gate.
+
+Use the encrypted database for both configuration and encrypted state envelopes so snapshot insertion/pruning remains transactional. Archives are versioned, bounded manifests of regular files and directories, compressed at gzip level 9 and protected by random wrapped AES-256-GCM keys bound to profile/snapshot identity and purpose. File scanning, compression, encryption, validation and extraction run in a worker. Limit the first implementation to 64 MiB of raw files and 4096 entries; higher quotas require a streaming format later.
+
+Reject live-browser lock markers, symlinks, hardlinks, special files, unsafe paths, duplicate paths, and directory changes during capture. There is no legitimate browser launch yet, but those checks are necessary before future integration. An arbitrary hostile process running as the same OS user is outside this guarantee.
+
+State restore authenticates and validates the entire archive before staging files. Persist a restore journal in the same SQLite transaction as configuration changes and the pre-restore rollback snapshot. Swap only closed profile directories. After an interruption, reopen must finish the recorded operation before making profiles available. Never delete old files before the replacement has been installed and identified. Missing/inconsistent recovery artifacts block access with an actionable error.
+
+Existing configuration-only snapshots remain readable and do not replace browser files. State snapshots capture configuration plus directory bytes; restoration preserves a full pre-restore snapshot. New profiles get private directories; existing profiles acquire directories during unlock. Live browser directories and restore staging are ordinary files, while database and archived snapshots are encrypted. OS-bound Chromium cookie keys mean restoration is supported only on the same OS account and compatible browser build until separately validated.
+
+Implementation choices: retain the current Electron/Solid/TypeScript structure and current immutable route gate; use encrypted SQLite BLOBs rather than introducing a filesystem snapshot index; use a bounded manifest rather than introducing tar extraction. The app must distinguish configuration-only and configuration-plus-browser-state snapshots and label empty directories accurately.

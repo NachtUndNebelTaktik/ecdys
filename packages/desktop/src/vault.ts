@@ -4,20 +4,42 @@ import { mkdir, readFile, writeFile, access, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { Id, KdfParams, ProfileInput, ProfilePatch, type KdfParameters, type Profile, type ProfileInputType, type Snapshot } from '../../shared/src/model';
+import { StateStore, type CapturedState } from './state-store';
 import { deriveMasterKey, openSnapshot, sealSnapshot } from './crypto';
 
 const Metadata=z.object({version:z.literal(1),salt:z.string().regex(/^[a-f0-9]{64}$/),kdf:KdfParams}).strict();
 const passphraseSchema=z.string().min(12).max(1024);
 const schema=`
 CREATE TABLE profiles(id TEXT PRIMARY KEY, config TEXT NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
-CREATE TABLE snapshots(seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, profileId TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, timestamp INTEGER NOT NULL, trigger TEXT NOT NULL, pinned INTEGER NOT NULL DEFAULT 0, envelope BLOB NOT NULL);
+CREATE TABLE snapshots(seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, profileId TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, timestamp INTEGER NOT NULL, trigger TEXT NOT NULL, pinned INTEGER NOT NULL DEFAULT 0, envelope BLOB NOT NULL, stateEnvelope BLOB, fileCount INTEGER NOT NULL DEFAULT 0, stateBytes INTEGER NOT NULL DEFAULT 0, browserVersion TEXT);
 CREATE INDEX snapshots_profile ON snapshots(profileId,seq);
 CREATE TRIGGER profile_limit BEFORE INSERT ON profiles WHEN (SELECT COUNT(*) FROM profiles)>=99 BEGIN SELECT RAISE(ABORT,'Maximum 99 profiles'); END;
-PRAGMA user_version=1;`;
+CREATE TABLE restore_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE, operationId TEXT NOT NULL);
+PRAGMA user_version=2;`;
 
 export class Vault {
   private locked=false;
-  private constructor(private db:Database.Database,private key:Buffer) {}
+  private recoveryBlocked=false;
+  private states:StateStore;
+  private constructor(private db:Database.Database,private key:Buffer,root:string) {this.states=new StateStore(root);}
+  private static migrate(db:Database.Database) {
+    const version=db.pragma('user_version',{simple:true});
+    if(version===1)db.transaction(()=>{
+      db.exec('ALTER TABLE snapshots ADD COLUMN stateEnvelope BLOB; ALTER TABLE snapshots ADD COLUMN fileCount INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN stateBytes INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN browserVersion TEXT; CREATE TABLE restore_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL); PRAGMA user_version=2;');
+    })();
+    else if(version!==2)throw new Error('Unsupported workspace version');
+  }
+  private async recover() {
+    const jobs=this.db.prepare('SELECT profileId,operationId FROM restore_jobs').all() as {profileId:string;operationId:string}[];
+    for(const job of jobs) {
+      await this.states.finishRestore(job.profileId,job.operationId);
+      this.db.prepare('DELETE FROM restore_jobs WHERE profileId=?').run(job.profileId);
+      await this.states.cleanupRestore(job.profileId,job.operationId);
+    }
+    for(const {id} of this.db.prepare('SELECT id FROM profiles').all() as {id:string}[]) {
+      await this.states.cleanupCompletedMarker(id);await this.states.cleanupAbandonedStages(id);
+    }
+  }
   static async exists(root:string) { try { await access(root); return true; } catch(error) { if((error as NodeJS.ErrnoException).code==='ENOENT') return false; throw error; } }
   private static connect(file:string,key:Buffer,existing:boolean) {
     const db=new Database(file,{fileMustExist:existing});
@@ -38,7 +60,7 @@ export class Vault {
       await mkdir(root,{mode:0o700}); owned=true;
       db=Vault.connect(join(root,'workspace.db'),key,false); db.exec(schema);
       await writeFile(join(root,'workspace.json'),JSON.stringify({version:1,salt:salt.toString('hex'),kdf:params}),{flag:'wx',mode:0o600});
-      return new Vault(db,key);
+      return new Vault(db,key,root);
     } catch(error) { db?.close(); key.fill(0); if(owned) await rm(root,{recursive:true,force:true}); throw error; }
   }
   static async open(root:string,passphrase:string):Promise<Vault> {
@@ -50,12 +72,17 @@ export class Vault {
     let db:Database.Database|undefined;
     try {
       db=Vault.connect(join(root,'workspace.db'),key,true);
-      if(db.pragma('user_version',{simple:true})!==1) throw new Error('Unsupported workspace version');
-      db.prepare('SELECT count(*) FROM profiles').get(); return new Vault(db,key);
-    } catch { db?.close(); key.fill(0); throw new Error('Unable to unlock workspace. Check the passphrase and workspace files.'); }
+      Vault.migrate(db);db.prepare('SELECT count(*) FROM profiles').get();
+    } catch {db?.close();key.fill(0);throw new Error('Unable to unlock workspace. Check the passphrase and workspace files.');}
+    let vault:Vault|undefined;
+    try {vault=new Vault(db,key,root);await vault.recover();return vault;}
+    catch(error) {if(vault)vault.close();else {db.close();key.fill(0);}throw new Error(`Browser-state recovery could not finish. Preserve profile folders and retry unlock: ${error instanceof Error?error.message:'unknown recovery error'}`);}
   }
-  close() { if(this.locked) return; this.db.close(); this.key.fill(0); this.locked=true; }
-  private guard() { if(this.locked) throw new Error('Workspace is locked'); }
+  close() {if(this.locked)return;this.states.close();this.db.close();this.key.fill(0);this.locked=true;}
+  private guard() {
+    if(this.locked)throw new Error('Workspace is locked');
+    if(this.recoveryBlocked||this.db.prepare('SELECT 1 FROM restore_jobs LIMIT 1').get())throw new Error('Browser-state recovery is pending. Lock and reopen the workspace to retry.');
+  }
   private get(id:string):Profile {
     this.guard(); Id.parse(id);
     const row=this.db.prepare('SELECT * FROM profiles WHERE id=?').get(id) as {id:string;config:string;createdAt:number;updatedAt:number}|undefined;
@@ -68,13 +95,16 @@ export class Vault {
   }
   createProfile(input:ProfileInputType):Profile {
     this.guard(); const config=ProfileInput.parse(input); const id=randomUUID(); const now=Date.now();
-    this.db.transaction(()=>{
+    if((this.db.prepare('SELECT COUNT(*) AS count FROM profiles').get() as {count:number}).count>=99)throw new Error('Maximum 99 profiles');
+    this.states.ensureSync(id);
+    try {this.db.transaction(()=>{
       this.db.prepare('INSERT INTO profiles VALUES(?,?,?,?)').run(id,JSON.stringify(config),now,now);
       this.capture(id,'baseline');
-    })(); return this.get(id);
+    })();}catch(error){try{this.states.removeEmptyProfileSync(id);}catch{}throw error;}
+    return this.get(id);
   }
   updateProfile(id:string,input:z.input<typeof ProfilePatch>):Profile {
-    const current=this.get(id); const patch=ProfilePatch.parse(input);
+    this.states.assertIdle(id);const current=this.get(id); const patch=ProfilePatch.parse(input);
     const {id:_,createdAt:__,updatedAt:___,...previous}=current;
     const config=ProfileInput.parse({...previous,...patch});
     this.db.transaction(()=>{
@@ -93,12 +123,13 @@ export class Vault {
   }
   snapshots(id:string):Snapshot[] {
     this.get(id);
-    return (this.db.prepare('SELECT id,profileId,timestamp,trigger,pinned,length(envelope) AS size FROM snapshots WHERE profileId=? ORDER BY seq DESC').all(id) as (Omit<Snapshot,'pinned'>&{pinned:number})[]).map(row=>({...row,pinned:!!row.pinned}));
+    return (this.db.prepare('SELECT id,profileId,timestamp,trigger,pinned,length(envelope)+COALESCE(length(stateEnvelope),0) AS size,(stateEnvelope IS NOT NULL) AS hasBrowserState,fileCount,stateBytes,browserVersion FROM snapshots WHERE profileId=? ORDER BY seq DESC').all(id) as (Omit<Snapshot,'pinned'>&{pinned:number})[]).map(row=>({...row,pinned:!!row.pinned,hasBrowserState:!!row.hasBrowserState}));
   }
   restore(profileId:string,snapshotId:string):Profile {
-    this.get(profileId); Id.parse(snapshotId);
-    const row=this.db.prepare('SELECT envelope FROM snapshots WHERE id=? AND profileId=?').get(snapshotId,profileId) as {envelope:Buffer}|undefined;
+    this.states.assertIdle(profileId);this.get(profileId); Id.parse(snapshotId);
+    const row=this.db.prepare('SELECT envelope,stateEnvelope FROM snapshots WHERE id=? AND profileId=?').get(snapshotId,profileId) as {envelope:Buffer;stateEnvelope:Buffer|null}|undefined;
     if(!row) throw new Error('Snapshot not found for this profile');
+    if(row.stateEnvelope)throw new Error('Browser-state snapshots require restoreSnapshot');
     const config=ProfileInput.parse(openSnapshot(row.envelope,this.key,profileId,snapshotId));
     this.db.transaction(()=>{
       this.capture(profileId,'pre_restore');
@@ -106,8 +137,47 @@ export class Vault {
       this.prune(profileId);
     })(); return this.get(profileId);
   }
+  private insertFullSnapshot(profile:Profile,id:string,trigger:Snapshot['trigger'],state:CapturedState) {
+    const {id:_,createdAt:__,updatedAt:___,...config}=profile;
+    this.db.prepare('INSERT INTO snapshots(id,profileId,timestamp,trigger,envelope,stateEnvelope,fileCount,stateBytes) VALUES(?,?,?,?,?,?,?,?)').run(id,profile.id,Date.now(),trigger,sealSnapshot(config,this.key,profile.id,id),state.envelope,state.fileCount,state.stateBytes);
+  }
+  async saveStateSnapshot(profileId:string):Promise<Snapshot> {
+    const profile=this.get(profileId);
+    return this.states.withLease(profileId,async()=>{
+      const id=randomUUID(),state=await this.states.capture(profileId,id,this.key);this.guard();
+      this.db.transaction(()=>{this.insertFullSnapshot(profile,id,'manual',state);this.prune(profileId);})();
+      return this.snapshots(profileId).find(snapshot=>snapshot.id===id)!;
+    });
+  }
+  async restoreSnapshot(profileId:string,snapshotId:string):Promise<Profile> {
+    const profile=this.get(profileId);Id.parse(snapshotId);
+    const row=this.db.prepare('SELECT envelope,stateEnvelope FROM snapshots WHERE id=? AND profileId=?').get(snapshotId,profileId) as {envelope:Buffer;stateEnvelope:Buffer|null}|undefined;
+    if(!row)throw new Error('Snapshot not found for this profile');
+    if(!row.stateEnvelope)return this.restore(profileId,snapshotId);
+    const config=ProfileInput.parse(openSnapshot(row.envelope,this.key,profileId,snapshotId));
+    return this.states.withLease(profileId,async()=>{
+      const operationId=randomUUID();let committed=false;
+      try {
+        await this.states.stage(profileId,operationId,snapshotId,row.stateEnvelope!,this.key);
+        const rollbackId=randomUUID(),rollback=await this.states.capture(profileId,rollbackId,this.key);this.guard();
+        this.db.transaction(()=>{
+          this.insertFullSnapshot(profile,rollbackId,'pre_restore',rollback);
+          this.db.prepare('UPDATE profiles SET config=?,updatedAt=? WHERE id=?').run(JSON.stringify(config),Date.now(),profileId);
+          this.db.prepare('INSERT INTO restore_jobs(profileId,operationId) VALUES(?,?)').run(profileId,operationId);this.prune(profileId);
+        })();committed=true;
+        await this.states.finishRestore(profileId,operationId);
+        this.db.prepare('DELETE FROM restore_jobs WHERE profileId=?').run(profileId);
+        await this.states.cleanupRestore(profileId,operationId);
+        return this.get(profileId);
+      }catch(error) {
+        if(!committed){await this.states.discardStage(profileId,operationId);throw error;}
+        this.recoveryBlocked=true;
+        throw new Error(`Browser-state recovery is pending. Lock and reopen the workspace to retry: ${error instanceof Error?error.message:'restore interrupted'}`);
+      }
+    });
+  }
   pin(profileId:string,snapshotId:string,pinned:boolean) {
-    this.get(profileId); Id.parse(snapshotId); z.boolean().parse(pinned);
+    this.states.assertIdle(profileId);this.get(profileId); Id.parse(snapshotId); z.boolean().parse(pinned);
     this.db.transaction(()=>{
       const result=this.db.prepare('UPDATE snapshots SET pinned=? WHERE id=? AND profileId=?').run(pinned?1:0,snapshotId,profileId);
       if(!result.changes) throw new Error('Snapshot not found');

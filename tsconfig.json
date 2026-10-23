@@ -22,7 +22,8 @@
       "better-sqlite3-multiple-ciphers": [
         "./node_modules/better-sqlite3-multiple-ciphers/index.d.ts"
       ]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": [
     "packages",
