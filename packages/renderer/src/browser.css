@@ -48,6 +48,26 @@
   --browser-card: #21261b;
   --control-bg: #1c2117;
 }
+:root[data-ui-theme='crimson'] {
+  color-scheme: dark;
+  --bg: #120d11;
+  --panel: #1a1218;
+  --border: #422a36;
+  --muted: #c7a7b4;
+  --text: #f5e8ed;
+  --accent-ink: #2a101a;
+  --browser-bg: #1c1319;
+  --browser-chrome: #291921;
+  --browser-page: #170f15;
+  --browser-border: #53323f;
+  --browser-field: #21151c;
+  --browser-text: #f5e8ed;
+  --browser-muted: #c7a7b4;
+  --browser-faint: #a2818f;
+  --browser-card: #281a22;
+  --browser-shadow: #07020580;
+  --control-bg: #251820;
+}
 .night-filter {
   position: fixed;
   inset: 0;
@@ -817,7 +837,8 @@
   border: 0;
   padding: 0;
   margin: 22px 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 .accent-options legend {
@@ -1187,6 +1208,182 @@
 :root[data-ui-theme='night']
   :is(.sidebar, .topbar, .inspector, .settings-panel, .diagnostic, .pool-sidebar, .modal) {
   background-color: #171b14;
+}
+:root[data-ui-theme='crimson']
+  :is(
+    .sidebar,
+    .topbar,
+    .inspector,
+    .settings-panel,
+    .diagnostic,
+    .route-table,
+    .route-profile-table,
+    .pool-sidebar,
+    .modal,
+    .vault-form-wrap,
+    .vault-story
+  ) {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+:root[data-ui-theme='crimson']
+  :is(
+    .workspace-label,
+    .metric,
+    .profile-card,
+    .endpoint-card,
+    .route-controls,
+    .note-panel,
+    .local-note,
+    .route-observation-note,
+    .import-preview,
+    .table-head
+  ) {
+  background: var(--browser-bg);
+  border-color: var(--border);
+}
+:root[data-ui-theme='crimson'] .foundation-banner {
+  background: color-mix(in srgb, var(--accent), transparent 96%);
+  border-color: var(--browser-border);
+}
+:root[data-ui-theme='crimson']
+  :is(
+    .nav-item.active,
+    .collection.selected,
+    .tag-nav.selected,
+    .pool-choice.selected,
+    .selected-card,
+    .route-profile-row.selected
+  ) {
+  background: color-mix(in srgb, var(--accent), var(--panel) 90%);
+  border-color: color-mix(in srgb, var(--accent), var(--border) 60%);
+  color: var(--text);
+}
+:root[data-ui-theme='crimson'] :is(.nav-item:hover, .profile-card:hover) {
+  background: var(--browser-card);
+  border-color: color-mix(in srgb, var(--accent), var(--border) 60%);
+}
+:root[data-ui-theme='crimson']
+  :is(.profile-icon, .avatar, .nav-count, .card-tags > span, .empty-symbol) {
+  background: color-mix(in srgb, var(--accent), var(--panel) 90%);
+  border-color: var(--browser-border);
+  color: var(--accent);
+}
+:root[data-ui-theme='crimson']
+  :is(input, select, textarea):not(
+    .browser-address input,
+    .browser-search input,
+    [type='range'],
+    [type='checkbox']
+  ) {
+  background: var(--control-bg);
+  border-color: var(--browser-border);
+  color: var(--text);
+}
+:root[data-ui-theme='crimson'] :is(input, select, textarea):focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), transparent 90%);
+}
+:root[data-ui-theme='crimson'] :is(input, textarea)::placeholder {
+  color: var(--browser-faint);
+}
+:root[data-ui-theme='crimson'] .button:not(.primary) {
+  background: var(--browser-card);
+  border-color: var(--browser-border);
+}
+:root[data-ui-theme='crimson'] .button:hover:not(:disabled, .primary) {
+  background: color-mix(in srgb, var(--accent), var(--browser-card) 92%);
+}
+:root[data-ui-theme='crimson']
+  :is(
+    label,
+    .stamp,
+    .muted,
+    .tiny,
+    .text-button,
+    .icon-button,
+    .nav-item,
+    .nav-symbol,
+    .collection,
+    .tag-nav,
+    .vault-state,
+    .page-heading p,
+    .metric p,
+    .card-folder,
+    .card-route,
+    .route-host,
+    .inspector dl dt,
+    .breadcrumbs,
+    .field-help,
+    .settings-panel dt,
+    .note-panel p,
+    .pool-header p,
+    .pool-footnote,
+    .pool-hint,
+    .endpoint-auth,
+    .endpoint-meta > span,
+    .route-controls label,
+    .route-section-heading p,
+    .table-head,
+    .table-row > span,
+    .snapshot-main time,
+    .snapshot-main p,
+    .foundation-banner div span,
+    .vault-form p,
+    .vault-story p,
+    .route-observation-note p,
+    .tunnel-report p,
+    .tunnel-report time,
+    .workspace-label small,
+    .local-note small,
+    .profile-card footer > span,
+    .route-profile-row small,
+    .assigned-route span,
+    .recovery-count
+  ) {
+  color: var(--muted);
+}
+:root[data-ui-theme='crimson']
+  :is(
+    .metric-number,
+    .breadcrumbs strong,
+    .foundation-banner strong,
+    .endpoint-address,
+    .settings-panel dd,
+    .inspector dl dd,
+    .snapshot-label strong,
+    .route-profile-row strong,
+    .assigned-route strong,
+    .table-row strong,
+    .confirmation-copy,
+    .route-observation-note strong,
+    .note-panel strong,
+    .note-panel h3,
+    .local-note
+  ) {
+  color: var(--text);
+}
+:root[data-ui-theme='crimson']
+  :is(.version, .page-footer, .sidebar-hint, .collection span, .tag-nav > span) {
+  color: var(--browser-faint);
+}
+:root[data-ui-theme='crimson']
+  :is(.nav-item.active .nav-symbol, .foundation-banner button, .banner-icon, .text-button:hover) {
+  color: var(--accent);
+}
+:root[data-ui-theme='crimson'] :is(.profile-card footer, .card-route, .snapshot-row) {
+  border-color: var(--border);
+}
+:root[data-ui-theme='crimson'] .timeline-dot {
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 5px var(--bg);
+}
+:root[data-ui-theme='crimson'] .pill.green {
+  color: #b4d1a2;
+  border-color: #40523a;
+  background: #19271d;
 }
 @media (max-width: 1250px) {
   .interface-settings {

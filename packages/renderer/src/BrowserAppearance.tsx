@@ -44,14 +44,16 @@ export function AppearanceControls(props: {
         <select
           aria-label="Interface theme"
           value={props.preferences.theme}
-          onChange={(event) =>
-            props.update({theme: event.currentTarget.value as Appearance['theme']})
-          }
+          onChange={(event) => {
+            const theme = event.currentTarget.value as Appearance['theme'];
+            props.update({theme, ...(theme === 'crimson' ? {accent: 'crimson'} : {})});
+          }}
         >
           <option value="light">Light</option>
           <option value="dark">Dark</option>
           <option value="system">System</option>
           <option value="night">Night · warm filter</option>
+          <option value="crimson">Crimson</option>
         </select>
       </label>
       <Show when={props.preferences.theme === 'system'}>
@@ -74,7 +76,7 @@ export function AppearanceControls(props: {
       </Show>
       <fieldset class="accent-options">
         <legend>Accent color</legend>
-        <For each={['sage', 'ice', 'copper'] as const}>
+        <For each={['sage', 'ice', 'copper', 'crimson'] as const}>
           {(accent) => (
             <button
               type="button"

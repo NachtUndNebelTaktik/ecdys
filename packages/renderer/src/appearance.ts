@@ -1,9 +1,9 @@
 import {z, type Profile} from '@ecdys/shared';
 
 const AppearanceSchema = z.object({
-  theme: z.enum(['dark', 'light', 'system', 'night']).default('dark'),
+  theme: z.enum(['dark', 'light', 'system', 'night', 'crimson']).default('dark'),
   nightWarmth: z.number().int().min(0).max(80).default(45),
-  accent: z.enum(['sage', 'ice', 'copper']).default('sage'),
+  accent: z.enum(['sage', 'ice', 'copper', 'crimson']).default('sage'),
   radius: z.number().int().min(0).max(32).default(24),
   density: z.enum(['comfortable', 'compact']).default('comfortable'),
   textSize: z.number().int().min(12).max(18).default(14),
@@ -19,6 +19,7 @@ export const accentColors = {
   sage: {dark: '#c4ef91', light: '#466a35'},
   ice: {dark: '#a6cfff', light: '#32699d'},
   copper: {dark: '#efba95', light: '#96582e'},
+  crimson: {dark: '#f47793', light: '#ad2448'},
 };
 export function orderProfiles(profiles: Profile[], order: Appearance['profileOrder']): Profile[] {
   return [...profiles].sort((a, b) => {
