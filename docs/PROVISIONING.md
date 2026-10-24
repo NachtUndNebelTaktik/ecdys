@@ -1,5 +1,7 @@
 # Styg 0.6 — provider registration and WireGuard preparation
 
+Stability patch 0.6.1 fixes stale provider approval, removal/reopen races and dismissed-dialog messages. It preserves schema v5 and the blocked launch boundary.
+
 This chapter adds Mullvad/IVPN account checks and provider-side WireGuard registration. **It does not activate a tunnel, modify host routes/firewalls or enable browser launches.** Protocol fixtures pass; no real provider account has been authenticated here.
 
 ## Desktop flow
@@ -12,6 +14,8 @@ This chapter adds Mullvad/IVPN account checks and provider-side WireGuard regist
 
 Registration is a workspace-level action and takes effect independently of Save/Cancel for profile settings. It may consume one provider slot even with no tunnel running. Concurrent profile sessions, provider connection limits and per-profile OS routes still need validation; this release does not promise 99 independent VPN tunnels.
 
+**Recheck provider** has a separate backend operation that cannot create a registration. If another dialog removes the registration, rechecking fails and a new Prepare action requires fresh slot consent. A reopened dialog polls status only while a provider operation is running, then refreshes to its completed state. Catalog results/errors are tied to the dialog instance that requested them.
+
 ## Recoverable state
 
 | State | Meaning | Next action |
@@ -22,6 +26,8 @@ Registration is a workspace-level action and takes effect independently of Save/
 | Registered | Remote ID/token and assigned addresses retained | Recheck, preview or explicitly remove |
 
 The encrypted draft is committed before the registration request, and pending state is committed immediately before its network mutation. Lock/quit cancels requests promptly; late responses cannot write to the closed workspace. If a response is lost, the persisted pending state survives reopening.
+
+A registered recheck or removal clears its prior verification before external I/O. Failure, cancellation or a lost deletion response therefore preserves keys/ID/token for recovery but leaves the account unchecked; a new successful recheck is required for preparation. Tunnel previews check account freshness and expiration again after catalog retrieval so an approval cannot expire unnoticed during that wait.
 
 Mullvad reconciliation lists devices and matches the retained public key before creating. It reads an existing matching device instead of creating another. An earlier uncertain outcome stays uncertain even if a later retry receives a device-limit error. Styg never rotates keys or deletes unrelated devices automatically. Before removing a confirmed device, it checks the tracked ID and key against the provider's current record; an externally replaced key blocks deletion.
 

@@ -53,8 +53,9 @@ async function handle(raw:unknown):Promise<unknown> {
     case 'saveVpnCredential': providerSetup!.assertIdle(request.credential.provider);active.saveVpnCredential(request.credential.provider,request.credential.account);return null;
     case 'clearVpnCredential': providerSetup!.assertIdle(request.provider);active.clearVpnCredential(request.provider);return null;
     case 'vpnCatalog': return vpnCatalog.get(request.provider);
-    case 'vpnRegistrationStatus': return active.vpnRegistrationStatus(request.provider);
+    case 'vpnRegistrationStatus': return providerSetup!.status(request.provider);
     case 'prepareVpnRegistration': return providerSetup!.prepare(request.provider);
+    case 'recheckVpnRegistration': return providerSetup!.recheck(request.provider);
     case 'removeVpnRegistration': return providerSetup!.remove(request.provider);
     case 'resetUncertainVpnRegistration': return providerSetup!.resetUncertain(request.provider,request.reviewedProviderAccount);
     case 'previewVpnTunnel': return providerSetup!.preview(request.id);
@@ -109,7 +110,7 @@ else {
       });
       // Bounded provider I/O starts after prior mutations without making lock wait.
       // The coordinator owns per-provider exclusion, cancellation and guarded commits.
-      const networkActions=['vpnCatalog','prepareVpnRegistration','removeVpnRegistration','previewVpnTunnel'];
+      const networkActions=['vpnCatalog','prepareVpnRegistration','recheckVpnRegistration','removeVpnRegistration','previewVpnTunnel'];
       if(!(raw&&typeof raw==='object'&&'action' in raw&&networkActions.includes(String(raw.action))))queue=operation.catch(()=>undefined);
       return operation;
     });

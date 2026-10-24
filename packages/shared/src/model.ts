@@ -45,6 +45,7 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('vpnCatalog'),provider:VpnProvider}).strict(),
   z.object({action:z.literal('vpnRegistrationStatus'),provider:VpnProvider}).strict(),
   z.object({action:z.literal('prepareVpnRegistration'),provider:VpnProvider,acknowledgeSlot:z.literal(true)}).strict(),
+  z.object({action:z.literal('recheckVpnRegistration'),provider:VpnProvider}).strict(),
   z.object({action:z.literal('removeVpnRegistration'),provider:VpnProvider,acknowledgeRemoval:z.literal(true)}).strict(),
   z.object({action:z.literal('resetUncertainVpnRegistration'),provider:VpnProvider,reviewedProviderAccount:z.literal(true)}).strict(),
   z.object({action:z.literal('previewVpnTunnel'),id:Id}).strict(),

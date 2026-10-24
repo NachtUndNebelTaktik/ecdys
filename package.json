@@ -1,6 +1,6 @@
 {
   "name": "styg",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Styg desktop session and profile manager \u2014 provider registration preview",
   "main": "dist/main/main.js",

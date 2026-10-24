@@ -1,6 +1,6 @@
 # Styg
 
-Desktop session and profile management. This is the Styg 0.6 provider registration preview, not the full v1.0 blueprint.
+Desktop session and profile management. This is the Styg 0.6.1 provider registration preview, not the full v1.0 blueprint.
 
 ## What works
 
@@ -15,6 +15,7 @@ Desktop session and profile management. This is the Styg 0.6 provider registrati
 - A backend/UI block on unverified networked launches and a Linux routing laboratory.
 - Recoverable Mullvad/IVPN settings, encrypted workspace account storage, public WireGuard relay catalogs and saved rotation policies with explicit unverified-route diagnostics.
 - Explicit Mullvad/IVPN account checks and WireGuard registration, encrypted retained keys/tokens, restart recovery, controlled removal and a non-secret tunnel preparation preview. Provider protocols are fixture-tested; live account acceptance remains unverified.
+- Recheck-only requests cannot create registrations. Failed/canceled rechecks or removals clear preparation approval while retaining recovery material; reopened dialogs track pending operations and require fresh slot consent after removal.
 
 **Normal browser launches remain disabled until a verified route supervisor and browser distribution are available.** OS tunnel activation, interactive provider CAPTCHA/2FA, fingerprint injection, billing and team services remain pending. VPN rotation policies are saved settings; automatic rotation is pending. Timezone, screen size and language are saved settings, not browser overrides. Real Chromium recovery tests restore persistent cookies, localStorage and IndexedDB on Linux with the same build/account and a test basic password store. OS-protected/cross-device cookies, tab history and sessionStorage recovery remain unverified.
 
