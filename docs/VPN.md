@@ -31,6 +31,8 @@ Requests use a separate non-persistent Electron session, omit credentials, rejec
 
 Validated catalogs stay in memory for one hour. If a later refresh fails, the last catalog is retained with its original check time and an explicit stale warning; retries have a 30-second cooldown. With no cached catalog, refresh fails visibly. A hostname entered offline remains an unverified selection. Future launch code must validate and provision it through the trusted routing supervisor.
 
+Catalog I/O runs outside the vault mutation queue and uses its own loading indicator. The dialog can close during a refresh; workspace lock/quit cancels pending requests without waiting for the network deadline. Late results do not reopen a dismissed dialog. Concurrent requests for the same provider share one fetch.
+
 ## Evidence and sources
 
 Checked on 2026-10-24:

@@ -144,5 +144,22 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await expect(vpnDialog.getByLabel('Rotation policy')).toHaveValue('every_5');
     await expect(vpnDialog.getByText('Account saved · authentication unverified')).toBeVisible();
     await expect(vpnDialog.getByLabel('Provider account ID')).toHaveValue('');
+    // A stalled public catalog must not hold the vault open or trap the dialog.
+    await application.evaluate(({session})=>{
+      const delayed={pending:false,release:undefined as undefined|(()=>void)};
+      (globalThis as any).__stygDelayedCatalog=delayed;
+      session.fromPartition('styg-provider-catalog').webRequest.onBeforeRequest({urls:['https://api.ivpn.net/*']},(_details,callback)=>{
+        delayed.pending=true;delayed.release=()=>callback({cancel:true});
+      });
+    });
+    await vpnDialog.getByRole('button',{name:'Load server list'}).click();
+    await expect.poll(()=>application!.evaluate(()=>(globalThis as any).__stygDelayedCatalog.pending)).toBe(true);
+    await expect(vpnDialog.getByRole('button',{name:'Close VPN setup'})).toBeEnabled({timeout:1000});
+    await vpnDialog.getByRole('button',{name:'Close VPN setup'}).click();
+    await reopened.getByRole('button',{name:'Lock workspace'}).click();
+    await expect(reopened.getByRole('heading',{name:'Unlock Styg'})).toBeVisible({timeout:1000});
+    await application.evaluate(()=>{(globalThis as any).__stygDelayedCatalog.release();});
+    await expect(reopened.getByRole('dialog')).toHaveCount(0);
+    await expect(reopened.getByRole('alert')).toHaveCount(0);
   } finally {await application?.close();await rm(root,{recursive:true,force:true});}
 });

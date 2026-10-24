@@ -20,6 +20,7 @@ let queue:Promise<unknown>=Promise.resolve();
 const workspace=()=>join(app.getPath('userData'),'workspace');
 async function lock():Promise<{incompleteSnapshots:number}> {
   if(lockTask)return lockTask;
+  vpnCatalog?.cancelPending();
   clearTimeout(lockTimer);
   lockTask=(async()=>{
     const closed=await sessions?.shutdown()??[];
@@ -93,7 +94,10 @@ else {
         try { return {ok:true,value:await handle(raw)}; }
         catch(error) { return {ok:false,error:error instanceof z.ZodError?error.issues.map(issue=>issue.message).join('; '):error instanceof Error?error.message:'Operation failed'}; }
       });
-      queue=operation.catch(()=>undefined); return operation;
+      // Public catalog I/O must never retain the vault key while lock/quit waits.
+      // It starts after prior mutations but does not extend their serial queue.
+      if(!(raw&&typeof raw==='object'&&'action' in raw&&raw.action==='vpnCatalog'))queue=operation.catch(()=>undefined);
+      return operation;
     });
     createWindow();
   });

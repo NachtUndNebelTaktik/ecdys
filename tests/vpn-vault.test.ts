@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {Vault} from '../packages/desktop/src/vault';
 import {ProfileInput,ProfilePatch,Request} from '../packages/shared/src/model';
 import Database from 'better-sqlite3-multiple-ciphers';
-import {deriveMasterKey,openSnapshot} from '../packages/desktop/src/crypto';
+import {deriveMasterKey,openSnapshot,sealSnapshot} from '../packages/desktop/src/crypto';
 import {openCredential} from '../packages/desktop/src/vpn/credentials';
 
 const roots:string[]=[],vaults:Vault[]=[];
@@ -55,10 +55,17 @@ async function database(dir:string,action:(db:Database.Database,key:Buffer)=>voi
 }
 it('adds credential storage to a v3 workspace without changing old profiles or history',async()=>{
   const {v,dir}=await create();const p=v.createProfile({name:'Existing profile'});const baseline=v.snapshots(p.id)[0];v.close();
-  await database(dir,db=>db.exec('DROP TABLE vpn_credentials; PRAGMA user_version=3;'));
+  await database(dir,(db,key)=>{
+    const legacy={name:'Existing profile',tags:[],timezone:'UTC',language:'en-US',screen:'1920 × 1080'};
+    db.prepare('UPDATE profiles SET config=? WHERE id=?').run(JSON.stringify(legacy),p.id);
+    db.prepare('UPDATE snapshots SET envelope=? WHERE id=?').run(sealSnapshot(legacy,key,p.id,baseline.id),baseline.id);
+    db.exec('DROP TABLE vpn_credentials; PRAGMA user_version=3;');
+  });
   const next=await Vault.open(dir,'test-only secure passphrase');vaults.push(next);
   expect(next.profiles()[0]).toMatchObject({id:p.id,name:'Existing profile'});expect(next.snapshots(p.id)[0].id).toBe(baseline.id);
   next.saveVpnCredential('mullvad','1234567890123456');expect(next.vpnCredentials().mullvad).toBe(true);
+  next.updateProfile(p.id,{vpn});next.restore(p.id,baseline.id);
+  expect(next.profiles()[0].vpn).toEqual({provider:'none',endpoint:null,rotation:'manual',routeLock:true});
   await database(dir,db=>expect(db.pragma('user_version',{simple:true})).toBe(4));
 });
 it('encrypts the credential even inside an unlocked database and excludes it from configuration snapshots',async()=>{

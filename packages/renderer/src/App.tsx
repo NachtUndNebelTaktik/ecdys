@@ -183,7 +183,11 @@ export default function App() {
       onSave={async(settings:VpnSettingsType)=>{await run(async()=>{const id=profile().id;await invoke({action:'updateProfile',id,input:{vpn:settings}});setVpnProfile(undefined);await refresh(id);setNotice('VPN settings saved with a pre-edit snapshot. Authentication and protected routing are pending.');});}}
       onSaveCredential={async(provider,account)=>{await run(async()=>{await invoke({action:'saveVpnCredential',credential:{provider,account}});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
       onClearCredential={async provider=>{await run(async()=>{await invoke({action:'clearVpnCredential',provider});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
-      onCatalog={async provider=>{let result:RelayCatalog|undefined;await run(async()=>{result=await invoke<RelayCatalog>({action:'vpnCatalog',provider});});return result;}}
+      onCatalog={async provider=>{
+        const id=profile().id;setError('');
+        try {const result=await invoke<RelayCatalog>({action:'vpnCatalog',provider});return vpnProfile()?.id===id&&status()?.unlocked?result:undefined;}
+        catch(error){if(vpnProfile()?.id===id&&status()?.unlocked)setError(error instanceof Error?error.message:'Catalog refresh failed');return undefined;}
+      }}
     />}</Show>
   </div>;
 }

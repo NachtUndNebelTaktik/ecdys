@@ -13,7 +13,8 @@ export function parseRelays(provider:VpnProviderType,data:unknown):Relay[] {
   if(provider==='mullvad') {
     const parsed=mullvadSchema.parse(data);
     relays=parsed.wireguard.relays.filter(r=>r.active).map(r=>{
-      const location=parsed.locations[r.location];if(!location)throw new Error('Missing relay location');
+      if(!Object.hasOwn(parsed.locations,r.location))throw new Error('Missing relay location');
+      const location=parsed.locations[r.location];
       return {hostname:r.hostname,country:location.country,city:location.city,ipv4:r.ipv4_addr_in,publicKey:r.public_key,load:null};
     });
   }else relays=ivpnSchema.parse(data).wireguard.flatMap(group=>group.hosts.map(r=>({hostname:r.hostname,country:group.country,city:group.city,ipv4:r.host,publicKey:r.public_key,load:r.load??null})));
@@ -35,22 +36,32 @@ async function readCatalog(response:Response,url:string,signal:AbortSignal):Prom
 export class ProviderCatalog {
   private cache=new Map<VpnProviderType,RelayCatalog>();
   private retryAt=new Map<VpnProviderType,number>();
+  private controllers=new Set<AbortController>();
+  private pending=new Map<VpnProviderType,Promise<RelayCatalog>>();
   constructor(private transport:Transport,private now=Date.now,private timeoutMs=10000){}
+  cancelPending():void {for(const controller of this.controllers)controller.abort();}
   async get(provider:VpnProviderType):Promise<RelayCatalog> {
-    VpnProvider.parse(provider);const previous=this.cache.get(provider),now=this.now();
+    VpnProvider.parse(provider);
+    const existing=this.pending.get(provider);if(existing)return structuredClone(await existing);
+    const operation=this.load(provider);this.pending.set(provider,operation);
+    try{return structuredClone(await operation);}finally{if(this.pending.get(provider)===operation)this.pending.delete(provider);}
+  }
+  private async load(provider:VpnProviderType):Promise<RelayCatalog> {
+    const previous=this.cache.get(provider),now=this.now();
     if(previous&&(now-previous.checkedAt<3600000||(this.retryAt.get(provider)??0)>now))return structuredClone(previous);
-    const controller=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
+    const controller=new AbortController();this.controllers.add(controller);let timer:ReturnType<typeof setTimeout>|undefined;
     try {
       const url=CATALOG_URLS[provider];
       const relays=await Promise.race([
         this.transport(url,controller.signal).then(response=>readCatalog(response,url,controller.signal)).then(data=>parseRelays(provider,data)),
-        new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('Catalog request timed out'));},this.timeoutMs);}),
+        new Promise<never>((_resolve,reject)=>{controller.signal.addEventListener('abort',()=>reject(new Error('Catalog request canceled')),{once:true});timer=setTimeout(()=>controller.abort(),this.timeoutMs);}),
       ]);
+      controller.signal.throwIfAborted();
       const result:RelayCatalog={provider,relays,checkedAt:this.now(),stale:false};this.cache.set(provider,result);this.retryAt.delete(provider);return structuredClone(result);
     }catch {
       const warning=`Could not refresh ${provider==='ivpn'?'IVPN':'Mullvad'} server catalog. Check your connection and retry.`;
       if(!previous)throw new Error(warning);
       const stale={...previous,stale:true,warning};this.cache.set(provider,stale);this.retryAt.set(provider,this.now()+30000);return structuredClone(stale);
-    }finally {clearTimeout(timer);}
+    }finally {clearTimeout(timer);this.controllers.delete(controller);}
   }
 }
