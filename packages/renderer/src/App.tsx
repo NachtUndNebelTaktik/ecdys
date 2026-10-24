@@ -1,5 +1,5 @@
 import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
-import type { Profile, RequestType, Snapshot, SnapshotPreview, MergePreview, WorkspaceStatus } from '../../shared/src/model';
+import type { Profile, RecoveryRehearsalReport, RequestType, Snapshot, SnapshotPreview, MergePreview, WorkspaceStatus } from '../../shared/src/model';
 import SnapshotPanel from './SnapshotPanel';
 import DiffTable from './DiffTable';
 import BranchDialog,{type BranchDialogState} from './BranchDialog';
@@ -15,6 +15,7 @@ export default function App() {
   const [search,setSearch]=createSignal('');
   const [error,setError]=createSignal(''); const [notice,setNotice]=createSignal('');
   const [busy,setBusy]=createSignal(false);
+  const [recoveryEpoch,setRecoveryEpoch]=createSignal(0);
   const [passphrase,setPassphrase]=createSignal(''); const [confirmation,setConfirmation]=createSignal('');
   const [memory,setMemory]=createSignal(256);
   const [editor,setEditor]=createSignal(false); const [editing,setEditing]=createSignal<Profile>();
@@ -102,10 +103,10 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">ECDYS <span>0.6.1 · provider registration</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">ECDYS <span>0.7.0 · built-in tools</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
-      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');})}>Lock workspace ↗</button></Show></div></header>
+      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>{setRecoveryEpoch(value=>value+1);void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');});}}>Lock workspace ↗</button></Show></div></header>
       <main>
         <Show when={error()}><div class="message error" role="alert">{error()}<button aria-label="Dismiss error" onClick={()=>setError('')}>×</button></div></Show>
         <Show when={notice()}><div class="message success" role="status">{notice()}</div></Show>
@@ -144,7 +145,8 @@ export default function App() {
             </article>}</For>
           </section>
           <Show when={current()}>{profile=><SnapshotPanel
-            profile={profile()} snapshots={snapshots()} busy={busy()}
+            profile={profile()} snapshots={snapshots()} busy={busy()} recoveryEpoch={recoveryEpoch()}
+            onRehearse={snapshot=>invoke<RecoveryRehearsalReport>({action:'rehearseSnapshot',id:snapshot.profileId,snapshotId:snapshot.id})}
             onSave={()=>void run(async()=>{
               const saved=await invoke<Snapshot>({action:'saveStateSnapshot',id:profile().id});
               await refresh(profile().id);
@@ -157,7 +159,7 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Ecdys provider registration preview / 0.6.1</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Ecdys built-in tools preview / 0.7.0</span></footer>
         </Show>
       </main>
     </div>

@@ -32,10 +32,46 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await expect(page.getByRole('button',{name:'Save browser state'})).toBeEnabled();
     const profileResult=await page.evaluate(()=>window.styg!.invoke<{id:string}[]>({action:'profiles'}));
     if(!profileResult.ok)throw new Error(profileResult.error);
-    const browser=join(userData,'workspace','profiles',profileResult.value[0].id,'browser');
+    const profileId=profileResult.value[0].id;
+    const browser=join(userData,'workspace','profiles',profileId,'browser');
+    const configurationHistory=await page.evaluate(id=>window.styg!.invoke<any[]>({action:'snapshots',id}),profileId);
+    if(!configurationHistory.ok)throw new Error(configurationHistory.error);
+    const report=page.getByRole('status',{name:'Recovery check report'});
+    await page.locator('.timeline-item').filter({has:page.getByText('baseline',{exact:true})}).getByRole('button',{name:'Check recovery',exact:true}).click();
+    await expect(report).toContainText('Configuration only · no browser files');
+    await expect(report).toContainText('0 files · 0 directories · 0 bytes');
+    expect(await readdir(browser)).toEqual([]);
+    expect(await page.evaluate(id=>window.styg!.invoke({action:'snapshots',id}),profileId)).toEqual(configurationHistory);
+    expect(await page.evaluate(()=>window.styg!.invoke({action:'profiles'}))).toEqual(profileResult);
+    await page.getByRole('button',{name:'Page archive (.mhtml)',exact:true}).click();
+    const archiveTool=page.getByRole('region',{name:'Page archive tool'});
+    await expect(archiveTool).toContainText('Page capture needs an active profile session.');
+    await expect(archiveTool.getByRole('button',{name:'Save archive…',exact:true})).toBeDisabled();
+    const archiveGate=await page.evaluate(async id=>{
+      const sessionId='22222222-2222-4222-8222-222222222222';
+      return [await window.styg!.invoke({action:'pageArchiveTargets',id,sessionId}),await window.styg!.invoke({action:'savePageArchive',id,sessionId,targetId:'AB12CD34'}),await window.styg!.invoke({action:'savePageArchive',id,sessionId,targetId:'AB12CD34'})];
+    },profileId);
+    expect(archiveGate.every(result=>!result.ok)).toBe(true);
+    await archiveTool.getByRole('button',{name:'Close archive tool'}).click();
+    const recoveryBypass=await page.evaluate(({id,snapshotId})=>window.styg!.invoke({action:'rehearseSnapshot',id,snapshotId,path:'/tmp/arbitrary-recovery-output'} as any),{id:profileId,snapshotId:configurationHistory.value[0].id});
+    expect(recoveryBypass.ok).toBe(false);
     await writeFile(join(browser,'Preferences'),'baseline browser bytes');
     await page.getByRole('button',{name:'Save browser state'}).click();
     await expect(page.getByText('Config + browser state · 1 file',{exact:true})).toBeVisible();
+    const fullHistory=await page.evaluate(id=>window.styg!.invoke<any[]>({action:'snapshots',id}),profileId);
+    if(!fullHistory.ok)throw new Error(fullHistory.error);
+    await writeFile(join(browser,'Preferences'),'working browser bytes during check');
+    await page.locator('.timeline-item').filter({has:page.getByText('manual',{exact:true})}).getByRole('button',{name:'Check recovery',exact:true}).click();
+    await expect(report).toContainText('Configuration + browser state');
+    await expect(report).toContainText('1 file');
+    await expect(report).toContainText('22 bytes');
+    await expect(report).toContainText('Saved contents authenticated and readable.');
+    await expect(report).toContainText('Browser and OS compatibility, protected cookies and routing were not tested.');
+    expect(await readFile(join(browser,'Preferences'),'utf8')).toBe('working browser bytes during check');
+    expect(await readdir(browser)).toEqual(['Preferences']);
+    expect(await page.evaluate(id=>window.styg!.invoke({action:'snapshots',id}),profileId)).toEqual(fullHistory);
+    expect(await page.evaluate(()=>window.styg!.invoke({action:'profiles'}))).toEqual(profileResult);
+    await page.screenshot({path:'test-results/styg-recovery-check.png',fullPage:true});
     // Direct IPC must enforce the gate as well as the UI.
     const launchResult=await page.evaluate(async()=>{
       const result=await window.styg!.invoke<any[]>({action:'profiles'});

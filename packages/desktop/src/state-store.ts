@@ -5,6 +5,8 @@ import {join,dirname} from 'node:path';
 import {Id} from '../../shared/src/model';
 import {BROWSER_LOCKS,RESTORE_MARKER} from './state-archive';
 export type CapturedState={envelope:Buffer;fileCount:number;stateBytes:number};
+export type RehearsedState={fileCount:number;directoryCount:number;stateBytes:number};
+export const RECOVERY_CHECK_FAILED='Recovery check failed. Preserve the workspace and try another saved snapshot.';
 function syncDirectorySync(path:string) {
   let fd:number|undefined;
   try{fd=openSync(path,'r');fsyncSync(fd);}
@@ -73,6 +75,15 @@ export class StateStore {
     for(const id of [sourceId,sourceSnapshotId,targetId,targetSnapshotId])Id.parse(id);
     const result=await this.run<CapturedState>({action:'rebind',sourceProfileId:sourceId,sourceSnapshotId,profileId:targetId,snapshotId:targetSnapshotId,envelope,key});
     return {...result,envelope:Buffer.from(result.envelope)};
+  }
+  async rehearse(profileId:string,snapshotId:string,envelope:Buffer,stateEnvelope:Buffer|null,key:Buffer):Promise<RehearsedState> {
+    try {
+      Id.parse(profileId);Id.parse(snapshotId);
+      return await this.run<RehearsedState>({action:'rehearse',profileId,snapshotId,envelope,stateEnvelope,key});
+    }catch {
+      if(this.closed)throw new Error('Workspace is locked');
+      throw new Error(RECOVERY_CHECK_FAILED);
+    }
   }
   async stage(id:string,operationId:string,snapshotId:string,envelope:Buffer,key:Buffer):Promise<void> {
     Id.parse(operationId);Id.parse(snapshotId);const dir=this.ensureSync(id);const target=join(this.profileRoot(id),`restore-${operationId}`);

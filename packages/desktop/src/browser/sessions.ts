@@ -3,6 +3,7 @@ import {Id,type ManagedSession} from '../../../shared/src/model';
 import {Vault,type BrowserProfileLease} from '../vault';
 import {assertRouteReady} from '../routing';
 import {BrowserStartupCleanupError,type BrowserExit,type BrowserHandle} from './chromium';
+import type {ArchiveTarget,CapturedPage} from './page-archive';
 export interface BrowserSupervisor {assertReady(profileId:string):void;launch(directory:string):Promise<BrowserHandle>;}
 const blockedSupervisor:BrowserSupervisor={assertReady:assertRouteReady,async launch(){assertRouteReady();}};
 type Entry={view:ManagedSession;started:Promise<void>;lease?:BrowserProfileLease;handle?:BrowserHandle;stopRequested:boolean;ready:boolean;watched?:boolean;finalization?:Promise<void>;};
@@ -11,6 +12,34 @@ export class BrowserSessions {
   private shuttingDown=false;
   constructor(private vault:Vault,private supervisor:BrowserSupervisor=blockedSupervisor){}
   list():ManagedSession[]{return [...this.entries.values()].map(entry=>({...entry.view}));}
+  private archiveEntry(profileId:string,expectedSessionId:string):Entry {
+    try{Id.parse(profileId);Id.parse(expectedSessionId);}catch{throw new Error('Active managed browser session does not match');}
+    const entry=this.entries.get(profileId);
+    if(this.shuttingDown||!entry||entry.view.id!==expectedSessionId||entry.view.status!=='active'||entry.stopRequested||!entry.ready||!entry.lease||!entry.handle)throw new Error('Active managed browser session does not match');
+    return entry;
+  }
+  async listPages(profileId:string,expectedSessionId:string):Promise<ArchiveTarget[]> {
+    const entry=this.archiveEntry(profileId,expectedSessionId);
+    if(!entry.handle!.listPages)throw new Error('Page archiving is not supported by this browser');
+    try {
+      const pages=await entry.handle!.listPages();
+      if(this.archiveEntry(profileId,expectedSessionId)!==entry)throw new Error();
+      return pages;
+    }catch{throw new Error('Browser pages are unavailable for the active managed session');}
+  }
+  async capturePage(profileId:string,expectedSessionId:string,targetId:string):Promise<CapturedPage> {
+    const entry=this.archiveEntry(profileId,expectedSessionId);
+    if(!entry.handle!.capturePage)throw new Error('Page archiving is not supported by this browser');
+    let captured:CapturedPage|undefined;
+    try {
+      captured=await entry.handle!.capturePage(targetId);
+      if(this.archiveEntry(profileId,expectedSessionId)!==entry)throw new Error();
+      return captured;
+    }catch {
+      captured?.bytes.fill(0);
+      throw new Error('Page archive capture failed for the active managed session; the page may have changed or exceed the 4 MiB limit');
+    }
+  }
   async launch(profileId:string):Promise<ManagedSession> {
     Id.parse(profileId);if(this.shuttingDown)throw new Error('Session manager is shutting down');
     this.supervisor.assertReady(profileId);

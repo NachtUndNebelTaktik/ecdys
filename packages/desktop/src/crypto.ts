@@ -3,7 +3,7 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 import { Worker } from 'node:worker_threads';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { KdfParams, type KdfParameters } from '../../shared/src/model';
+import { KdfParams, type KdfParameters } from '../../shared/src/model.ts';
 const resolveModule = createRequire(import.meta.url);
 
 export async function deriveMasterKey(passphrase:string, salt:Buffer, params:KdfParameters):Promise<Buffer> {

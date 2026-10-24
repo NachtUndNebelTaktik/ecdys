@@ -23,8 +23,22 @@ it('bounds missing responses and rejects commands after pipe closure',async()=>{
   const {output,pipe}=fixture(20);await expect(pipe.send('Browser.getVersion')).rejects.toThrow(/timed out/i);
   output.end();await new Promise(resolve=>setImmediate(resolve));await expect(pipe.send('Browser.getVersion')).rejects.toThrow(/closed/i);
 });
-it('rejects pending calls on malformed or oversized frames',async()=>{
-  for(const frame of ['bad-json\0','x'.repeat(8*1024*1024+1)]){
-    const {output,pipe}=fixture();const pending=pipe.send('Browser.getVersion');output.write(frame);await expect(pending).rejects.toThrow(/frame|JSON|limit/i);
-  }
+it('rejects pending calls and closes on malformed JSON',async()=>{
+  const {output,pipe}=fixture();const pending=pipe.send('Browser.getVersion');output.write('bad-json\0');
+  await expect(pending).rejects.toThrow(/frame|JSON/i);await expect(pipe.closed).resolves.toBeInstanceOf(Error);
+});
+it('drains an oversized fragmented response without closing or confusing later commands',async()=>{
+  const {output,pipe}=fixture();const first=pipe.send('Page.captureSnapshot'),second=pipe.send('Browser.getVersion');
+  output.write(Buffer.alloc(8*1024*1024,120));output.write('x');
+  await expect(first).rejects.toThrow(/size limit/i);await expect(second).rejects.toThrow(/size limit/i);
+  const duringDrain=pipe.send('Browser.getVersion');
+  output.write('tail\0'+JSON.stringify({id:1,result:{data:'old content'}})+'\0');
+  output.write(JSON.stringify({id:3,result:{product:'Chrome'}})+'\0');await expect(duringDrain).resolves.toEqual({product:'Chrome'});
+  let closed=false;void pipe.closed.then(()=>{closed=true;});await new Promise(resolve=>setImmediate(resolve));expect(closed).toBe(false);
+});
+it('resumes at the next frame when an oversized response ends in the same chunk',async()=>{
+  const {output,pipe}=fixture();const oversized=pipe.send('Page.captureSnapshot');
+  output.write('x'.repeat(8*1024*1024+1)+'\0'+JSON.stringify({id:1,result:{data:'late'}})+'\0');
+  await expect(oversized).rejects.toThrow(/size limit/i);
+  const next=pipe.send('Browser.getVersion');output.write(JSON.stringify({id:2,result:{product:'Chrome'}})+'\0');await expect(next).resolves.toEqual({product:'Chrome'});
 });

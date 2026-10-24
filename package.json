@@ -1,8 +1,8 @@
 {
   "name": "ecdys",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
-  "description": "Ecdys desktop session and profile manager \u2014 provider registration preview",
+  "description": "Ecdys desktop session and profile manager \u2014 built-in recovery and page archive tools",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@11.25.0",
   "engines": {

@@ -3,10 +3,11 @@ import { join, dirname } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { Request, type Result } from '../../shared/src/model';
+import { Request, type Result, type PageArchiveSaveResult } from '../../shared/src/model';
 import { Vault } from './vault';
 import { routingStatus } from './routing';
 import {BrowserSessions} from './browser/sessions';
+import {writePageArchive} from './browser/archive-export';
 import {ProviderCatalog} from './vpn/catalog';
 import {ProviderClient} from './vpn/provider-client';
 import {ProviderSetup} from './vpn/provider-setup';
@@ -26,6 +27,7 @@ let providerClient:ProviderClient;
 let providerSetup:ProviderSetup|undefined;
 let lockTask:Promise<{incompleteSnapshots:number}>|undefined;
 let quitting=false;
+let archiveSaveActive=false;
 let allowQuit=false;
 let lockTimer:NodeJS.Timeout|undefined;
 let queue:Promise<unknown>=Promise.resolve();
@@ -45,6 +47,27 @@ async function lock():Promise<{incompleteSnapshots:number}> {
 function lifecycleError(){dialog.showErrorBox('Ecdys could not finish browser cleanup','The workspace remains open. Browser cleanup could not be verified; preserve profile files and retry closing sessions.');}
 function touch() { clearTimeout(lockTimer); if(vault) lockTimer=setTimeout(()=>{const operation=queue.then(async()=>{await lock();if(window&&!window.isDestroyed())window.reload();});queue=operation.catch(lifecycleError);},15*60*1000); }
 function requireVault() { if(!vault) throw new Error('Workspace is locked'); return vault; }
+async function savePageArchive(profileId:string,sessionId:string,targetId:string):Promise<PageArchiveSaveResult> {
+  if(archiveSaveActive)throw new Error('A page archive is already being prepared or saved.');
+  const owner=requireVault(),manager=sessions!;
+  archiveSaveActive=true;
+  let captured:Awaited<ReturnType<BrowserSessions['capturePage']>>|undefined;
+  const assertCurrent=()=>{
+    if(quitting||vault!==owner||sessions!==manager||!manager.list().some(item=>item.profileId===profileId&&item.id===sessionId&&item.status==='active'))throw new Error('The profile session changed. Open page archive again.');
+  };
+  try {
+    captured=await manager.capturePage(profileId,sessionId,targetId);
+    assertCurrent();
+    if(!window||window.isDestroyed())throw new Error('Open the workspace before saving a page archive.');
+    const choice=await dialog.showSaveDialog(window,{title:'Save page archive — contains unencrypted page content',defaultPath:`page-archive-${new Date().toISOString().slice(0,10)}.mhtml`,filters:[{name:'MHTML page archive',extensions:['mhtml']}],properties:['createDirectory']});
+    if(choice.canceled||!choice.filePath)return {saved:false};
+    assertCurrent();
+    if(!choice.filePath.toLowerCase().endsWith('.mhtml'))throw new Error('Choose a filename ending in .mhtml.');
+    await writePageArchive(choice.filePath,captured.bytes,assertCurrent);
+    return {saved:true,size:captured.bytes.length,sha256:captured.sha256};
+  }
+  finally{captured?.bytes.fill(0);archiveSaveActive=false;}
+}
 async function handle(raw:unknown):Promise<unknown> {
   const request=Request.parse(raw);
   if(request.action==='status') return {exists:await Vault.exists(workspace()),unlocked:!!vault,routing:routingStatus(),browserVersion:process.versions.chrome,platform:process.platform};
@@ -72,6 +95,9 @@ async function handle(raw:unknown):Promise<unknown> {
     case 'snapshots': return active.snapshots(request.id);
     case 'saveStateSnapshot': return active.saveStateSnapshot(request.id);
     case 'previewSnapshot': return active.previewSnapshot(request.id,request.snapshotId);
+    case 'rehearseSnapshot': return active.rehearseSnapshot(request.id,request.snapshotId);
+    case 'pageArchiveTargets': return sessions!.listPages(request.id,request.sessionId);
+    case 'savePageArchive': return savePageArchive(request.id,request.sessionId,request.targetId);
     case 'restore': return active.restoreSnapshot(request.id,request.snapshotId,request.expectedRevision);
     case 'createBranch': return active.createBranch(request.id,request.name);
     case 'previewMerge': return active.previewMerge(request.id);
@@ -115,10 +141,10 @@ else {
         try { return {ok:true,value:await handle(raw)}; }
         catch(error) { return {ok:false,error:error instanceof z.ZodError?error.issues.map(issue=>issue.message).join('; '):error instanceof Error?error.message:'Operation failed'}; }
       });
-      // Bounded provider I/O starts after prior mutations without making lock wait.
-      // The coordinator owns per-provider exclusion, cancellation and guarded commits.
-      const networkActions=['vpnCatalog','prepareVpnRegistration','recheckVpnRegistration','removeVpnRegistration','previewVpnTunnel'];
-      if(!(raw&&typeof raw==='object'&&'action' in raw&&networkActions.includes(String(raw.action))))queue=operation.catch(()=>undefined);
+      // Bounded background work starts after prior mutations, leaving Lock able to
+      // stop workers/browsers. Each coordinator validates its own lifecycle.
+      const backgroundActions=['vpnCatalog','prepareVpnRegistration','recheckVpnRegistration','removeVpnRegistration','previewVpnTunnel','rehearseSnapshot','pageArchiveTargets','savePageArchive'];
+      if(!(raw&&typeof raw==='object'&&'action' in raw&&backgroundActions.includes(String(raw.action))))queue=operation.catch(()=>undefined);
       return operation;
     });
     createWindow();

@@ -3,6 +3,8 @@ import {lstat,readdir,open,mkdir,writeFile} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {join} from 'node:path';
 import {BROWSER_LOCKS,MAX_STATE_BYTES,MAX_STATE_ENTRIES,RESTORE_MARKER,openStateManifest,safeArchivePath,sealStateManifest,type StateManifest} from './state-archive.ts';
+import {ProfileInput} from '../../shared/src/model.ts';
+import {openSnapshot} from './crypto.ts';
 
 type Entry={path:string;directory:boolean;signature:string;size:number};
 async function syncDirectory(path:string) {
@@ -68,10 +70,18 @@ async function stage(dir:string,target:string,operationId:string,envelope:Buffer
   await syncDirectory(target);await syncDirectory(join(target,'..'));
   return null;
 }
+function rehearse(envelope:Buffer,stateEnvelope:Buffer|null,key:Buffer,profileId:string,snapshotId:string) {
+  ProfileInput.parse(openSnapshot(envelope,key,profileId,snapshotId));
+  if(stateEnvelope===null)return {fileCount:0,directoryCount:0,stateBytes:0};
+  const manifest=openStateManifest(stateEnvelope,key,profileId,snapshotId);
+  try{return {fileCount:manifest.files.length,directoryCount:manifest.directories.length,stateBytes:manifest.stateBytes};}
+  finally{for(const file of manifest.files)file.bytes.fill(0);}
+}
 const key=Buffer.from(workerData.key);
 try {
   let value:unknown;
-  if(workerData.action==='capture')value=await capture(workerData.dir,key,workerData.profileId,workerData.snapshotId);
+  if(workerData.action==='rehearse')value=rehearse(Buffer.from(workerData.envelope),workerData.stateEnvelope===null?null:Buffer.from(workerData.stateEnvelope),key,workerData.profileId,workerData.snapshotId);
+  else if(workerData.action==='capture')value=await capture(workerData.dir,key,workerData.profileId,workerData.snapshotId);
   else if(workerData.action==='stage')value=await stage(workerData.dir,workerData.target,workerData.operationId,Buffer.from(workerData.envelope),key,workerData.profileId,workerData.snapshotId);
   else if(workerData.action==='rebind') {
     const decoded=openStateManifest(Buffer.from(workerData.envelope),key,workerData.sourceProfileId,workerData.sourceSnapshotId);
@@ -81,5 +91,5 @@ try {
     }finally{for(const file of decoded.files)file.bytes.fill(0);}
   }else throw new Error('Unsupported browser-state operation');
   parentPort!.postMessage({ok:true,value});
-}catch(error){parentPort!.postMessage({ok:false,error:error instanceof Error?error.message:'Browser-state operation failed'});}
+}catch(error){parentPort!.postMessage({ok:false,error:workerData.action==='rehearse'?'Recovery check failed. Preserve the workspace and try another saved snapshot.':error instanceof Error?error.message:'Browser-state operation failed'});}
 finally{key.fill(0);workerData.key.fill(0);parentPort!.close();}

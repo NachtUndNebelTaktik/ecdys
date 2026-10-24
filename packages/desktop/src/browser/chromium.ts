@@ -5,8 +5,9 @@ import type {Readable,Writable} from 'node:stream';
 import {CdpPipe} from './cdp-pipe';
 import {signalGroup,stopResidualGroup} from './process-group';
 import {observeOwnedLocks} from './owned-locks';
+import {listArchivePages,captureArchivePage,type ArchiveTarget,type CapturedPage} from './page-archive';
 export type BrowserExit={code:number|null;signal:NodeJS.Signals|null;forced:boolean};
-export interface BrowserHandle {pid:number;version:string;exited:Promise<BrowserExit>;close():Promise<BrowserExit>;}
+export interface BrowserHandle {pid:number;version:string;exited:Promise<BrowserExit>;close():Promise<BrowserExit>;listPages?():Promise<ArchiveTarget[]>;capturePage?(targetId:string):Promise<CapturedPage>;}
 export class BrowserStartupCleanupError extends Error {
   constructor(readonly browser:BrowserHandle,cause:unknown){super('Browser startup failed and process cleanup could not be verified',{cause});}
 }
@@ -66,6 +67,8 @@ export class ChromiumProcess implements BrowserHandle {
     this.exitTask=task;void task.catch(()=>{if(this.exitTask===task)this.exitTask=undefined;});return task;
   }
   command<T=unknown>(method:string,params:Record<string,unknown>={},sessionId?:string):Promise<T> {return this.pipe.send<T>(method,params,sessionId);}
+  listPages():Promise<ArchiveTarget[]> {return listArchivePages(this.command.bind(this));}
+  capturePage(targetId:string):Promise<CapturedPage> {return captureArchivePage(this.command.bind(this),targetId);}
   close():Promise<BrowserExit> {
     if(this.closeTask)return this.closeTask;
     this.closeTask=(async()=>{

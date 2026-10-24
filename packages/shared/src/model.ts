@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {VpnSettings,defaultVpn,VpnProvider,VpnCredential} from './vpn';
+import {VpnSettings,defaultVpn,VpnProvider,VpnCredential} from './vpn.ts';
 
 export const Id = z.uuid();
 const timezone = z.string().max(80).refine(value => {
@@ -26,6 +26,9 @@ export type ProfileConfig = z.output<typeof ProfileInput>;
 export type Profile = ProfileConfig & {id:string; createdAt:number; updatedAt:number; parentProfileId:string|null; branchName:string|null; revision:number};
 export type ConfigChange={field:keyof ProfileConfig;kind:'added'|'removed'|'modified';before:string|null;after:string|null};
 export type SnapshotPreview={snapshot:Snapshot;currentRevision:number;changes:ConfigChange[]};
+export type RecoveryRehearsalReport={profileId:string;snapshotId:string;checkedAt:number;coverage:'configuration_only'|'configuration_and_browser_state';fileCount:number;directoryCount:number;stateBytes:number;browserVersion:string|null};
+export type PageArchiveTarget={targetId:string;title:string;url:string};
+export type PageArchiveSaveResult={saved:false}|{saved:true;size:number;sha256:string};
 export type MergePreview={branch:Profile;parent:Profile;branchRevision:number;parentRevision:number;changes:ConfigChange[]};
 export const Revision=z.number().int().min(1).max(Number.MAX_SAFE_INTEGER);
 export const BranchName=z.string().trim().min(1).max(64).refine(value=>!/[\x00-\x1f]/.test(value),'Branch name cannot contain control characters');
@@ -54,6 +57,9 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('snapshots'),id:Id}).strict(),
   z.object({action:z.literal('saveStateSnapshot'),id:Id}).strict(),
   z.object({action:z.literal('previewSnapshot'),id:Id,snapshotId:Id}).strict(),
+  z.object({action:z.literal('rehearseSnapshot'),id:Id,snapshotId:Id}).strict(),
+  z.object({action:z.literal('pageArchiveTargets'),id:Id,sessionId:Id}).strict(),
+  z.object({action:z.literal('savePageArchive'),id:Id,sessionId:Id,targetId:z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/)}).strict(),
   z.object({action:z.literal('restore'),id:Id,snapshotId:Id,expectedRevision:Revision}).strict(),
   z.object({action:z.literal('createBranch'),id:Id,name:BranchName}).strict(),
   z.object({action:z.literal('previewMerge'),id:Id}).strict(),

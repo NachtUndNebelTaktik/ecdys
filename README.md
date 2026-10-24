@@ -1,6 +1,8 @@
 # Ecdys
 
-Desktop session and profile management. This is the Ecdys 0.6.1 provider registration preview, not the full v1.0 blueprint.
+Kloakbrowser
+
+Desktop session and profile management. This is the Ecdys 0.7.0 built-in tools preview, not the full v1.0 blueprint.
 
 Previously named Styg. Ecdys uses the existing `styg` application data folder so current encrypted workspaces open in place. Encryption formats, recovery markers and internal `styg` protocol/test identifiers stay compatible; no data migration is required. Earlier progress notes and plans retain the name used at the time.
 
@@ -18,6 +20,8 @@ Previously named Styg. Ecdys uses the existing `styg` application data folder so
 - Recoverable Mullvad/IVPN settings, encrypted workspace account storage, public WireGuard relay catalogs and saved rotation policies with explicit unverified-route diagnostics.
 - Explicit Mullvad/IVPN account checks and WireGuard registration, encrypted retained keys/tokens, restart recovery, controlled removal and a non-secret tunnel preparation preview. Provider protocols are fixture-tested; live account acceptance remains unverified.
 - Recheck-only requests cannot create registrations. Failed/canceled rechecks or removals clear preparation approval while retaining recovery material; reopened dialogs track pending operations and require fresh slot consent after removal.
+- **Recovery Rehearsal:** authenticate and decode a saved configuration/browser archive without changing current files. Reports identify coverage, counts and check time; Lock can interrupt the check.
+- **Page archive:** native Chromium MHTML capture with a 4 MiB limit, SHA-256 digest and explicit native Save dialog. The engine is tested against a local Chromium fixture; normal app capture remains unavailable while browser launches are blocked. No extension is required. MHTML differs from SingleFile's HTML format.
 
 **Normal browser launches remain disabled until a verified route supervisor and browser distribution are available.** OS tunnel activation, interactive provider CAPTCHA/2FA, fingerprint injection, billing and team services remain pending. VPN rotation policies are saved settings; automatic rotation is pending. Timezone, screen size and language are saved settings, not browser overrides. Real Chromium recovery tests restore persistent cookies, localStorage and IndexedDB on Linux with the same build/account and a test basic password store. OS-protected/cross-device cookies, tab history and sessionStorage recovery remain unverified.
 
@@ -68,7 +72,7 @@ sudo node scripts/routing-proof.mjs --run
 
 Exit 2 means prerequisites are missing, not that isolation passed. The lab uses simulated tunnel interfaces and checks IPv4/IPv6 HTTP, UDP and DNS, usable fallback controls and repeated disconnect blocking. Its privileged run remains unvalidated here; real loopback tests validate the probes only. It is not a provider VPN or full browser validation. A lab pass never enables launches.
 
-See [provider registration and recovery](docs/PROVISIONING.md), [VPN setup and provider corrections](docs/VPN.md), [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [current implementation plan](docs/superpowers/plans/2026-10-24-provider-provisioning.md).
+See [built-in tools](docs/TOOLS.md), [provider registration and recovery](docs/PROVISIONING.md), [VPN setup and provider corrections](docs/VPN.md), [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [recovery implementation plan](docs/superpowers/plans/2026-10-24-recovery-rehearsal.md).
 
 ## Security boundaries
 
@@ -81,3 +85,5 @@ This development foundation is not validated for high-risk investigations. The O
 ![Review environment changes before merging](docs/images/merge-preview.png)
 
 ![Ecdys VPN setup with explicit routing boundaries](docs/images/vpn-setup.png)
+
+![Recovery Rehearsal checks authenticated saved contents without replacing working files](docs/images/recovery-check.png)

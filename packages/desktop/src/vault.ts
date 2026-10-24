@@ -3,11 +3,11 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile, access, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { Id, KdfParams, ProfileInput, ProfilePatch, type KdfParameters, type Profile, type ProfileInputType, type Snapshot, type SnapshotPreview, type MergePreview } from '../../shared/src/model';
+import { Id, KdfParams, ProfileInput, ProfilePatch, type KdfParameters, type Profile, type ProfileInputType, type Snapshot, type SnapshotPreview, type MergePreview, type RecoveryRehearsalReport } from '../../shared/src/model';
 import {BranchManager} from './branches';
 import {configurationDiff,profileConfiguration} from './profile-diff';
 import {Revision} from '../../shared/src/model';
-import { StateStore, type CapturedState } from './state-store';
+import { StateStore, RECOVERY_CHECK_FAILED, type CapturedState } from './state-store';
 import { deriveMasterKey, openSnapshot, sealSnapshot } from './crypto';
 import {VpnCredential,VpnProvider,type VpnProviderType,type CredentialPresence,type RegistrationStatus} from '../../shared/src/vpn';
 import {sealCredential,openCredential} from './vpn/credentials';
@@ -33,6 +33,7 @@ export class Vault {
   private locked=false;
   private browserOwners=new Set<string>();
   private recoveryBlocked=false;
+  private rehearsalActive=false;
   private states:StateStore;
   private branches:BranchManager;
   private constructor(private db:Database.Database,private key:Buffer,root:string) {
@@ -258,6 +259,28 @@ export class Vault {
     if(!row)throw new Error('Snapshot not found for this profile');
     const config=ProfileInput.parse(openSnapshot(row.envelope,this.key,profileId,snapshotId));
     return {snapshot:this.snapshots(profileId).find(snapshot=>snapshot.id===snapshotId)!,currentRevision:profile.revision,changes:configurationDiff(profileConfiguration(profile),config)};
+  }
+  async rehearseSnapshot(profileId:string,snapshotId:string):Promise<RecoveryRehearsalReport> {
+    this.guard();Id.parse(profileId);Id.parse(snapshotId);
+    if(this.rehearsalActive)throw new Error('A recovery check is already in progress');
+    const find=this.db.prepare("SELECT s.envelope,s.stateEnvelope,s.browserVersion FROM snapshots s JOIN profiles p ON p.id=s.profileId AND p.status='ready' WHERE s.id=? AND s.profileId=?");
+    type SavedSnapshot={envelope:Buffer;stateEnvelope:Buffer|null;browserVersion:string|null};
+    const row=find.get(snapshotId,profileId) as SavedSnapshot|undefined;
+    if(!row)throw new Error('Snapshot not found for this profile');
+    this.rehearsalActive=true;
+    try {
+      let checked;
+      try{checked=await this.states.rehearse(profileId,snapshotId,row.envelope,row.stateEnvelope,this.key);}
+      catch{this.guard();throw new Error(RECOVERY_CHECK_FAILED);}
+      // Lock can terminate a worker after its message was queued. Check again
+      // before touching the database or returning a successful report.
+      this.guard();
+      const current=find.get(snapshotId,profileId) as SavedSnapshot|undefined;
+      if(!current||!current.envelope.equals(row.envelope)||current.browserVersion!==row.browserVersion||
+        (current.stateEnvelope===null)!==(row.stateEnvelope===null)||
+        (current.stateEnvelope!==null&&!current.stateEnvelope.equals(row.stateEnvelope!)))throw new Error('Snapshot changed or was removed. Check the saved snapshot again.');
+      return {profileId,snapshotId,checkedAt:Date.now(),coverage:row.stateEnvelope===null?'configuration_only':'configuration_and_browser_state',...checked,browserVersion:row.browserVersion};
+    }finally{this.rehearsalActive=false;}
   }
   createBranch(parentId:string,name:string):Promise<Profile>{return this.branches.createBranch(parentId,name);}
   previewMerge(id:string):MergePreview{return this.branches.previewMerge(id);}
