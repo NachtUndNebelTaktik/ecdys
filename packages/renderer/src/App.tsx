@@ -1,6 +1,25 @@
 import {Modal} from './Modal';
 import {RoutesWorkspace} from './RoutesWorkspace';
-import {createMemo, createSignal, For, onCleanup, onMount, Show, type JSX} from 'solid-js';
+import {BrowserWorkspace} from './BrowserWorkspace';
+import {AppearanceControls, AppearancePreview} from './BrowserAppearance';
+import {
+  accentColors,
+  defaultAppearance,
+  orderProfiles,
+  readAppearance,
+  saveAppearance,
+  type Appearance,
+} from './appearance';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+  type JSX,
+} from 'solid-js';
 import {
   evaluateLaunch,
   type EcdysApi,
@@ -55,11 +74,20 @@ const integrations = [
     category: 'MAINTENANCE',
   },
 ];
-type View = 'Profiles' | 'Routes' | 'Snapshots' | 'Diagnostics' | 'Settings';
+type View = 'Profiles' | 'Browser' | 'Routes' | 'Snapshots' | 'Diagnostics' | 'Settings';
 function Mark() {
   return (
     <span class="brand-mark" aria-hidden="true">
-      e<span>↗︎</span>
+      e
+      <svg viewBox="0 0 16 16" fill="none">
+        <path
+          d="M4 12 12 4M4 4h8v8"
+          stroke="currentColor"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
     </span>
   );
 }
@@ -92,6 +120,41 @@ function RouteLabel(props: {profile: Profile}) {
 
 export default function App() {
   const api = window.ecdys;
+  const preferenceStorage = {
+    getItem: (key: string) => window.localStorage.getItem(key),
+    setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
+  };
+  const initialAppearance = readAppearance(preferenceStorage);
+  const [appearance, setAppearance] = createSignal(initialAppearance.preferences);
+  const [appearanceSaved, setAppearanceSaved] = createSignal(initialAppearance.available);
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const [systemDark, setSystemDark] = createSignal(systemTheme.matches);
+  const resolvedTheme = createMemo(() =>
+    appearance().theme === 'system' ? (systemDark() ? 'dark' : 'light') : appearance().theme,
+  );
+  function updateAppearance(patch: Partial<Appearance>) {
+    const next = {...appearance(), ...patch};
+    setAppearance(next);
+    setAppearanceSaved(saveAppearance(preferenceStorage, next));
+  }
+  function resetAppearance() {
+    updateAppearance({
+      ...defaultAppearance,
+      profileOrder: appearance().profileOrder,
+      profileLayout: appearance().profileLayout,
+    });
+  }
+  createEffect(() => {
+    const root = document.documentElement;
+    root.dataset.uiTheme = resolvedTheme();
+    root.style.setProperty(
+      '--accent',
+      accentColors[appearance().accent][resolvedTheme() === 'light' ? 'light' : 'dark'],
+    );
+    root.style.setProperty('--ui-radius', appearance().radius / 2 + 'px');
+    root.style.setProperty('--ui-motion', appearance().motion ? '180ms' : '0ms');
+    root.style.setProperty('--night-opacity', String(appearance().nightWarmth / 200));
+  });
   const [status, setStatus] = createSignal<VaultStatus>();
   const [profiles, setProfiles] = createSignal<Profile[]>([]);
   const [view, setView] = createSignal<View>('Profiles');
@@ -113,7 +176,7 @@ export default function App() {
   let searchInput!: HTMLInputElement;
   const selected = createMemo(() => profiles().find((profile) => profile.id === selectedId()));
   const filtered = createMemo(() =>
-    profiles().filter((profile) => {
+    orderProfiles(profiles(), appearance().profileOrder).filter((profile) => {
       const text = [profile.name, profile.folder, ...profile.tags].join(' ').toLowerCase();
       return (
         text.includes(search().toLowerCase()) &&
@@ -168,6 +231,9 @@ export default function App() {
     }).reasons;
   }
   onMount(() => {
+    const themeChanged = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    systemTheme.addEventListener('change', themeChanged);
+    onCleanup(() => systemTheme.removeEventListener('change', themeChanged));
     if (api)
       void run(async () => {
         const current = await api.status();
@@ -219,6 +285,7 @@ export default function App() {
         </div>
       }
     >
+      <div class="night-filter" aria-hidden="true" hidden={resolvedTheme() !== 'night'} />
       <Show
         when={status()}
         fallback={
@@ -271,7 +338,7 @@ export default function App() {
               </div>
               <Stamp>WORKSPACE</Stamp>
               <nav aria-label="Workspace navigation">
-                <For each={['Profiles', 'Routes', 'Snapshots', 'Diagnostics'] as View[]}>
+                <For each={['Profiles', 'Browser', 'Routes', 'Snapshots', 'Diagnostics'] as View[]}>
                   {(item) => (
                     <button
                       class={view() === item ? 'nav-item active' : 'nav-item'}
@@ -282,9 +349,13 @@ export default function App() {
                     >
                       <span aria-hidden="true" class="nav-symbol">
                         {
-                          {Profiles: '▦', Routes: '⇄', Snapshots: '◷', Diagnostics: '⌁'}[
-                            item as 'Profiles'
-                          ]
+                          {
+                            Profiles: '▦',
+                            Browser: '▱',
+                            Routes: '⇄',
+                            Snapshots: '◷',
+                            Diagnostics: '⌁',
+                          }[item as 'Profiles']
                         }
                       </span>
                       {item}
@@ -358,7 +429,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.2.0</span>
+                  FOUNDATION BUILD <span>v0.3.0</span>
                 </div>
               </div>
             </aside>
@@ -381,24 +452,28 @@ export default function App() {
                   <h1>
                     {view() === 'Profiles'
                       ? 'Profile workspace'
-                      : view() === 'Routes'
-                        ? 'Network routes'
-                        : view() === 'Snapshots'
-                          ? 'Configuration history'
-                          : view() === 'Diagnostics'
-                            ? 'System diagnostics'
-                            : 'Workspace settings'}
+                      : view() === 'Browser'
+                        ? 'Browser workspace'
+                        : view() === 'Routes'
+                          ? 'Network routes'
+                          : view() === 'Snapshots'
+                            ? 'Configuration history'
+                            : view() === 'Diagnostics'
+                              ? 'System diagnostics'
+                              : 'Workspace settings'}
                   </h1>
                   <p>
                     {view() === 'Profiles'
                       ? 'Persistent identities. Deliberate configuration. Recoverable changes.'
-                      : view() === 'Routes'
-                        ? 'First-class VPN and proxy configuration, including authenticated SOCKS5.'
-                        : view() === 'Snapshots'
-                          ? 'Inspect and restore committed configuration checkpoints.'
-                          : view() === 'Diagnostics'
-                            ? 'Implementation status and the boundaries of this foundation build.'
-                            : 'Local ownership, encryption parameters and workspace identity.'}
+                      : view() === 'Browser'
+                        ? 'A calmer surface for your work. Shape it around the way you operate.'
+                        : view() === 'Routes'
+                          ? 'First-class VPN and proxy configuration, including authenticated SOCKS5.'
+                          : view() === 'Snapshots'
+                            ? 'Inspect and restore committed configuration checkpoints.'
+                            : view() === 'Diagnostics'
+                              ? 'Implementation status and the boundaries of this foundation build.'
+                              : 'Local ownership, encryption parameters and workspace identity.'}
                   </p>
                 </div>
                 <Show when={view() === 'Profiles' || view() === 'Routes'}>
@@ -475,6 +550,34 @@ export default function App() {
                     <kbd>⌘ / Ctrl K</kbd>
                   </div>
                   <span class="result-count">{filtered().length} PROFILES</span>
+                  <select
+                    class="profile-view-select"
+                    aria-label="Sort profiles"
+                    value={appearance().profileOrder}
+                    onChange={(event) =>
+                      updateAppearance({
+                        profileOrder: event.currentTarget.value as Appearance['profileOrder'],
+                      })
+                    }
+                  >
+                    <option value="recent">Recently changed</option>
+                    <option value="name_asc">Name A–Z</option>
+                    <option value="name_desc">Name Z–A</option>
+                    <option value="created">Newest created</option>
+                  </select>
+                  <select
+                    class="profile-view-select layout-select"
+                    aria-label="Profile layout"
+                    value={appearance().profileLayout}
+                    onChange={(event) =>
+                      updateAppearance({
+                        profileLayout: event.currentTarget.value as Appearance['profileLayout'],
+                      })
+                    }
+                  >
+                    <option value="grid">▦ Grid</option>
+                    <option value="list">☷ List</option>
+                  </select>
                   <Show when={filter() !== 'all'}>
                     <button class="text-button" onClick={() => setFilter('all')}>
                       Clear filter ×
@@ -482,7 +585,12 @@ export default function App() {
                   </Show>
                 </div>
                 <div class="workspace-content">
-                  <div class="profile-grid">
+                  <div
+                    class={
+                      'profile-grid ' +
+                      (appearance().profileLayout === 'list' ? 'profile-list' : '')
+                    }
+                  >
                     <Show
                       when={filtered().length > 0}
                       fallback={
@@ -653,6 +761,20 @@ export default function App() {
                   edit={setEditor}
                 />
               </Show>
+              <div hidden={view() !== 'Browser'}>
+                <BrowserWorkspace
+                  active={view() === 'Browser'}
+                  preferences={appearance()}
+                  update={updateAppearance}
+                  reset={resetAppearance}
+                  persisted={appearanceSaved()}
+                  profiles={profiles()}
+                  selectedId={selectedId()}
+                  selectProfile={setSelectedId}
+                  open={setView}
+                  createProfile={() => setEditor('new')}
+                />
+              </div>
               <Show when={view() === 'Snapshots'}>
                 <Show
                   when={selected()}
@@ -824,6 +946,20 @@ export default function App() {
                 </div>
               </Show>
               <Show when={view() === 'Settings'}>
+                <section class="interface-settings" aria-label="Browser appearance settings">
+                  <AppearanceControls
+                    preferences={appearance()}
+                    update={updateAppearance}
+                    reset={resetAppearance}
+                    persisted={appearanceSaved()}
+                  />
+                  <div class="interface-settings-preview">
+                    <AppearancePreview preferences={appearance()} />
+                    <button class="button" onClick={() => setView('Browser')}>
+                      Open browser workspace ↗
+                    </button>
+                  </div>
+                </section>
                 <section class="settings-panel">
                   <Stamp>LOCAL WORKSPACE</Stamp>
                   <h2>Ownership starts here.</h2>
@@ -1042,7 +1178,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.2.0 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.3.0 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">

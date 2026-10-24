@@ -21,6 +21,10 @@ Electron downloads its platform binary on first use. In environments requiring a
 - SQLCipher-compatible encrypted database and random master key wrapped using Argon2id.
 - Explicit 1/2/4/8 GiB KDF selection, default 4 GiB; production derivation runs in a worker.
 - Local profiles, revisions, search, tags, folder labels, protected-execution policy and route configuration.
+- Rounded Browser workspace with interactive local tabs, profile search, keyboard tab navigation and local workspace shortcuts.
+- Light, Dark, System and Night appearance profiles; System follows desktop changes, Night applies an adjustable warm filter to the app content.
+- Live shared controls for accent, corners, density, browser text size, bookmarks, sidebar and transitions, plus a Settings preview.
+- Remembered profile sorting and grid/list layouts; appearance reset preserves those organization choices.
 - Encrypted proxy passwords omitted from public responses.
 - Encrypted named proxy pools, URI/JSON import previews and duplicate removal.
 - Real authenticated SOCKS5 and HTTP CONNECT tunnel tests, HTTPS certificate verification, bounded deadlines and lock cancellation.
@@ -57,6 +61,7 @@ The UI test uses Electron's headless Ozone backend without disabling renderer sa
 - [Data and interface contracts](specs/DATA-CONTRACTS-v4.0.md)
 - [Foundation implementation scope](docs/FOUNDATION-IMPLEMENTATION.md)
 - [Proxy pool operations and diagnostics](docs/ROUTE-MANAGEMENT.md)
+- [Browser appearance and workspace controls](docs/BROWSER-APPEARANCE.md)
 - [Build status and remaining gates](docs/BUILD-STATUS.md)
 - [Documentation revision verification](VERIFICATION-v4.0.md)
 

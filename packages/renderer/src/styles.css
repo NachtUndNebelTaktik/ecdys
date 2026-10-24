@@ -22,10 +22,17 @@
   --muted: #8a969d;
   --accent: #c4ef91;
   --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --text: #e4e9e8;
+  --accent-ink: #16220f;
+  --ui-radius: 12px;
+  --ui-motion: 180ms;
+  color-scheme: dark;
 }
 body {
   margin: 0;
   font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
 }
 button,
 input,
@@ -185,11 +192,11 @@ p {
 }
 .button.primary {
   background: var(--accent);
-  color: #16220f;
+  color: var(--accent-ink);
   border-color: var(--accent);
 }
 .button.primary:hover:not(:disabled) {
-  background: #d2f8a7;
+  background: color-mix(in srgb, var(--accent), white 10%);
 }
 .button.danger {
   color: #e69b8d;

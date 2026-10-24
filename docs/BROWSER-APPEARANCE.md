@@ -1,0 +1,19 @@
+# Browser workspace and live appearance
+
+Extend the existing Solid desktop interface with a Browser section: rounded window edges, tabs, an address bar, an optional bookmarks row and a local workspace start page. Retain the existing charcoal/lime application styling; theme profiles are Light, Dark, System and Night. System follows the desktop color scheme in real time. Night uses warmer surfaces and an adjustable multiply overlay to reduce blue in rendered app content; it does not change OS-wide display settings.
+
+One shared appearance state drives both the Browser section and Settings → Browser appearance. Controls change theme, accent, corner radius, density, text size, bookmarks, workspace sidebar and transitions. Profile sorting (recent changes, A–Z, Z–A, newest creation) and grid/list layout also persist locally. Reset appearance restores visual defaults while preserving the profile sort and layout. Browser controls update the full section immediately; Settings includes a live preview using the same appearance tokens. Preferences contain no profile identifiers, credentials, URLs or session history and are saved locally. Unsupported or corrupted preferences fall back to safe defaults; unavailable storage leaves the controls usable with a visible persistence notice.
+
+Tabs and local workspace navigation are interactive. External browsing remains subject to the existing native-route, protected-storage and managed-browser requirements. This UI work does not enable website navigation or report a connected VPN/browser session.
+
+Implementation: validate preferences and persistence; build shared controls, browser surface and local tab interactions; integrate Browser navigation and Settings; verify live computed styles, structural toggles, tab behavior, reset and persistence in real Electron, plus existing checks. Inspect a desktop screenshot at wide and minimum supported sizes.
+
+Implementation and verification notes:
+
+- Appearance validation bounds stored values and strips unrelated fields. Invalid JSON/preferences fall back to defaults. Read/write failures leave the interface operational and show that saving is unavailable.
+- Tabs retain their own local profile search while switching between workspace views. Closing a tab updates active selection atomically, closing the final tab creates a new local start tab, and focus returns to the selected tab. Arrow keys, Home and End operate the tab strip.
+- Only explicit local workspace addresses route to application views. Prototype-property names and external addresses cannot become view identifiers or trigger network browsing.
+- The customizer can be hidden for more workspace space; while visible, it stays beside the browser at the 1050 px minimum width and scrolls independently. Settings uses the same controls and a preview with the same style variables.
+- Night warmth is an app-content color filter, not a promised color temperature, physical display calibration or system-wide night light. Stored percentages represent the UI setting only.
+- Real Electron checks verify computed colors/corners/font size/density, toggles, System theme changes, Night filter strength, reduced motion, local tab search and keyboard interaction, external navigation refusal, sorting/list layout, persistence after renderer reload, reset behavior and unchanged profile data. Screenshots were visually inspected at 1440 px and 1050 px widths.
+- UI checks caught and corrected control labeling, an intermediate invalid active tab during close, lost focus after closing the last tab and unsafe inherited-key lookup in local navigation. Regressions failed before their corrections.
