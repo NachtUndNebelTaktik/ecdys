@@ -1,16 +1,16 @@
-# VPN setup in Styg 0.5
+# VPN setup in Ecdys 0.5
 
-Styg 0.6 extends this setup foundation with explicit [provider registration and WireGuard preparation](PROVISIONING.md). The sections below describe the 0.5 catalog/configuration boundary; account checks and provider registration now use separate explicit controls. OS tunnel activation remains blocked.
+Ecdys 0.6 extends this setup foundation with explicit [provider registration and WireGuard preparation](PROVISIONING.md). The sections below describe the 0.5 catalog/configuration boundary; account checks and provider registration now use separate explicit controls. OS tunnel activation remains blocked.
 
 Open **VPN setup** on a profile card. Choose Mullvad or IVPN, save an account if desired, load the public WireGuard server list or enter a hostname offline, choose a rotation policy, and save the profile settings. Saving an account takes effect immediately at workspace scope, independently of the profile dialog's Save/Cancel buttons. Removing an account affects every profile using that provider.
 
-Catalog retrieval and endpoint selection do not authenticate or establish a route. Styg 0.6's separate registration controls can check accounts and register WireGuard material. **Neither flow connects a tunnel, tests an exit IP or enables browser launches.** A saved rotation policy is not an active scheduler. Route lock remains required. The OS routing supervisor and custom SOCKS5 remain pending.
+Catalog retrieval and endpoint selection do not authenticate or establish a route. Ecdys 0.6's separate registration controls can check accounts and register WireGuard material. **Neither flow connects a tunnel, tests an exit IP or enables browser launches.** A saved rotation policy is not an active scheduler. Route lock remains required. The OS routing supervisor and custom SOCKS5 remain pending.
 
 ## Blueprint corrections
 
 - IVPN uses an account ID (`i-XXXX-XXXX-XXXX` or legacy `ivpnXXXXXXXX`), not the proposed username/API-key pair. Mullvad uses a 16-digit account number.
 - Listing relays does not require submitting account credentials and does not validate an account. Fetching a catalog also does not establish a WireGuard tunnel.
-- Mullvad's catalog weight is a selection weight, not measured utilization. Styg displays no invented load percentage. IVPN's host load is displayed when supplied.
+- Mullvad's catalog weight is a selection weight, not measured utilization. Ecdys displays no invented load percentage. IVPN's host load is displayed when supplied.
 - Credentials currently use purpose-separated AES-256-GCM encryption inside the encrypted database. GnuPG/OpenPGP adapters are still pending; this implementation does not claim to use them.
 - Rotation planning is separate from tunnel rotation. The planner evaluates launch-count and time boundaries, excludes the current host, prefers available reported load and otherwise orders hosts by name. It retains the current selection with a warning if no alternative exists. It is not wired to actual launches yet; no counter or last-rotation timestamp is fabricated.
 
@@ -42,6 +42,6 @@ Checked on 2026-10-24:
 - [Mullvad public API documentation](https://api.mullvad.net/public/documentation/) specifies WireGuard v2 relay lists and account numbers.
 - [IVPN CLI documentation](https://www.ivpn.net/knowledgebase/general/command-line-client-faq/) documents account-ID login, server selection and firewall commands.
 - [IVPN account troubleshooting](https://www.ivpn.net/knowledgebase/troubleshooting/i-cannot-connect-to-the-vpn-what-can-i-do/) documents both account-ID formats.
-- [Official IVPN desktop API source](https://github.com/ivpn/desktop-app/blob/development/daemon/api/api.go) identifies `api.ivpn.net/v5/servers.json`. This is an upstream app endpoint and may change independently of Styg.
+- [Official IVPN desktop API source](https://github.com/ivpn/desktop-app/blob/development/daemon/api/api.go) identifies `api.ivpn.net/v5/servers.json`. This is an upstream app endpoint and may change independently of Ecdys.
 
 Unit/integration tests cover normalization, malformed/oversized/error/redirect responses, deadlines, cache age/stale fallback, rotation boundaries, credential authentication and non-disclosure, lock/reopen, v3 migration and recovery semantics. The default Electron workflow saves settings without external network access. An optional public-catalog smoke run is available with `STYG_TEST_LIVE_VPN_CATALOGS=1 pnpm test:desktop`; it sends no account credentials.

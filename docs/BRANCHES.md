@@ -1,6 +1,6 @@
 # Snapshot previews and independent branches
 
-Styg 0.3 adds the current portion of blueprint US-4/US-5. It handles saved settings and closed browser-directory files. It does not launch browsers or apply fingerprints/VPN routes.
+Ecdys 0.3 adds the current portion of blueprint US-4/US-5. It handles saved settings and closed browser-directory files. It does not launch browsers or apply fingerprints/VPN routes.
 
 ## Review a restore
 
@@ -26,7 +26,7 @@ Branches count toward the 99-profile limit. They use the same 64 MiB / 4096-entr
 
 Merge preserves the parent's name, tags and browser files and keeps the branch. There is no cookie, file or session-state merge. The environment fields are saved settings in this build; provider authentication, tunnels and fingerprint injection remain pending. Since 0.5, VPN configuration is copied/restored/merged with other environment settings; provider credentials stay workspace-level and outside profile history. See [VPN setup](VPN.md). A nested branch merges into its immediate parent. Promoting a branch does not detach that profile's own children.
 
-Promotion and discard also check the revision shown in their confirmation. Browser lock markers prevent copying/discarding closed-directory state; arbitrary external programs are not managed by Styg yet.
+Promotion and discard also check the revision shown in their confirmation. Browser lock markers prevent copying/discarding closed-directory state; arbitrary external programs are not managed by Ecdys yet.
 
 ## Interrupted operations and migration
 
@@ -34,6 +34,6 @@ Fork creation reserves a hidden profile and a durable creation journal before co
 
 Discard records its journal before renaming the branch directory into an operation-specific trash directory. Reopening resumes deletion whether the rename or file removal had already completed. Recovery derives paths from validated IDs. Missing journals and conflicting paths stop unlock and preserve files for review rather than guessing.
 
-Schema v3 adds ancestry, revisions, hidden operation status and fork/discard journals. Unlock migrates schemas v1/v2 transactionally while retaining existing encrypted history. `workspace.json` remains format v1. Close Styg and back up the entire workspace before upgrading; older 0.1/0.2 builds need the matching pre-migration backup to roll back.
+Schema v3 adds ancestry, revisions, hidden operation status and fork/discard journals. Unlock migrates schemas v1/v2 transactionally while retaining existing encrypted history. `workspace.json` remains format v1. Close Ecdys and back up the entire workspace before upgrading; older 0.1/0.2 builds need the matching pre-migration backup to roll back.
 
 Linux tests cover independent files/history, identity rebinding, stale confirmations, merge rollback, migration, cancellation and simulated interrupted creation/activation/deletion. The maximum-size test also rebinds and restores a 64 MiB incompressible archive. Actual power-loss behavior, Windows/macOS recovery and OS-protected and cross-machine Chromium cookie recovery remain unverified. The local basic-store recovery test is described in [managed sessions](SESSIONS.md). Working directories and staging remain ordinary local files; see [snapshot boundaries](SNAPSHOTS.md).

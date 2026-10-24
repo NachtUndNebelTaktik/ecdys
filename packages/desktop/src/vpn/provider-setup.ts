@@ -6,7 +6,7 @@ import {ProviderClient,ProviderError,type AccountCheck} from './provider-client'
 import {ProviderCatalog} from './catalog';
 import type {RegistrationData,RemoteData} from './registration';
 class SetupError extends Error {}
-const uncertain=()=>new SetupError('Registration outcome is uncertain. Review Styg devices/sessions in your provider account before resetting local setup.');
+const uncertain=()=>new SetupError('Registration outcome is uncertain. Review Ecdys devices/sessions in your provider account before resetting local setup.');
 export class ProviderSetup {
   private operations=new Map<VpnProviderType,AbortController>();
   private closed=false;

@@ -1,4 +1,8 @@
-# Styg 0.6.1 provider registration preview — 2026-10-24
+# Ecdys 0.6.1 provider registration preview — 2026-10-24
+
+Renamed from Styg to Ecdys. The app keeps the legacy `styg` data folder, encrypted formats and recovery identifiers so existing workspaces open in place. Historical progress notes and plans retain their original name.
+
+Rename validation: typecheck/build, two browser UI checks and both Electron workflows passed. The renamed Electron app opened a workspace created by the prior Styg build, unlocked its encrypted records and previewed its baseline snapshot. An explicit `--user-data-dir` override was also retained. Current screenshots show Ecdys.
 
 Implemented: encrypted workspace, Argon2id worker, SQLCipher-compatible database, configuration CRUD/search, separate profile browser directories, automatic configuration snapshots, manual closed-directory snapshots, authenticated wrapped snapshot keys, pin/prune, full restore rollback, durable interrupted-restore journal, Electron controls with accurate snapshot content labels, configuration previews, revision checks, independent branches with re-encrypted retained history, environment-only merges, promotion and journaled discard. Internal Linux session machinery adds private CDP pipes, owned process-group shutdown, exclusive profile leases, pre-launch/clean-close state snapshots, crash handling and orderly Electron lock/quit.
 

@@ -31,7 +31,7 @@ export default function App() {
   const filtered=createMemo(()=>profiles().filter(p=>`${p.name} ${p.tags.join(' ')}`.toLowerCase().includes(search().toLowerCase())));
   const bridge=!!window.styg;
   async function invoke<T>(request:RequestType):Promise<T> {
-    if(!window.styg) throw new Error('Open Styg in Electron to use the encrypted workspace.');
+    if(!window.styg) throw new Error('Open Ecdys in Electron to use the encrypted workspace.');
     const result=await window.styg.invoke<T>(request);
     if(!result.ok) throw new Error(result.error);
     return result.value;
@@ -94,7 +94,7 @@ export default function App() {
   }
   return <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="#" onClick={e=>e.preventDefault()} aria-label="Styg home"><span class="brand-mark">s</span>styg<span class="brand-dot">.</span></a>
+      <a class="brand" href="#" onClick={e=>e.preventDefault()} aria-label="Ecdys home"><span class="brand-mark">e</span>ecdys<span class="brand-dot">.</span></a>
       <div class="workspace-label"><span class="workspace-avatar">P</span><div>Personal workspace<small>Local · single operator</small></div><span class="muted">⌄</span></div>
       <div class="nav-label">WORKSPACE</div>
       <button class="nav-item active"><span>▦</span> Profiles <span class="count">{profiles().length}</span></button>
@@ -102,7 +102,7 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">STYG <span>0.6.1 · provider registration</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">ECDYS <span>0.6.1 · provider registration</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
       <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');})}>Lock workspace ↗</button></Show></div></header>
@@ -115,7 +115,7 @@ export default function App() {
           <p class="intro">Separate your profiles. Keep a way back.<br/>Start with an encrypted workspace on this device.</p>
           <form class="unlock-panel" onSubmit={unlock}>
             <div class="panel-kicker">{status()?.exists?'WELCOME BACK':'01 / CREATE YOUR WORKSPACE'}</div>
-            <h2>{status()?.exists?'Unlock Styg':'Make it yours'}</h2>
+            <h2>{status()?.exists?'Unlock Ecdys':'Make it yours'}</h2>
             <p class="muted">{status()?.exists?'Enter your passphrase to open your local workspace.':'Your passphrase protects profile settings and saved snapshots. There is no passphrase recovery.'}</p>
             <label>Workspace passphrase<input type="password" autocomplete={status()?.exists?'current-password':'new-password'} minLength={status()?.exists?1:12} maxLength={1024} required value={passphrase()} onInput={e=>setPassphrase(e.currentTarget.value)}/></label>
             <Show when={!status()?.exists}>
@@ -132,7 +132,7 @@ export default function App() {
           <div class="routing-banner"><span class="route-icon">⌁</span><div><strong>Route verification required</strong><p>Networked launches stay blocked until OS-level isolation and disconnect blocking are verified.</p></div><span class="status-tag warning">BLOCKED</span></div>
           <div class="profiles-toolbar"><div class="tabs"><span class="selected-tab">All profiles <b>{profiles().length}</b></span></div><label class="search"><span>⌕</span><input aria-label="Search profiles" placeholder="Search name or tag…" value={search()} onInput={e=>setSearch(e.currentTarget.value)}/></label></div>
           <div class="workspace-content"><section class="profile-grid" aria-label="Profiles">
-            <Show when={filtered().length===0}><div class="empty"><div class="empty-icon">▦</div><h2>{profiles().length?'No matching profiles':'A clean slate'}</h2><p>{profiles().length?'Try another name or tag.':'Create your first profile. Styg will save its baseline automatically.'}</p><Show when={!profiles().length}><button class="secondary" onClick={()=>openEditor()}>Create first profile ↗</button></Show></div></Show>
+            <Show when={filtered().length===0}><div class="empty"><div class="empty-icon">▦</div><h2>{profiles().length?'No matching profiles':'A clean slate'}</h2><p>{profiles().length?'Try another name or tag.':'Create your first profile. Ecdys will save its baseline automatically.'}</p><Show when={!profiles().length}><button class="secondary" onClick={()=>openEditor()}>Create first profile ↗</button></Show></div></Show>
             <For each={filtered()}>{profile=><article class={`profile-card ${selected()===profile.id?'is-selected':''}`}>
               <button class="profile-main" disabled={busy()} onClick={()=>void run(async()=>{setSelected(profile.id);setSnapshots(await invoke<Snapshot[]>({action:'snapshots',id:profile.id}));})}>
                 <div class="card-top"><span class="profile-avatar">{profile.name.slice(0,2).toUpperCase()}</span><Show when={profile.parentProfileId} fallback={<span class="card-menu">↗</span>}><span class="branch-badge">BRANCH</span></Show></div>
@@ -157,17 +157,17 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg provider registration preview / 0.6.1</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Ecdys provider registration preview / 0.6.1</span></footer>
         </Show>
       </main>
     </div>
-    <Show when={editor()}><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-top"><span class="eyebrow">PROFILE CONFIGURATION</span><button class="close-button" aria-label="Close editor" disabled={busy()} onClick={()=>setEditor(false)}>×</button></div><h2 id="editor-title">{editing()?'Edit profile':'A new context'}</h2><p class="muted">{editing()?'Styg saves a snapshot before applying your changes.':'Start with a name. A baseline snapshot is saved automatically.'}</p><form onSubmit={save}><label>Profile name<input autofocus required maxLength={100} value={name()} onInput={e=>setName(e.currentTarget.value)} placeholder="e.g. Research — Europe"/></label><label>Tags <span class="muted">· comma separated</span><input value={tags()} onInput={e=>setTags(e.currentTarget.value)} placeholder="research, client-work"/></label><label>Timezone<input required list="timezones" value={timezone()} onInput={e=>setTimezone(e.currentTarget.value)}/><datalist id="timezones"><option>UTC</option><option>America/New_York</option><option>Europe/Berlin</option><option>Europe/London</option><option>Asia/Tokyo</option></datalist></label><div class="form-row"><label>Language<select value={language()} onChange={e=>setLanguage(e.currentTarget.value)}><option>en-US</option><option>en-GB</option><option>de-DE</option><option>fr-FR</option></select></label><label>Screen size<select value={screen()} onChange={e=>setScreen(e.currentTarget.value)}><option>1920 × 1080</option><option>1440 × 900</option><option>1366 × 768</option></select></label></div><Show when={error()}><p class="amber-text" role="status">{error()}</p></Show><div class="modal-actions"><button type="button" class="secondary" disabled={busy()} onClick={()=>setEditor(false)}>Cancel</button><button class="primary" disabled={busy()} type="submit">{busy()?'Saving…':editing()?'Save changes':'Create profile'} ↗</button></div></form></section></div></Show>
+    <Show when={editor()}><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-top"><span class="eyebrow">PROFILE CONFIGURATION</span><button class="close-button" aria-label="Close editor" disabled={busy()} onClick={()=>setEditor(false)}>×</button></div><h2 id="editor-title">{editing()?'Edit profile':'A new context'}</h2><p class="muted">{editing()?'Ecdys saves a snapshot before applying your changes.':'Start with a name. A baseline snapshot is saved automatically.'}</p><form onSubmit={save}><label>Profile name<input autofocus required maxLength={100} value={name()} onInput={e=>setName(e.currentTarget.value)} placeholder="e.g. Research — Europe"/></label><label>Tags <span class="muted">· comma separated</span><input value={tags()} onInput={e=>setTags(e.currentTarget.value)} placeholder="research, client-work"/></label><label>Timezone<input required list="timezones" value={timezone()} onInput={e=>setTimezone(e.currentTarget.value)}/><datalist id="timezones"><option>UTC</option><option>America/New_York</option><option>Europe/Berlin</option><option>Europe/London</option><option>Asia/Tokyo</option></datalist></label><div class="form-row"><label>Language<select value={language()} onChange={e=>setLanguage(e.currentTarget.value)}><option>en-US</option><option>en-GB</option><option>de-DE</option><option>fr-FR</option></select></label><label>Screen size<select value={screen()} onChange={e=>setScreen(e.currentTarget.value)}><option>1920 × 1080</option><option>1440 × 900</option><option>1366 × 768</option></select></label></div><Show when={error()}><p class="amber-text" role="status">{error()}</p></Show><div class="modal-actions"><button type="button" class="secondary" disabled={busy()} onClick={()=>setEditor(false)}>Cancel</button><button class="primary" disabled={busy()} type="submit">{busy()?'Saving…':editing()?'Save changes':'Create profile'} ↗</button></div></form></section></div></Show>
     <Show when={restoreTarget()}>{snapshot=><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="restore-title">
       <span class="eyebrow">RECOVERY</span>
       <h2 id="restore-title">{snapshot().snapshot.hasBrowserState?'Restore configuration and browser state?':'Restore this configuration?'}</h2>
       <p class="muted">{snapshot().snapshot.hasBrowserState
-        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().snapshot.timestamp)}. Styg saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; protected cookies may also require the original OS key store.`
-        :`Replace the current settings with the configuration from ${time(snapshot().snapshot.timestamp)}. Styg saves the current configuration as a rollback point. Browser files remain unchanged.`}</p>
+        ?`Replace this profile's settings and browser files with the snapshot from ${time(snapshot().snapshot.timestamp)}. Ecdys saves a full rollback snapshot first. Close the browser before continuing. Use the same OS account and a compatible browser build; protected cookies may also require the original OS key store.`
+        :`Replace the current settings with the configuration from ${time(snapshot().snapshot.timestamp)}. Ecdys saves the current configuration as a rollback point. Browser files remain unchanged.`}</p>
       <h3 class="diff-heading">Changes from current settings</h3><DiffTable changes={snapshot().changes}/>
       <Show when={error()}><p class="amber-text" role="alert">{error()}</p></Show>
       <div class="modal-actions">

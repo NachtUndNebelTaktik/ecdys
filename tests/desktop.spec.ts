@@ -11,10 +11,12 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
   try {
     application=await launch(); const page=await application.firstWindow();
     const userData=await application.evaluate(({app})=>app.getPath('userData'));
-    expect(userData.startsWith(config)).toBe(true);
+    expect(userData).toBe(join(config,'styg'));
+    expect(await application.evaluate(({app})=>app.getName())).toBe('Ecdys');
+    await expect(page).toHaveTitle('Ecdys — private workspace');
     await expect(page.getByRole('button',{name:'Create encrypted workspace'})).toBeEnabled();
-    await page.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
-    await page.getByLabel('Confirm passphrase').fill('test-only passphrase for Styg');
+    await page.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Ecdys');
+    await page.getByLabel('Confirm passphrase').fill('test-only passphrase for Ecdys');
     await page.getByText('Key derivation settings').click();
     await page.getByLabel('Argon2id memory').selectOption('64');
     await page.getByRole('button',{name:'Create encrypted workspace'}).click();
@@ -125,15 +127,15 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await page.evaluate(()=>window.scrollTo(0,0));
     await page.screenshot({path:'test-results/styg-workspace.png',fullPage:true});
     await page.getByRole('button',{name:'Lock workspace'}).click();
-    await expect(page.getByRole('heading',{name:'Unlock Styg'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Unlock Ecdys'})).toBeVisible();
     await expect(page.getByText('Research — Europe',{exact:true})).toHaveCount(0);
     await page.getByLabel('Workspace passphrase',{exact:true}).fill('incorrect passphrase');
     await page.getByRole('button',{name:/^Unlock workspace/}).click();
     await expect(page.getByRole('alert')).toContainText('Unable to unlock');
     await application.close(); application=undefined;
     application=await launch(); const reopened=await application.firstWindow();
-    await expect(reopened.getByRole('heading',{name:'Unlock Styg'})).toBeVisible();
-    await reopened.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Styg');
+    await expect(reopened.getByRole('heading',{name:'Unlock Ecdys'})).toBeVisible();
+    await reopened.getByLabel('Workspace passphrase',{exact:true}).fill('test-only passphrase for Ecdys');
     await reopened.getByRole('button',{name:/^Unlock workspace/}).click();
     await expect(reopened.locator('.profile-card h2')).toHaveText(['Research — Europe','Standalone experiment']);
     await expect(reopened.getByText('pre restore',{exact:true}).first()).toBeVisible();
@@ -157,7 +159,7 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await expect(vpnDialog.getByRole('button',{name:'Close VPN setup'})).toBeEnabled({timeout:1000});
     await vpnDialog.getByRole('button',{name:'Close VPN setup'}).click();
     await reopened.getByRole('button',{name:'Lock workspace'}).click();
-    await expect(reopened.getByRole('heading',{name:'Unlock Styg'})).toBeVisible({timeout:1000});
+    await expect(reopened.getByRole('heading',{name:'Unlock Ecdys'})).toBeVisible({timeout:1000});
     await application.evaluate(()=>{(globalThis as any).__stygDelayedCatalog.release();});
     await expect(reopened.getByRole('dialog')).toHaveCount(0);
     await expect(reopened.getByRole('alert')).toHaveCount(0);

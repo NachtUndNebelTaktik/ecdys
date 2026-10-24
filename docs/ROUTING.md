@@ -1,6 +1,6 @@
 # Linux routing laboratory
 
-This lab checks OS route/firewall mechanisms with simulated tunnel interfaces. It uses two disposable profile namespaces and a third namespace serving private HTTP, UDP echo and DNS TXT endpoints. It runs no VPN protocol, uses no Internet service, and cannot enable Styg browser launches.
+This lab checks OS route/firewall mechanisms with simulated tunnel interfaces. It uses two disposable profile namespaces and a third namespace serving private HTTP, UDP echo and DNS TXT endpoints. It runs no VPN protocol, uses no Internet service, and cannot enable Ecdys browser launches.
 
 All addresses, routes, servers and nftables rules belong to those namespaces. Only down/unaddressed veth pairs briefly exist in the host namespace before being moved into the lab. Host routes/firewall tables are not edited. Use a disposable Linux VM for the first administrator run.
 
@@ -14,7 +14,7 @@ node scripts/routing-preflight.mjs
 sudo node scripts/routing-proof.mjs --run > routing-result.json
 ```
 
-A successful preflight reports tool/capability availability, not successful isolation. `--run` is mandatory. Namespace names contain the invocation PID and a random suffix (`styg-<pid>-<suffix>-{a,b,r}`). The script stops its endpoint process and deletes only the namespaces and temporary links it created. Cleanup errors make the result fail. SIGINT/SIGTERM trigger cleanup; SIGKILL or a machine crash can leave resources for an administrator to inspect/remove by their Styg namespace names.
+A successful preflight reports tool/capability availability, not successful isolation. `--run` is mandatory. Namespace names contain the invocation PID and a random suffix (`styg-<pid>-<suffix>-{a,b,r}`). The script stops its endpoint process and deletes only the namespaces and temporary links it created. Cleanup errors make the result fail. SIGINT/SIGTERM trigger cleanup; SIGKILL or a machine crash can leave resources for an administrator to inspect/remove by their Ecdys namespace names.
 
 ## Required evidence
 

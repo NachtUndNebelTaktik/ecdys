@@ -1,8 +1,8 @@
 {
-  "name": "styg",
+  "name": "ecdys",
   "version": "0.6.1",
   "private": true,
-  "description": "Styg desktop session and profile manager \u2014 provider registration preview",
+  "description": "Ecdys desktop session and profile manager \u2014 provider registration preview",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@11.25.0",
   "engines": {
@@ -40,5 +40,6 @@
     "vite-plugin-solid": "2.11.14",
     "vitest": "^4.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "productName": "Ecdys"
 }

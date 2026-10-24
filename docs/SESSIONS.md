@@ -1,6 +1,6 @@
 # Managed session core
 
-Styg 0.4 adds internal browser lifecycle and storage recovery machinery. **Normal app launches remain blocked.** The product supervisor rejects readiness before a snapshot or process is created. No UI setting, environment switch or report can enable it. A real OS route supervisor, provider tunnels and browser distribution are still required.
+Ecdys 0.4 adds internal browser lifecycle and storage recovery machinery. **Normal app launches remain blocked.** The product supervisor rejects readiness before a snapshot or process is created. No UI setting, environment switch or report can enable it. A real OS route supervisor, provider tunnels and browser distribution are still required.
 
 ## Lifecycle and ownership
 
@@ -22,7 +22,7 @@ After readiness, and on startup failure while the child is still alive, the runt
 
 A replaced marker keeps cleanup failed and the profile owned. After an operator resolves that conflict, close can retry verification. Successful group quiescence is remembered, so retrying marker cleanup does not re-signal a later reused group. Extremely early startup death before lock ownership is observed can still leave unknown markers; preserve them and inspect the directory before attempting recovery.
 
-External programs do not respect Styg's in-memory leases. Do not run another browser against a managed directory. The working files and staging directories remain ordinary local files, protected by OS permissions/disk encryption; they are not encrypted by locking Styg.
+External programs do not respect Ecdys's in-memory leases. Do not run another browser against a managed directory. The working files and staging directories remain ordinary local files, protected by OS permissions/disk encryption; they are not encrypted by locking Ecdys.
 
 ## What was actually tested
 
@@ -36,4 +36,4 @@ pnpm test tests/cdp-pipe.test.ts tests/chromium.test.ts tests/sessions.test.ts t
 
 Tests expect Linux and `/usr/bin/chromium`; `STYG_TEST_CHROMIUM` selects the test executable only. Failure fixtures exercise actual child processes, unresponsive shutdown, surviving group descendants, startup/protocol errors and lock ownership conflicts. No privileged routing proof is supplied by these tests; see [routing limits](ROUTING.md).
 
-Snapshot encryption remains unchanged (workspace metadata v1). Session triggers use the existing text column. VPN setup in 0.5 added non-secret VPN configuration to snapshot contents; provider registration in 0.6 migrates the database to v5 while keeping registration keys/tokens outside profile snapshots. State archives remain limited to 64 MiB and 4096 entries; an over-limit archive reports failure and preserves working files. Close Styg and back up the whole workspace before upgrading.
+Snapshot encryption remains unchanged (workspace metadata v1). Session triggers use the existing text column. VPN setup in 0.5 added non-secret VPN configuration to snapshot contents; provider registration in 0.6 migrates the database to v5 while keeping registration keys/tokens outside profile snapshots. State archives remain limited to 64 MiB and 4096 entries; an over-limit archive reports failure and preserves working files. Close Ecdys and back up the whole workspace before upgrading.

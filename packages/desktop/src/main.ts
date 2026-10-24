@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, session, dialog } from 'electron';
 import { join, dirname } from 'node:path';
+import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { Request, type Result } from '../../shared/src/model';
@@ -10,6 +11,13 @@ import {ProviderCatalog} from './vpn/catalog';
 import {ProviderClient} from './vpn/provider-client';
 import {ProviderSetup} from './vpn/provider-setup';
 const here=dirname(fileURLToPath(import.meta.url));
+// Keep pre-rename workspaces and the instance lock in the same directory.
+// Explicit Electron user-data-dir overrides still take precedence.
+const userData=app.commandLine.hasSwitch('user-data-dir')?app.getPath('userData'):join(app.getPath('appData'),'styg');
+mkdirSync(userData,{recursive:true});
+app.setPath('userData',userData);
+app.setPath('sessionData',userData);
+app.setName('Ecdys');
 let window:BrowserWindow|undefined;
 let vault:Vault|undefined;
 let sessions:BrowserSessions|undefined;
@@ -34,7 +42,7 @@ async function lock():Promise<{incompleteSnapshots:number}> {
   })();
   try{return await lockTask;}finally{lockTask=undefined;}
 }
-function lifecycleError(){dialog.showErrorBox('Styg could not finish browser cleanup','The workspace remains open. Browser cleanup could not be verified; preserve profile files and retry closing sessions.');}
+function lifecycleError(){dialog.showErrorBox('Ecdys could not finish browser cleanup','The workspace remains open. Browser cleanup could not be verified; preserve profile files and retry closing sessions.');}
 function touch() { clearTimeout(lockTimer); if(vault) lockTimer=setTimeout(()=>{const operation=queue.then(async()=>{await lock();if(window&&!window.isDestroyed())window.reload();});queue=operation.catch(lifecycleError);},15*60*1000); }
 function requireVault() { if(!vault) throw new Error('Workspace is locked'); return vault; }
 async function handle(raw:unknown):Promise<unknown> {
@@ -77,7 +85,7 @@ async function handle(raw:unknown):Promise<unknown> {
   }
 }
 function createWindow() {
-  window=new BrowserWindow({width:1440,height:960,minWidth:1060,minHeight:720,backgroundColor:'#101514',title:'Styg',show:false,webPreferences:{preload:join(here,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
+  window=new BrowserWindow({width:1440,height:960,minWidth:1060,minHeight:720,backgroundColor:'#101514',title:'Ecdys',show:false,webPreferences:{preload:join(here,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
   window.removeMenu();
   window.once('ready-to-show',()=>window?.show());
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
@@ -90,7 +98,6 @@ if(!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance',()=>{window?.show();window?.focus();});
   app.whenReady().then(()=>{
-    app.setName('Styg');
     const catalogSession=session.fromPartition('styg-provider-catalog');
     // Honor the host's outbound proxy; relay requests never contain credentials.
     const proxy=process.env.HTTPS_PROXY??process.env.https_proxy??process.env.HTTP_PROXY??process.env.http_proxy;
@@ -102,7 +109,7 @@ else {
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     session.defaultSession.setPermissionCheckHandler(()=>false);
     ipcMain.handle('styg:request',(event,raw)=>{
-      if(quitting)return {ok:false,error:'Styg is closing'};
+      if(quitting)return {ok:false,error:'Ecdys is closing'};
       if(!window || event.sender!==window.webContents || event.senderFrame!==window.webContents.mainFrame) return {ok:false,error:'Untrusted request origin'};
       const operation=queue.then(async():Promise<Result>=>{
         try { return {ok:true,value:await handle(raw)}; }

@@ -1,6 +1,8 @@
-# Styg
+# Ecdys
 
-Desktop session and profile management. This is the Styg 0.6.1 provider registration preview, not the full v1.0 blueprint.
+Desktop session and profile management. This is the Ecdys 0.6.1 provider registration preview, not the full v1.0 blueprint.
+
+Previously named Styg. Ecdys uses the existing `styg` application data folder so current encrypted workspaces open in place. Encryption formats, recovery markers and internal `styg` protocol/test identifiers stay compatible; no data migration is required. Earlier progress notes and plans retain the name used at the time.
 
 ## What works
 
@@ -36,9 +38,9 @@ pnpm build
 pnpm start
 ```
 
-The workspace lives in Electron's `app.getPath('userData')/workspace`. Back up the whole workspace while Styg is closed: `workspace.json` holds non-secret KDF settings, `workspace.db` holds encrypted records/archives, and `profiles/` contains ordinary browser working files. Never delete them to resolve an unlock error. Schemas v1–v4 migrate automatically to v5; older apps require a matching pre-migration backup to roll back.
+The workspace lives in Electron's `app.getPath('userData')/workspace`. Back up the whole workspace while Ecdys is closed: `workspace.json` holds non-secret KDF settings, `workspace.db` holds encrypted records/archives, and `profiles/` contains ordinary browser working files. Never delete them to resolve an unlock error. Schemas v1–v4 migrate automatically to v5; older apps require a matching pre-migration backup to roll back.
 
-Passphrases require at least 12 characters and cannot be recovered. Default Argon2id cost: 256 MiB, 2 iterations. Alternatives: 64 MiB, 1 GiB or 4 GiB. Memory availability is checked before derivation. Styg locks after 15 minutes without a workspace operation, then reloads the renderer.
+Passphrases require at least 12 characters and cannot be recovered. Default Argon2id cost: 256 MiB, 2 iterations. Alternatives: 64 MiB, 1 GiB or 4 GiB. Memory availability is checked before derivation. Ecdys locks after 15 minutes without a workspace operation, then reloads the renderer.
 
 ## Verify
 
@@ -74,8 +76,8 @@ This development foundation is not validated for high-risk investigations. The O
 
 ## Workspace screenshot
 
-![Styg branches workspace](docs/images/branches.png)
+![Ecdys branches workspace](docs/images/branches.png)
 
 ![Review environment changes before merging](docs/images/merge-preview.png)
 
-![Styg VPN setup with explicit routing boundaries](docs/images/vpn-setup.png)
+![Ecdys VPN setup with explicit routing boundaries](docs/images/vpn-setup.png)

@@ -1,6 +1,6 @@
 # Configuration and closed browser-state snapshots
 
-Styg now supports two explicit snapshot contents:
+Ecdys now supports two explicit snapshot contents:
 
 | Contents | Trigger in this build | Restores |
 |---|---|---|
@@ -17,11 +17,11 @@ The encrypted SQLite database stores both snapshot envelopes as BLOBs. Configura
 
 Scanning, compression, encryption, manifest validation and staging run in a worker. The current bounded format allows 64 MiB of raw file data and 4096 total file/directory entries. It is not a streaming format and can use considerably more memory than the raw data size. Larger profile quotas require a different streaming implementation.
 
-Archives are encrypted at rest. Working browser files and temporary restore staging are ordinary local files; use OS disk encryption to protect them. Locking Styg clears its retained encryption key and closes the database; it does not encrypt or erase the working directories.
+Archives are encrypted at rest. Working browser files and temporary restore staging are ordinary local files; use OS disk encryption to protect them. Locking Ecdys clears its retained encryption key and closes the database; it does not encrypt or erase the working directories.
 
 ## Capture checks
 
-Close the browser before saving. Styg refuses known Chromium singleton/lock markers, symbolic links, hard links, special files, unsafe/absolute/traversal paths, case-folded or Unicode-normalized path collisions, and directories that change during capture. File reads are bounded to the inventoried size. Capture applies the same path/size rules needed to restore successfully, including for rollback archives.
+Close the browser before saving. Ecdys refuses known Chromium singleton/lock markers, symbolic links, hard links, special files, unsafe/absolute/traversal paths, case-folded or Unicode-normalized path collisions, and directories that change during capture. File reads are bounded to the inventoried size. Capture applies the same path/size rules needed to restore successfully, including for rollback archives.
 
 Lock markers and inventory stability are additional checks, not proof that an arbitrary external browser has exited. Future browser lifecycle integration must supply a managed process/quiescence guarantee, particularly on Windows. The internal Linux session core supplies an exclusive profile lease and waits for owned process-group quiescence; it is not yet enabled for normal app launches. The managed-session integration now validates real persistent cookies, localStorage and IndexedDB recovery using local Debian Chromium with a test basic password store, including restore after a killed browser. Production launches remain blocked. OS-protected cookies, cross-machine portability, sessionStorage and tab history are not verified. See [session test boundaries](SESSIONS.md).
 
@@ -44,4 +44,4 @@ The tests simulate the interruption states using real filesystem operations. Act
 
 The 20 newest unpinned snapshots are retained in addition to pinned snapshots, regardless of content type. Configuration, state BLOBs and pin/prune changes participate in SQLite transactions. Before a state restore, a full rollback snapshot is added.
 
-Unlock migrates database schemas v1–v4 to v5 transactionally; existing configuration profiles and encrypted state snapshots remain readable. `workspace.json` format stays v1 because its encryption metadata is unchanged. Older builds cannot open database schema v5. Back up the complete workspace while Styg is closed before upgrading; rollback to an older build requires the matching pre-migration backup. Since 0.5, configuration history includes VPN settings; provider credentials and registrations remain outside profile snapshots. See [VPN data boundaries](VPN.md) and [provider registration storage](PROVISIONING.md).
+Unlock migrates database schemas v1–v4 to v5 transactionally; existing configuration profiles and encrypted state snapshots remain readable. `workspace.json` format stays v1 because its encryption metadata is unchanged. Older builds cannot open database schema v5. Back up the complete workspace while Ecdys is closed before upgrading; rollback to an older build requires the matching pre-migration backup. Since 0.5, configuration history includes VPN settings; provider credentials and registrations remain outside profile snapshots. See [VPN data boundaries](VPN.md) and [provider registration storage](PROVISIONING.md).

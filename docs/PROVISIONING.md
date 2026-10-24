@@ -1,4 +1,4 @@
-# Styg 0.6 — provider registration and WireGuard preparation
+# Ecdys 0.6 — provider registration and WireGuard preparation
 
 Stability patch 0.6.1 fixes stale provider approval, removal/reopen races and dismissed-dialog messages. It preserves schema v5 and the blocked launch boundary.
 
@@ -7,10 +7,10 @@ This chapter adds Mullvad/IVPN account checks and provider-side WireGuard regist
 ## Desktop flow
 
 1. Open a profile's VPN setup and save a provider account.
-2. Read the provider registration notice and enable **I allow Styg to use a provider device/session slot**. **Prepare WireGuard** sends the account and a locally generated public key to that provider. The private key stays in the encrypted workspace.
+2. Read the provider registration notice and enable **I allow Ecdys to use a provider device/session slot**. **Prepare WireGuard** sends the account and a locally generated public key to that provider. The private key stays in the encrypted workspace.
 3. A successful response displays **WireGuard registration saved**, the last account check and expiration. **Recheck provider** reuses the saved registration. It does not create another session/device for each profile.
 4. Save the profile's endpoint. **Preview saved endpoint** resolves that saved hostname against a fresh public catalog and displays peer ingress IP/port and assigned interface addresses. It requires a successful account check within the last hour. This is preparation metadata, not a handshake, exit IP or route-protection test.
-5. To replace/remove a saved account, first explicitly remove its Styg registration. The removal control acts on the tracked registration only. Profile snapshots, restore and branches do not duplicate or remove provider registrations.
+5. To replace/remove a saved account, first explicitly remove its Ecdys registration. The removal control acts on the tracked registration only. Profile snapshots, restore and branches do not duplicate or remove provider registrations.
 
 Registration is a workspace-level action and takes effect independently of Save/Cancel for profile settings. It may consume one provider slot even with no tunnel running. Concurrent profile sessions, provider connection limits and per-profile OS routes still need validation; this release does not promise 99 independent VPN tunnels.
 
@@ -29,9 +29,9 @@ The encrypted draft is committed before the registration request, and pending st
 
 A registered recheck or removal clears its prior verification before external I/O. Failure, cancellation or a lost deletion response therefore preserves keys/ID/token for recovery but leaves the account unchecked; a new successful recheck is required for preparation. Tunnel previews check account freshness and expiration again after catalog retrieval so an approval cannot expire unnoticed during that wait.
 
-Mullvad reconciliation lists devices and matches the retained public key before creating. It reads an existing matching device instead of creating another. An earlier uncertain outcome stays uncertain even if a later retry receives a device-limit error. Styg never rotates keys or deletes unrelated devices automatically. Before removing a confirmed device, it checks the tracked ID and key against the provider's current record; an externally replaced key blocks deletion.
+Mullvad reconciliation lists devices and matches the retained public key before creating. It reads an existing matching device instead of creating another. An earlier uncertain outcome stays uncertain even if a later retry receives a device-limit error. Ecdys never rotates keys or deletes unrelated devices automatically. Before removing a confirmed device, it checks the tracked ID and key against the provider's current record; an externally replaced key blocks deletion.
 
-IVPN registration uses `force: false`. A lost or malformed create response can leave a provider session whose token Styg never received. Styg blocks another create in that state. Review/clean up uncertain Styg sessions with the provider's official tools, then explicitly acknowledge **Reset reviewed local setup**. This acknowledgment discards the local key; it does not itself delete a remote session. API challenges such as CAPTCHA/2FA are reported without guessing or bypassing them; interactive challenge support is not included yet.
+IVPN registration uses `force: false`. A lost or malformed create response can leave a provider session whose token Ecdys never received. Ecdys blocks another create in that state. Review/clean up uncertain Ecdys sessions with the provider's official tools, then explicitly acknowledge **Reset reviewed local setup**. This acknowledgment discards the local key; it does not itself delete a remote session. API challenges such as CAPTCHA/2FA are reported without guessing or bypassing them; interactive challenge support is not included yet.
 
 Removing a confirmed IVPN session uses the retained token. Only a successful API acknowledgement or IVPN's explicit `601` session-not-found code permits local removal. A generic HTTP 404 at the RPC endpoint is not proof of session deletion. Failed or canceled removal preserves registration material for retry.
 
@@ -55,4 +55,4 @@ Implementation checked against official upstream code on 2026-10-24:
 - [IVPN API client](https://github.com/ivpn/desktop-app/blob/development/daemon/api/api.go), [request types](https://github.com/ivpn/desktop-app/blob/development/daemon/api/types/requests.go), [responses](https://github.com/ivpn/desktop-app/blob/development/daemon/api/types/responses.go) and [error codes](https://github.com/ivpn/desktop-app/blob/development/daemon/api/types/errors.go): `/v4/session/new`, `/status`, `/delete`, `wg_public_key`, session tokens and account status.
 - [IVPN supported protocol/port combinations](https://www.ivpn.net/knowledgebase/general/command-line-client-faq/).
 
-These app APIs may change without a third-party stability guarantee. Fixtures validate Styg's behavior against the inspected contracts; they do not establish live account acceptance. Backend tests cover encryption, real X25519 correspondence, protocol/error contracts, registration reuse/reopen, uncertain outcomes, cancellation/overlap, safe deletion and stale-profile/account preview rejection. A real Electron test intercepts provider HTTPS within test-only sessions using synthetic responses; production has no fixture switch or endpoint override.
+These app APIs may change without a third-party stability guarantee. Fixtures validate Ecdys's behavior against the inspected contracts; they do not establish live account acceptance. Backend tests cover encryption, real X25519 correspondence, protocol/error contracts, registration reuse/reopen, uncertain outcomes, cancellation/overlap, safe deletion and stale-profile/account preview rejection. A real Electron test intercepts provider HTTPS within test-only sessions using synthetic responses; production has no fixture switch or endpoint override.

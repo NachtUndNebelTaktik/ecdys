@@ -37,20 +37,20 @@ export default function ProvisioningPanel(props:Props){
   const blocked=()=>props.busy||working()||!status()||!!status()?.inProgress;
   return <section class="vpn-account" aria-label="Provider registration">
     <h3>Provider registration</h3>
-    <p class="fine-print">Preparing WireGuard sends the saved account and a new public key to {props.provider==='ivpn'?'IVPN':'Mullvad'}. It can use one device/session slot. Styg reuses that registration across this workspace's profiles.</p>
+    <p class="fine-print">Preparing WireGuard sends the saved account and a new public key to {props.provider==='ivpn'?'IVPN':'Mullvad'}. It can use one device/session slot. Ecdys reuses that registration across this workspace's profiles.</p>
     <Show when={status()}>{saved=><>
       <p class="vpn-account-state">{saved().phase==='registered'?'WireGuard registration saved':saved().phase==='pending'?'Registration outcome uncertain':saved().phase==='draft'?'Local key saved · provider registration incomplete':'WireGuard not prepared'}</p>
       <Show when={saved().inProgress}><p class="fine-print" role="status">A provider operation is running. Status will refresh when it finishes.</p></Show>
       <Show when={saved().checkedAt}><p class="fine-print">Last account check: {saved().account} · {new Date(saved().checkedAt!).toLocaleString()}. Expires {saved().expiresAt?new Date(saved().expiresAt!).toLocaleString():'unknown'}.</p></Show>
-      <Show when={saved().phase!=='registered'}><label class="consent-line"><input type="checkbox" checked={allowSlot()} disabled={blocked()} onChange={e=>setAllowSlot(e.currentTarget.checked)}/>I allow Styg to use a provider device/session slot.</label></Show>
+      <Show when={saved().phase!=='registered'}><label class="consent-line"><input type="checkbox" checked={allowSlot()} disabled={blocked()} onChange={e=>setAllowSlot(e.currentTarget.checked)}/>I allow Ecdys to use a provider device/session slot.</label></Show>
       <div class="vpn-buttons"><button class="secondary small" disabled={blocked()||!props.hasAccount||(saved().phase!=='registered'&&!allowSlot())||(props.provider==='ivpn'&&saved().phase==='pending')} onClick={()=>void operate('prepare')}>{working()?'Working…':saved().phase==='registered'?'Recheck provider':props.provider==='mullvad'&&saved().phase==='pending'?'Reconcile registration':'Prepare WireGuard'}</button>
       <Show when={saved().phase==='registered'}><button class="secondary small" disabled={blocked()||props.profile.vpn.provider!==props.provider||!props.profile.vpn.endpoint} onClick={()=>void operate('preview')}>Preview saved endpoint</button></Show></div>
       <Show when={saved().phase==='registered'||saved().phase==='draft'}>
-        <label class="consent-line"><input type="checkbox" checked={allowRemoval()} disabled={blocked()} onChange={e=>setAllowRemoval(e.currentTarget.checked)}/>Remove this workspace's Styg registration from the provider.</label>
+        <label class="consent-line"><input type="checkbox" checked={allowRemoval()} disabled={blocked()} onChange={e=>setAllowRemoval(e.currentTarget.checked)}/>Remove this workspace's Ecdys registration from the provider.</label>
         <button class="text-button danger-text" disabled={blocked()||!allowRemoval()} onClick={()=>void operate('remove')}>Remove registration</button>
       </Show>
-      <Show when={saved().phase==='pending'}><p class="fine-print amber-text">A request may have reached the provider. {props.provider==='mullvad'?'Reconcile using the saved key, or review provider devices before resetting.':'Review and remove any uncertain Styg session using the official provider account tools before resetting. Automatic retries are blocked.'}</p>
-        <label class="consent-line"><input type="checkbox" checked={reviewed()} disabled={blocked()} onChange={e=>setReviewed(e.currentTarget.checked)}/>I reviewed and cleaned up uncertain Styg devices/sessions in my provider account.</label>
+      <Show when={saved().phase==='pending'}><p class="fine-print amber-text">A request may have reached the provider. {props.provider==='mullvad'?'Reconcile using the saved key, or review provider devices before resetting.':'Review and remove any uncertain Ecdys session using the official provider account tools before resetting. Automatic retries are blocked.'}</p>
+        <label class="consent-line"><input type="checkbox" checked={reviewed()} disabled={blocked()} onChange={e=>setReviewed(e.currentTarget.checked)}/>I reviewed and cleaned up uncertain Ecdys devices/sessions in my provider account.</label>
         <button class="text-button danger-text" disabled={blocked()||!reviewed()} onClick={()=>void operate('reset')}>Reset reviewed local setup</button>
       </Show>
     </>}</Show>
