@@ -9,8 +9,9 @@ import {configurationDiff,profileConfiguration} from './profile-diff';
 import {Revision} from '../../shared/src/model';
 import { StateStore, type CapturedState } from './state-store';
 import { deriveMasterKey, openSnapshot, sealSnapshot } from './crypto';
-import {VpnCredential,VpnProvider,type VpnProviderType,type CredentialPresence} from '../../shared/src/vpn';
-import {sealCredential} from './vpn/credentials';
+import {VpnCredential,VpnProvider,type VpnProviderType,type CredentialPresence,type RegistrationStatus} from '../../shared/src/vpn';
+import {sealCredential,openCredential} from './vpn/credentials';
+import {generateRegistration,openRegistration,sealRegistration,type RegistrationData} from './vpn/registration';
 
 const Metadata=z.object({version:z.literal(1),salt:z.string().regex(/^[a-f0-9]{64}$/),kdf:KdfParams}).strict();
 const passphraseSchema=z.string().min(12).max(1024);
@@ -24,7 +25,8 @@ CREATE TABLE fork_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DEL
 CREATE TABLE discard_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE, operationId TEXT NOT NULL);
 CREATE UNIQUE INDEX branch_names ON profiles(parentProfileId,branchName COLLATE NOCASE) WHERE parentProfileId IS NOT NULL AND status<>'deleting';
 CREATE TABLE vpn_credentials(provider TEXT PRIMARY KEY CHECK(provider IN ('mullvad','ivpn')), envelope BLOB NOT NULL);
-PRAGMA user_version=4;`;
+CREATE TABLE vpn_registrations(provider TEXT PRIMARY KEY REFERENCES vpn_credentials(provider) ON DELETE RESTRICT,envelope BLOB NOT NULL);
+PRAGMA user_version=5;`;
 
 export type BrowserProfileLease={directory:string;snapshotClosed:(browserVersion:string)=>Promise<Snapshot>;release:()=>void};
 export class Vault {
@@ -43,7 +45,8 @@ export class Vault {
       if(version===1){db.exec('ALTER TABLE snapshots ADD COLUMN stateEnvelope BLOB; ALTER TABLE snapshots ADD COLUMN fileCount INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN stateBytes INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN browserVersion TEXT; CREATE TABLE restore_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL);');version=2;}
       if(version===2){db.exec("ALTER TABLE profiles ADD COLUMN parentProfileId TEXT REFERENCES profiles(id) ON DELETE SET NULL; ALTER TABLE profiles ADD COLUMN branchName TEXT; ALTER TABLE profiles ADD COLUMN revision INTEGER NOT NULL DEFAULT 1; ALTER TABLE profiles ADD COLUMN status TEXT NOT NULL DEFAULT 'ready' CHECK(status IN ('ready','creating','deleting')); CREATE TABLE fork_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL); CREATE TABLE discard_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL); CREATE UNIQUE INDEX branch_names ON profiles(parentProfileId,branchName COLLATE NOCASE) WHERE parentProfileId IS NOT NULL AND status<>'deleting';");version=3;}
       if(version===3){db.exec("CREATE TABLE vpn_credentials(provider TEXT PRIMARY KEY CHECK(provider IN ('mullvad','ivpn')),envelope BLOB NOT NULL);");version=4;}
-      if(version!==4)throw new Error('Unsupported workspace version');db.pragma('user_version=4');
+      if(version===4){db.exec('CREATE TABLE vpn_registrations(provider TEXT PRIMARY KEY REFERENCES vpn_credentials(provider) ON DELETE RESTRICT,envelope BLOB NOT NULL);');version=5;}
+      if(version!==5)throw new Error('Unsupported workspace version');db.pragma('user_version=5');
     })();
   }
   private async recover() {
@@ -117,11 +120,35 @@ export class Vault {
   }
   saveVpnCredential(provider:VpnProviderType,account:string):void {
     this.guard();const credential=VpnCredential.parse({provider,account});
+    if(this.readVpnRegistration(provider))throw new Error('Remove the existing provider registration before replacing its account');
     const envelope=sealCredential(credential.account,this.key,credential.provider);
     this.db.prepare('INSERT INTO vpn_credentials(provider,envelope) VALUES(?,?) ON CONFLICT(provider) DO UPDATE SET envelope=excluded.envelope').run(credential.provider,envelope);
   }
   clearVpnCredential(provider:VpnProviderType):void {
-    this.guard();VpnProvider.parse(provider);this.db.prepare('DELETE FROM vpn_credentials WHERE provider=?').run(provider);
+    this.guard();VpnProvider.parse(provider);if(this.readVpnRegistration(provider))throw new Error('Remove the existing provider registration before removing its account');this.db.prepare('DELETE FROM vpn_credentials WHERE provider=?').run(provider);
+  }
+  // Main-process-only provider control plane. None of these secret-bearing methods has a read-back IPC endpoint.
+  readVpnAccount(provider:VpnProviderType):string {
+    this.guard();VpnProvider.parse(provider);const row=this.db.prepare('SELECT envelope FROM vpn_credentials WHERE provider=?').get(provider) as {envelope:Buffer}|undefined;
+    if(!row)throw new Error('Save a provider account before preparing WireGuard');return openCredential(row.envelope,this.key,provider);
+  }
+  readVpnRegistration(provider:VpnProviderType):RegistrationData|undefined {
+    this.guard();VpnProvider.parse(provider);const row=this.db.prepare('SELECT envelope FROM vpn_registrations WHERE provider=?').get(provider) as {envelope:Buffer}|undefined;
+    if(!row)return undefined;try{return openRegistration(row.envelope,this.key,provider);}catch{throw new Error('Saved provider setup cannot be read. Preserve the workspace and retry.');}
+  }
+  putVpnRegistration(provider:VpnProviderType,data:RegistrationData):void {
+    this.guard();const envelope=sealRegistration(data,this.key,provider);
+    this.db.prepare('INSERT INTO vpn_registrations(provider,envelope) VALUES(?,?) ON CONFLICT(provider) DO UPDATE SET envelope=excluded.envelope').run(provider,envelope);
+  }
+  draftVpnRegistration(provider:VpnProviderType):RegistrationData {
+    this.guard();const existing=this.readVpnRegistration(provider);if(existing)return existing;
+    const draft=generateRegistration(provider);this.putVpnRegistration(provider,draft);return draft;
+  }
+  clearVpnRegistration(provider:VpnProviderType):void {this.guard();VpnProvider.parse(provider);this.db.prepare('DELETE FROM vpn_registrations WHERE provider=?').run(provider);}
+  vpnRegistrationStatus(provider:VpnProviderType,now=Date.now()):RegistrationStatus {
+    const data=this.readVpnRegistration(provider);
+    if(!data)return {provider,phase:'not_started',account:'unchecked',checkedAt:null,expiresAt:null};
+    return {provider,phase:data.phase,account:data.checkedAt===null?'unchecked':data.active&&data.expiresAt!==null&&data.expiresAt>now?'active':'expired',checkedAt:data.checkedAt,expiresAt:data.expiresAt};
   }
   createProfile(input:ProfileInputType):Profile {
     this.guard(); const config=ProfileInput.parse(input); const id=randomUUID(); const now=Date.now();

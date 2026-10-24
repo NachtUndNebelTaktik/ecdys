@@ -1,0 +1,13 @@
+# Styg provider registration and WireGuard preparation
+
+Build the next VPN chapter on 0.5 without enabling browser launches or modifying host networking.
+
+1. Explicit Prepare WireGuard contacts the selected provider with its saved account and a locally generated X25519 public key. It may consume one provider device/session slot. Use one registration per provider/workspace, independent of profile snapshots and branches.
+2. Persist the private key in a separate purpose-bound encrypted registration envelope before registration. Persist pending state before the mutating request. Never expose account IDs, tokens, private keys or raw responses through IPC, errors, logs or tunnel previews.
+3. Mullvad uses auth/v1/token, accounts/v1/accounts/me and device APIs. Reconcile by the retained public key before creating/retrying a device; never rotate/delete unrelated devices. IVPN uses v4 session/new with force=false, then session/status for reuse. An ambiguous IVPN create result must block automatic retries until the user reviews provider sessions and explicitly resets uncertain local setup.
+4. Explicit registration removal deletes only the tracked Styg registration. Block account replacement/removal while registration material exists. Lock cancels all provider I/O promptly; late completions cannot mutate a closed or different workspace. Keep registration material across lock/restart for reuse/recovery.
+5. Validate and bound HTTPS requests/responses, reject redirects, sanitize known failure categories, honor inherited proxy/TLS settings, and prevent overlapping operations per provider. Provider operations do not extend the workspace mutation queue.
+6. Build a non-secret per-profile tunnel preparation preview using a fresh official catalog, the selected hostname and registered addresses. Peer ingress is not an exit-IP proof. No wg-quick scripts/hooks, host routes, interfaces, firewall changes, connection claims or route gate bypass.
+7. UI must explain provider slot consumption, uncertain outcomes, registration reuse/removal, last account check and protected routing still pending. Real account checks are unverified without test accounts; fixture success must never masquerade as live integration evidence.
+
+Verification: official-protocol fixtures, known errors and malformed/oversized/redirect/timeout responses, uncertain outcomes and retry behavior, durable encrypted keys, reuse across reopen, credential replacement refusal, late result/cancellation races, strict IPC/no secret DTOs, profile tunnel preview and real Electron fixture workflow. Existing tests and route gate remain green.

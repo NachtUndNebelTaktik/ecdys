@@ -18,3 +18,5 @@ export const VpnCredential=z.discriminatedUnion('provider',[
 export type CredentialPresence=Record<VpnProviderType,boolean>;
 export type Relay={hostname:string;country:string;city:string;ipv4:string;publicKey:string;load:number|null};
 export type RelayCatalog={provider:VpnProviderType;relays:Relay[];checkedAt:number;stale:boolean;warning?:string};
+export type RegistrationStatus={provider:VpnProviderType;phase:'not_started'|'draft'|'pending'|'registered';account:'unchecked'|'active'|'expired';checkedAt:number|null;expiresAt:number|null};
+export type TunnelPreview={provider:VpnProviderType;hostname:string;port:number;peerIp:string;interfaceAddresses:string[];checkedAt:number;route:'blocked'};

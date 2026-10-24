@@ -100,7 +100,7 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">STYG <span>0.5.0 · VPN setup preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">STYG <span>0.6.0 · provider registration</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
       <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');})}>Lock workspace ↗</button></Show></div></header>
@@ -155,7 +155,7 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg VPN setup preview / 0.5.0</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg provider registration preview / 0.6.0</span></footer>
         </Show>
       </main>
     </div>
@@ -179,8 +179,8 @@ export default function App() {
       </div>
     </section></div>}</Show>
     <Show when={branchDialog()}>{dialog=><BranchDialog dialog={dialog()} busy={busy()} error={error()} onCancel={()=>setBranchDialog(undefined)} onCreate={name=>void createBranch(name)} onConfirm={()=>void confirmBranch()}/>}</Show>
-    <Show when={vpnProfile()}>{profile=><VpnDialog profile={profile()} credentials={credentials()} busy={busy()} error={error()} onClose={()=>{setVpnProfile(undefined);setError('');}}
-      onSave={async(settings:VpnSettingsType)=>{await run(async()=>{const id=profile().id;await invoke({action:'updateProfile',id,input:{vpn:settings}});setVpnProfile(undefined);await refresh(id);setNotice('VPN settings saved with a pre-edit snapshot. Authentication and protected routing are pending.');});}}
+    <Show when={vpnProfile()}>{profile=><VpnDialog profile={profile()} credentials={credentials()} busy={busy()} error={error()} invoke={invoke} onClose={()=>{setVpnProfile(undefined);setError('');}}
+      onSave={async(settings:VpnSettingsType)=>{await run(async()=>{const id=profile().id;await invoke({action:'updateProfile',id,input:{vpn:settings}});setVpnProfile(undefined);await refresh(id);setNotice('VPN settings saved with a pre-edit snapshot. Protected routing remains pending.');});}}
       onSaveCredential={async(provider,account)=>{await run(async()=>{await invoke({action:'saveVpnCredential',credential:{provider,account}});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
       onClearCredential={async provider=>{await run(async()=>{await invoke({action:'clearVpnCredential',provider});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
       onCatalog={async provider=>{

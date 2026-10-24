@@ -7,11 +7,15 @@ import { Vault } from './vault';
 import { routingStatus } from './routing';
 import {BrowserSessions} from './browser/sessions';
 import {ProviderCatalog} from './vpn/catalog';
+import {ProviderClient} from './vpn/provider-client';
+import {ProviderSetup} from './vpn/provider-setup';
 const here=dirname(fileURLToPath(import.meta.url));
 let window:BrowserWindow|undefined;
 let vault:Vault|undefined;
 let sessions:BrowserSessions|undefined;
 let vpnCatalog:ProviderCatalog;
+let providerClient:ProviderClient;
+let providerSetup:ProviderSetup|undefined;
 let lockTask:Promise<{incompleteSnapshots:number}>|undefined;
 let quitting=false;
 let allowQuit=false;
@@ -21,10 +25,11 @@ const workspace=()=>join(app.getPath('userData'),'workspace');
 async function lock():Promise<{incompleteSnapshots:number}> {
   if(lockTask)return lockTask;
   vpnCatalog?.cancelPending();
+  providerSetup?.cancel();
   clearTimeout(lockTimer);
   lockTask=(async()=>{
     const closed=await sessions?.shutdown()??[];
-    vault?.close();vault=undefined;sessions=undefined;
+    vault?.close();vault=undefined;sessions=undefined;providerSetup=undefined;
     return {incompleteSnapshots:closed.filter(item=>item.status==='failed'||item.status==='crashed').length};
   })();
   try{return await lockTask;}finally{lockTask=undefined;}
@@ -38,16 +43,21 @@ async function handle(raw:unknown):Promise<unknown> {
   if(request.action==='createWorkspace' || request.action==='unlock') {
     if(vault) throw new Error('Workspace is already unlocked');
     vault=request.action==='unlock'?await Vault.open(workspace(),request.passphrase):await Vault.create(workspace(),request.passphrase,{memoryMiB:request.memoryMiB,iterations:2});
-    sessions=new BrowserSessions(vault);touch(); return null;
+    sessions=new BrowserSessions(vault);providerSetup=new ProviderSetup(vault,providerClient,vpnCatalog);touch(); return null;
   }
   if(request.action==='lock') return lock();
   const active=requireVault(); touch();
   switch(request.action) {
     case 'profiles': return active.profiles();
     case 'vpnCredentials': return active.vpnCredentials();
-    case 'saveVpnCredential': active.saveVpnCredential(request.credential.provider,request.credential.account);return null;
-    case 'clearVpnCredential': active.clearVpnCredential(request.provider);return null;
+    case 'saveVpnCredential': providerSetup!.assertIdle(request.credential.provider);active.saveVpnCredential(request.credential.provider,request.credential.account);return null;
+    case 'clearVpnCredential': providerSetup!.assertIdle(request.provider);active.clearVpnCredential(request.provider);return null;
     case 'vpnCatalog': return vpnCatalog.get(request.provider);
+    case 'vpnRegistrationStatus': return active.vpnRegistrationStatus(request.provider);
+    case 'prepareVpnRegistration': return providerSetup!.prepare(request.provider);
+    case 'removeVpnRegistration': return providerSetup!.remove(request.provider);
+    case 'resetUncertainVpnRegistration': return providerSetup!.resetUncertain(request.provider,request.reviewedProviderAccount);
+    case 'previewVpnTunnel': return providerSetup!.preview(request.id);
     case 'createProfile': return active.createProfile(request.input);
     case 'updateProfile': return active.updateProfile(request.id,request.input);
     case 'snapshots': return active.snapshots(request.id);
@@ -85,6 +95,9 @@ else {
     const proxy=process.env.HTTPS_PROXY??process.env.https_proxy??process.env.HTTP_PROXY??process.env.http_proxy;
     const proxyReady=proxy?catalogSession.setProxy({proxyRules:proxy,proxyBypassRules:process.env.NO_PROXY??process.env.no_proxy??''}).then(()=>true,()=>false):Promise.resolve(true);
     vpnCatalog=new ProviderCatalog(async(url,signal)=>{if(!await proxyReady)throw new Error('Outbound proxy unavailable');signal.throwIfAborted();return catalogSession.fetch(url,{signal,redirect:'error',credentials:'omit',cache:'no-store'});});
+    const providerSession=session.fromPartition('styg-provider-control');
+    const providerProxyReady=proxy?providerSession.setProxy({proxyRules:proxy,proxyBypassRules:process.env.NO_PROXY??process.env.no_proxy??''}).then(()=>true,()=>false):Promise.resolve(true);
+    providerClient=new ProviderClient(async(url,init)=>{if(!await providerProxyReady)throw new Error('Outbound proxy unavailable');init.signal?.throwIfAborted();return providerSession.fetch(url,init);});
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     session.defaultSession.setPermissionCheckHandler(()=>false);
     ipcMain.handle('styg:request',(event,raw)=>{
@@ -94,9 +107,10 @@ else {
         try { return {ok:true,value:await handle(raw)}; }
         catch(error) { return {ok:false,error:error instanceof z.ZodError?error.issues.map(issue=>issue.message).join('; '):error instanceof Error?error.message:'Operation failed'}; }
       });
-      // Public catalog I/O must never retain the vault key while lock/quit waits.
-      // It starts after prior mutations but does not extend their serial queue.
-      if(!(raw&&typeof raw==='object'&&'action' in raw&&raw.action==='vpnCatalog'))queue=operation.catch(()=>undefined);
+      // Bounded provider I/O starts after prior mutations without making lock wait.
+      // The coordinator owns per-provider exclusion, cancellation and guarded commits.
+      const networkActions=['vpnCatalog','prepareVpnRegistration','removeVpnRegistration','previewVpnTunnel'];
+      if(!(raw&&typeof raw==='object'&&'action' in raw&&networkActions.includes(String(raw.action))))queue=operation.catch(()=>undefined);
       return operation;
     });
     createWindow();

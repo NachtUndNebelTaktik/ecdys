@@ -59,14 +59,14 @@ it('adds credential storage to a v3 workspace without changing old profiles or h
     const legacy={name:'Existing profile',tags:[],timezone:'UTC',language:'en-US',screen:'1920 × 1080'};
     db.prepare('UPDATE profiles SET config=? WHERE id=?').run(JSON.stringify(legacy),p.id);
     db.prepare('UPDATE snapshots SET envelope=? WHERE id=?').run(sealSnapshot(legacy,key,p.id,baseline.id),baseline.id);
-    db.exec('DROP TABLE vpn_credentials; PRAGMA user_version=3;');
+    db.exec('DROP TABLE vpn_registrations; DROP TABLE vpn_credentials; PRAGMA user_version=3;');
   });
   const next=await Vault.open(dir,'test-only secure passphrase');vaults.push(next);
   expect(next.profiles()[0]).toMatchObject({id:p.id,name:'Existing profile'});expect(next.snapshots(p.id)[0].id).toBe(baseline.id);
   next.saveVpnCredential('mullvad','1234567890123456');expect(next.vpnCredentials().mullvad).toBe(true);
   next.updateProfile(p.id,{vpn});next.restore(p.id,baseline.id);
   expect(next.profiles()[0].vpn).toEqual({provider:'none',endpoint:null,rotation:'manual',routeLock:true});
-  await database(dir,db=>expect(db.pragma('user_version',{simple:true})).toBe(4));
+  await database(dir,db=>expect(db.pragma('user_version',{simple:true})).toBe(5));
 });
 it('encrypts the credential even inside an unlocked database and excludes it from configuration snapshots',async()=>{
   const {v,dir}=await create();const p=v.createProfile({name:'Private account'});
@@ -77,4 +77,10 @@ it('encrypts the credential even inside an unlocked database and excludes it fro
     expect(openCredential(row.envelope,key,'mullvad')).toBe('1234567890123456');
     for(const snapshot of db.prepare('SELECT id,envelope FROM snapshots WHERE profileId=?').all(p.id) as {id:string;envelope:Buffer}[])expect(JSON.stringify(openSnapshot(snapshot.envelope,key,p.id,snapshot.id))).not.toContain('1234567890123456');
   });
+});
+it('migrates v4 provider accounts to v5 without creating registrations or changing profile history',async()=>{
+  const {v,dir}=await create();const profile=v.createProfile({name:'Version four'});const history=v.snapshots(profile.id);v.saveVpnCredential('ivpn','i-ABCD-EFGH-IJKL');v.close();
+  await database(dir,db=>db.exec('DROP TABLE vpn_registrations; PRAGMA user_version=4;'));
+  const next=await Vault.open(dir,'test-only secure passphrase');vaults.push(next);
+  expect(next.vpnCredentials().ivpn).toBe(true);expect(next.vpnRegistrationStatus('ivpn').phase).toBe('not_started');expect(next.snapshots(profile.id)).toEqual(history);
 });
