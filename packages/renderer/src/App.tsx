@@ -1,19 +1,26 @@
-import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import type { Profile, RecoveryRehearsalReport, RequestType, Snapshot, SnapshotPreview, MergePreview, WorkspaceStatus } from '../../shared/src/model';
 import SnapshotPanel from './SnapshotPanel';
 import DiffTable from './DiffTable';
 import BranchDialog,{type BranchDialogState} from './BranchDialog';
 import VpnDialog from './VpnDialog';
+import SettingsPanel from './SettingsPanel';
+import SettingsIcon from './SettingsIcon';
+import {loadUiPreferences,saveUiPreferences,type UiPreferences} from './preferences';
 import type {CredentialPresence,RelayCatalog,VpnSettingsType} from '../../shared/src/vpn';
 
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 export default function App() {
+  const [settingsOpen,setSettingsOpen]=createSignal(false);
+  const [preferences,setPreferences]=createSignal(loadUiPreferences());
+  const [preferencesSaved,setPreferencesSaved]=createSignal(true);
   const [status,setStatus]=createSignal<WorkspaceStatus>();
   const [profiles,setProfiles]=createSignal<Profile[]>([]);
   const [selected,setSelected]=createSignal<string>();
   const [snapshots,setSnapshots]=createSignal<Snapshot[]>([]);
   const [search,setSearch]=createSignal('');
   const [error,setError]=createSignal(''); const [notice,setNotice]=createSignal('');
+  const [importantNotice,setImportantNotice]=createSignal(false);
   const [busy,setBusy]=createSignal(false);
   const [recoveryEpoch,setRecoveryEpoch]=createSignal(0);
   const [passphrase,setPassphrase]=createSignal(''); const [confirmation,setConfirmation]=createSignal('');
@@ -38,7 +45,7 @@ export default function App() {
     return result.value;
   }
   async function run(action:()=>Promise<void>) {
-    if(busy()) return; setBusy(true); setError(''); setNotice('');
+    if(busy()) return; setBusy(true); setError(''); setNotice('');setImportantNotice(false);
     try {await action();} catch(error) {setError(error instanceof Error?error.message:'Operation failed');}
     finally {setBusy(false);}
   }
@@ -50,6 +57,29 @@ export default function App() {
     setSnapshots(next?await invoke<Snapshot[]>({action:'snapshots',id:next}):[]);
   }
   onMount(()=>{if(bridge) void run(()=>refresh());});
+  createEffect(()=>{
+    const pref=preferences(),root=document.documentElement;
+    root.dataset.appearance=pref.appearance;root.dataset.accent=pref.accent;
+    root.dataset.density=pref.density;root.dataset.reduceMotion=String(pref.reduceMotion);
+  });
+  function changePreferences(patch:Partial<UiPreferences>){const next={...preferences(),...patch};setPreferences(next);setPreferencesSaved(saveUiPreferences(next));}
+  function lockWorkspace(){
+    if(busy()||!status()?.unlocked)return;
+    setRecoveryEpoch(value=>value+1);setSettingsOpen(false);
+    void run(async()=>{
+      const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});
+      setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();
+      if(result.incompleteSnapshots){setImportantNotice(true);setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');}
+    });
+  }
+  onMount(()=>{
+    const keyboard=(event:KeyboardEvent)=>{
+      if(event.defaultPrevented||event.repeat||event.altKey||!(event.ctrlKey||event.metaKey))return;
+      if(event.key===','){event.preventDefault();setSettingsOpen(true);}
+      else if(event.shiftKey&&event.key.toLowerCase()==='l'&&status()?.unlocked&&bridge&&!busy()){event.preventDefault();lockWorkspace();}
+    };
+    window.addEventListener('keydown',keyboard);onCleanup(()=>window.removeEventListener('keydown',keyboard));
+  });
   async function unlock(event:SubmitEvent) {
     event.preventDefault();
     await run(async()=>{
@@ -106,10 +136,10 @@ export default function App() {
       <div class="sidebar-bottom"><div class="version">ECDYS <span>0.7.0 · built-in tools</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
-      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>{setRecoveryEpoch(value=>value+1);void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');});}}>Lock workspace ↗</button></Show></div></header>
+      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><button class="settings-open-button" aria-label="Open settings" title="Settings · Ctrl/⌘+," onClick={()=>setSettingsOpen(true)}><SettingsIcon name="general"/><span>Settings</span></button><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={lockWorkspace}>Lock workspace ↗</button></Show></div></header>
       <main>
         <Show when={error()}><div class="message error" role="alert">{error()}<button aria-label="Dismiss error" onClick={()=>setError('')}>×</button></div></Show>
-        <Show when={notice()}><div class="message success" role="status">{notice()}</div></Show>
+        <Show when={notice()&&(preferences().notifications||importantNotice())}><div class={importantNotice()?'message important':'message success'} role="status">{notice()}</div></Show>
         <Show when={status()?.unlocked} fallback={<div class="onboarding">
           <div class="eyebrow">A QUIETER CORNER OF THE INTERNET</div>
           <h1>Your workspace.<br/>Your control.</h1>
@@ -163,6 +193,7 @@ export default function App() {
         </Show>
       </main>
     </div>
+    <Show when={settingsOpen()}><SettingsPanel preferences={preferences()} onPreferencesChange={changePreferences} persistenceAvailable={preferencesSaved()} onClose={()=>setSettingsOpen(false)} onLock={lockWorkspace} unlocked={!!status()?.unlocked} busy={busy()} profileCount={profiles().length} snapshotCount={snapshots().length} platform={status()?.platform??'Browser preview'} version="0.7.0"/></Show>
     <Show when={editor()}><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-top"><span class="eyebrow">PROFILE CONFIGURATION</span><button class="close-button" aria-label="Close editor" disabled={busy()} onClick={()=>setEditor(false)}>×</button></div><h2 id="editor-title">{editing()?'Edit profile':'A new context'}</h2><p class="muted">{editing()?'Ecdys saves a snapshot before applying your changes.':'Start with a name. A baseline snapshot is saved automatically.'}</p><form onSubmit={save}><label>Profile name<input autofocus required maxLength={100} value={name()} onInput={e=>setName(e.currentTarget.value)} placeholder="e.g. Research — Europe"/></label><label>Tags <span class="muted">· comma separated</span><input value={tags()} onInput={e=>setTags(e.currentTarget.value)} placeholder="research, client-work"/></label><label>Timezone<input required list="timezones" value={timezone()} onInput={e=>setTimezone(e.currentTarget.value)}/><datalist id="timezones"><option>UTC</option><option>America/New_York</option><option>Europe/Berlin</option><option>Europe/London</option><option>Asia/Tokyo</option></datalist></label><div class="form-row"><label>Language<select value={language()} onChange={e=>setLanguage(e.currentTarget.value)}><option>en-US</option><option>en-GB</option><option>de-DE</option><option>fr-FR</option></select></label><label>Screen size<select value={screen()} onChange={e=>setScreen(e.currentTarget.value)}><option>1920 × 1080</option><option>1440 × 900</option><option>1366 × 768</option></select></label></div><Show when={error()}><p class="amber-text" role="status">{error()}</p></Show><div class="modal-actions"><button type="button" class="secondary" disabled={busy()} onClick={()=>setEditor(false)}>Cancel</button><button class="primary" disabled={busy()} type="submit">{busy()?'Saving…':editing()?'Save changes':'Create profile'} ↗</button></div></form></section></div></Show>
     <Show when={restoreTarget()}>{snapshot=><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="restore-title">
       <span class="eyebrow">RECOVERY</span>

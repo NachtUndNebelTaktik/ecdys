@@ -1,2 +1,2 @@
 import {defineConfig} from '@playwright/test';
-export default defineConfig({testDir:'tests',testMatch:['desktop.spec.ts','provider-desktop.spec.ts'],workers:1,timeout:60000,expect:{timeout:10000}});
+export default defineConfig({testDir:'tests',testMatch:['desktop.spec.ts','provider-desktop.spec.ts','settings-desktop.spec.ts'],workers:1,timeout:60000,expect:{timeout:10000}});

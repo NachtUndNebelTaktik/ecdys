@@ -1,0 +1,13 @@
+# Settings handoff
+
+Base: `7125ca7`. Local branch: `feat/reference-settings`. The user requested the provided grouped dark/crimson settings reference. All work remains local; do not push from this workstream.
+
+Implementation lives in renderer `SettingsPanel.tsx`, `settings.css`, `SettingsIcon.tsx`, `preferences.ts`, `themes.css`, and App entry/keyboard wiring. Tabler outline assets (MIT) and Inter Variable font assets (OFL) are bundled; no external asset host is used. No backend, vault schema, routing or provider setup change is included.
+
+Their full license notices are included in renderer `public/THIRD-PARTY-NOTICES.txt` and verified in the built output.
+
+Implemented device preferences save only five validated enum/boolean values. Pending account/payment/cloud/map/SOCKS5/report services open explanations without pretending to be connected. Workspace lock and operation timeout information remain accurate; critical cleanup warnings bypass optional-notification suppression.
+
+Testing: 33 preference-boundary tests added; full backend suite 252 passed / 3 existing skips; browser suite 18 passed; actual Electron suite 3 passed, including restart persistence and real workspace locking from the shortcut. Typecheck, production build and diff checks passed. Browser tests cover every row, section navigation, light/dark/system, persistence, optional messages/required warnings, keyboard containment, Escape and focus restoration. Electron settings checked without console/page errors.
+
+Independent bounded source review found no blocker. Review notes about shortcut coverage were addressed by the actual Electron test. Visual review corrected a cropped overview anchor and sticky navigation exposing clipped preceding text; the latest captures are in `docs/images/settings-*.png`. [Visual QA](../design-qa.md).

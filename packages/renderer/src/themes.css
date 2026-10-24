@@ -1,0 +1,271 @@
+/* Local presentation preferences. Imported after the base application styles. */
+:root {
+  font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+  color: var(--settings-text);
+  background: var(--settings-bg);
+  --settings-bg: #09090c;
+  --settings-card: #141418;
+  --settings-line: #28282d;
+  --settings-text: #f0f0f2;
+  --settings-muted: #909098;
+  --settings-accent: #c72b47;
+  --settings-accent-text: color-mix(in srgb, var(--settings-accent) 72%, var(--settings-text));
+  --settings-accent-contrast: #fff;
+  --settings-raised: #1b1b21;
+  --settings-input: #0d0d11;
+  --settings-warning: #d8b575;
+  --settings-warning-bg: #242015;
+  --settings-warning-line: #51432c;
+  --settings-success: #b9d6a0;
+  --settings-success-bg: #1a261b;
+  --settings-success-line: #3e5137;
+  --settings-danger: #efb0a8;
+  --settings-danger-bg: #302020;
+  --settings-danger-line: #704a45;
+  --settings-info: #b7c7eb;
+  --settings-info-bg: #202635;
+  --settings-info-line: #3e4c6c;
+  --settings-backdrop: #050508b8;
+  --settings-accent-soft: color-mix(in srgb, var(--settings-accent) 13%, var(--settings-card));
+  --settings-accent-line: color-mix(in srgb, var(--settings-accent) 45%, var(--settings-line));
+  --settings-profile-padding: 20px;
+  --settings-profile-gap: 16px;
+  --settings-profile-top-gap: 21px;
+  --settings-profile-footer-y: 12px;
+  --muted: var(--settings-muted);
+  --line: var(--settings-line);
+  --accent: var(--settings-accent);
+  --panel: var(--settings-card);
+}
+
+html[data-accent='sage'] {
+  --settings-accent: #a5c78a;
+  --settings-accent-contrast: #17210f;
+}
+
+html[data-accent='indigo'] {
+  --settings-accent: #8996ef;
+  --settings-accent-contrast: #10132b;
+}
+
+html[data-appearance='light'] {
+  color-scheme: light;
+  --settings-bg: #f4f4f7;
+  --settings-card: #fff;
+  --settings-line: #dcdce3;
+  --settings-text: #202026;
+  --settings-muted: #666671;
+  --settings-accent: #b52340;
+  --settings-accent-contrast: #fff;
+  --settings-raised: #ebebf0;
+  --settings-input: #fafafd;
+  --settings-warning: #805b19;
+  --settings-warning-bg: #fff7e6;
+  --settings-warning-line: #dfc992;
+  --settings-success: #365e2a;
+  --settings-success-bg: #eff7e9;
+  --settings-success-line: #b5cda5;
+  --settings-danger: #9a352b;
+  --settings-danger-bg: #fff0ed;
+  --settings-danger-line: #e4b3ac;
+  --settings-info: #395b96;
+  --settings-info-bg: #eff3fc;
+  --settings-info-line: #bdcce7;
+  --settings-backdrop: #17171d66;
+}
+
+html[data-appearance='light'][data-accent='sage'] {
+  --settings-accent: #4e6e35;
+}
+
+html[data-appearance='light'][data-accent='indigo'] {
+  --settings-accent: #4b5cb5;
+}
+
+@media (prefers-color-scheme: light) {
+  html[data-appearance='system'] {
+    color-scheme: light;
+    --settings-bg: #f4f4f7;
+    --settings-card: #fff;
+    --settings-line: #dcdce3;
+    --settings-text: #202026;
+    --settings-muted: #666671;
+    --settings-accent: #b52340;
+    --settings-accent-contrast: #fff;
+    --settings-raised: #ebebf0;
+    --settings-input: #fafafd;
+    --settings-warning: #805b19;
+    --settings-warning-bg: #fff7e6;
+    --settings-warning-line: #dfc992;
+    --settings-success: #365e2a;
+    --settings-success-bg: #eff7e9;
+    --settings-success-line: #b5cda5;
+    --settings-danger: #9a352b;
+    --settings-danger-bg: #fff0ed;
+    --settings-danger-line: #e4b3ac;
+    --settings-info: #395b96;
+    --settings-info-bg: #eff3fc;
+    --settings-info-line: #bdcce7;
+    --settings-backdrop: #17171d66;
+  }
+
+  html[data-appearance='system'][data-accent='sage'] {
+    --settings-accent: #4e6e35;
+  }
+
+  html[data-appearance='system'][data-accent='indigo'] {
+    --settings-accent: #4b5cb5;
+  }
+}
+
+html[data-density='compact'] {
+  --settings-profile-padding: 14px;
+  --settings-profile-gap: 11px;
+  --settings-profile-top-gap: 13px;
+  --settings-profile-footer-y: 9px;
+}
+
+body, .app-shell, .main-shell, .topbar {
+  color: var(--settings-text);
+  background: var(--settings-bg);
+}
+
+.sidebar, .profile-card, .detail-panel, .stats, .unlock-panel, .modal {
+  color: var(--settings-text);
+  background: var(--settings-card);
+  border-color: var(--settings-line);
+}
+
+.workspace-avatar, .profile-avatar {
+  color: var(--settings-accent);
+  background: var(--settings-accent-soft);
+  border-color: var(--settings-accent-line);
+}
+
+.brand-mark { border-color: var(--settings-accent-line); }
+.nav-item {
+  color: var(--settings-text);
+  background: var(--settings-raised);
+  border-color: var(--settings-line);
+}
+.nav-item.active, .nav-item.is-active, .nav-item[aria-current='page'] {
+  color: var(--settings-accent);
+  background: var(--settings-accent-soft);
+  border-color: var(--settings-accent-line);
+}
+.count {
+  color: var(--settings-accent-text);
+  background: var(--settings-accent-soft);
+}
+.secondary {
+  color: var(--settings-text);
+  background: var(--settings-raised);
+  border-color: var(--settings-line);
+}
+.secondary:hover:not(:disabled) { border-color: var(--settings-accent); }
+.primary {
+  color: var(--settings-accent-contrast);
+  background: var(--settings-accent);
+  border-color: var(--settings-accent);
+}
+.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--settings-accent) 87%, var(--settings-text));
+}
+
+input, select, .search {
+  color: var(--settings-text);
+  background: var(--settings-input);
+  border-color: var(--settings-line);
+}
+input::placeholder { color: var(--settings-muted); }
+.search input { background: transparent; }
+label, .eyebrow, .nav-label, .nav-note, .version, .version span, .local-note,
+.breadcrumb, .local-pill, .text-button, .stat-label, .stats strong small,
+.stats > div > span:last-child, .selected-tab b, .search span, .card-menu,
+.profile-id, .config-line, .config-line > span:first-child, .config-language,
+.card-footer > span, .detail-heading, .detail-row, .fine-print,
+.timeline-body small, .workspace-footer, .empty-icon, .empty p, .intro,
+.panel-kicker, .unlock-panel details, .preview-notice, .onboarding-foot,
+.close-button, .timeline-body small.state-contents, .timeline-body small.config-contents,
+.vpn-dialog .fine-print, .diff-table thead th, .diff-empty {
+  color: var(--settings-muted);
+}
+
+.profile-grid { gap: var(--settings-profile-gap); }
+.profile-main { padding: var(--settings-profile-padding); }
+.card-top { margin-bottom: var(--settings-profile-top-gap); }
+.card-footer {
+  padding-top: var(--settings-profile-footer-y);
+  padding-bottom: var(--settings-profile-footer-y);
+  background: var(--settings-input);
+  border-color: var(--settings-line);
+}
+.profile-card.is-selected { border-color: var(--settings-accent); }
+.tag {
+  color: var(--settings-text);
+  background: var(--settings-raised);
+  border-color: var(--settings-line);
+}
+.selected-tab b, .empty, .preview-notice, .vpn-account,
+.diff-table th, .diff-table td { border-color: var(--settings-line); }
+.timeline-item::before { background: var(--settings-line); }
+.timeline-dot {
+  background: var(--settings-accent-soft);
+  border-color: var(--settings-accent);
+}
+.snapshot-actions button, .recovery-progress { color: var(--settings-accent-text); }
+.tiny-dot { background: var(--settings-success); }
+
+.routing-banner, .warning {
+  background: var(--settings-warning-bg);
+  border-color: var(--settings-warning-line);
+}
+.route-icon, .routing-banner strong, .routing-banner p, .warning,
+.amber-text, .vpn-dialog .amber-text, .vpn-account-state,
+.preview-notice strong, .diff-modified { color: var(--settings-warning); }
+.amber { background: var(--settings-warning); }
+.message { border-color: var(--settings-line); }
+.message.success {
+  color: var(--settings-success);
+  background: var(--settings-success-bg);
+  border-color: var(--settings-success-line);
+}
+.message.error {
+  color: var(--settings-danger);
+  background: var(--settings-danger-bg);
+  border-color: var(--settings-danger-line);
+}
+.recovery-error, .danger-text, .diff-removed { color: var(--settings-danger); }
+.danger {
+  color: var(--settings-danger);
+  background: var(--settings-danger-bg);
+  border-color: var(--settings-danger-line);
+}
+.recovery-report {
+  background: var(--settings-success-bg);
+  border-color: var(--settings-success-line);
+}
+.recovery-report h3, .recovery-report .recovery-coverage, .diff-added {
+  color: var(--settings-success);
+}
+.recovery-report p, .recovery-report .recovery-limitations {
+  color: var(--settings-muted);
+  border-color: var(--settings-success-line);
+}
+.branch-badge {
+  color: var(--settings-info);
+  background: var(--settings-info-bg);
+  border-color: var(--settings-info-line);
+}
+.branch-ancestry { color: var(--settings-info); }
+.modal-backdrop { background: var(--settings-backdrop); }
+
+html[data-reduce-motion='true'],
+html[data-reduce-motion='true'] *,
+html[data-reduce-motion='true'] *::before,
+html[data-reduce-motion='true'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

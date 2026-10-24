@@ -1,5 +1,9 @@
 # Ecdys 0.7.0 built-in tools preview — 2026-10-24
 
+Local Settings increment: screenshot-based Environment/Account/Appearance/App/Help navigation and grouped rows; local dark/light/system, accent, density, motion and optional-status preferences; working workspace lock/shortcut; truthful pending-service details. No account, wallet or cloud backend was added. Only non-sensitive UI enum/boolean preferences use local storage. See [Settings](SETTINGS.md).
+
+Settings validation: **252 backend tests passed, 3 skipped; 18 browser UI checks and 3 actual Electron workflows passed.** Typecheck/build passed. Electron verifies preference persistence after restart and Ctrl/Cmd+Shift+L against a real encrypted workspace. No push or remote merge was performed.
+
 Renamed from Styg to Ecdys. The app keeps the legacy `styg` data folder, encrypted formats and recovery identifiers so existing workspaces open in place. Historical progress notes and plans retain their original name.
 
 Rename validation: typecheck/build, two browser UI checks and both Electron workflows passed. The renamed Electron app opened a workspace created by the prior Styg build, unlocked its encrypted records and previewed its baseline snapshot. An explicit `--user-data-dir` override was also retained. Current screenshots show Ecdys.
