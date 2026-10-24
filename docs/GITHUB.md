@@ -1,26 +1,37 @@
-# GitHub repository setup
+# GitHub source repository
 
-The source repository and local commit history are complete in this workspace. Creating the requested private GitHub repository was attempted for `NachtUndNebelTaktik/ecdys`, but GitHub returned `Resource not accessible by integration (createRepository)`. The connected account can authenticate; its integration cannot create this repository. No remote repository was created by that attempt.
+The private project repository is:
 
-Create an **empty private** repository named **ecdys** in the account. Leave README, license and gitignore initialization unchecked so the existing project history can be pushed directly:
+<https://github.com/NachtUndNebelTaktik/ecdys>
 
-<https://github.com/new?name=ecdys&visibility=private>
+The verified project source and local development history are published on `main`. The repository's original initial README commit is retained as a merge parent. The complete project README replaces that starter page; the original content remains available in Git history.
 
-Once it exists and the connected GitHub integration has access:
+## Work with the source
 
 ```sh
-git remote add origin https://github.com/NachtUndNebelTaktik/ecdys.git
-gh auth setup-git
+git clone https://github.com/NachtUndNebelTaktik/ecdys.git
+cd ecdys
+pnpm install
+pnpm dev
+```
+
+Use the README verification commands before pushing changes. GitHub credentials must have access to the private repository. Local vaults, credentials, dependencies and build outputs are excluded by gitignore.
+
+The local working branch can publish to main with:
+
+```sh
 git push -u origin HEAD:main
 ```
 
-If `origin` is already configured, check `git remote -v` and use it when it matches the intended repository. Do not force-push over an initialized repository. The project source ZIP and standalone Git bundle are additional backups, not substitutes for the remote repository.
+Fetch and integrate newer remote commits first when required. Do not force-push over another contributor's work.
 
-To restore the standalone history bundle into a new checkout:
+## Standalone backups
+
+Source ZIPs and standalone Git bundles are additional backups. To restore a history bundle into a new checkout:
 
 ```sh
 git clone /path/to/ecdys-source-history-2026-10-24.bundle ecdys
 cd ecdys
 ```
 
-Use the README development and verification commands after restoring. Dependencies, local vaults, build outputs and credentials are excluded from the source backups.
+The bundle preserves the history captured at its creation time. It does not automatically track later GitHub updates. Follow the README development instructions after restoring.
