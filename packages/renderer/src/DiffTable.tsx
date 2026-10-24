@@ -1,6 +1,6 @@
 import {For,Show} from 'solid-js';
 import type {ConfigChange} from '../../shared/src/model';
-const labels={name:'Name',tags:'Tag',timezone:'Timezone',language:'Language',screen:'Screen size'};
+const labels={name:'Name',tags:'Tag',timezone:'Timezone',language:'Language',screen:'Screen size',vpn:'VPN settings'};
 export default function DiffTable(props:{changes:ConfigChange[];emptyMessage?:string}) {
   return <Show when={props.changes.length} fallback={<p class="diff-empty">{props.emptyMessage??'No configuration differences.'}</p>}>
     <div class="diff-scroll"><table class="diff-table" aria-label="Configuration changes">

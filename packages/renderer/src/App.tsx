@@ -3,6 +3,8 @@ import type { Profile, RequestType, Snapshot, SnapshotPreview, MergePreview, Wor
 import SnapshotPanel from './SnapshotPanel';
 import DiffTable from './DiffTable';
 import BranchDialog,{type BranchDialogState} from './BranchDialog';
+import VpnDialog from './VpnDialog';
+import type {CredentialPresence,RelayCatalog,VpnSettingsType} from '../../shared/src/vpn';
 
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
   const [screen,setScreen]=createSignal('1920 × 1080');
   const [restoreTarget,setRestoreTarget]=createSignal<SnapshotPreview>();
   const [branchDialog,setBranchDialog]=createSignal<BranchDialogState>();
+  const [vpnProfile,setVpnProfile]=createSignal<Profile>();
+  const [credentials,setCredentials]=createSignal<CredentialPresence>({mullvad:false,ivpn:false});
   const current=createMemo(()=>profiles().find(p=>p.id===selected()));
   const filtered=createMemo(()=>profiles().filter(p=>`${p.name} ${p.tags.join(' ')}`.toLowerCase().includes(search().toLowerCase())));
   const bridge=!!window.styg;
@@ -37,7 +41,7 @@ export default function App() {
   }
   async function refresh(id?:string) {
     setStatus(await invoke<WorkspaceStatus>({action:'status'}));
-    if(!status()?.unlocked) {setProfiles([]);setSnapshots([]);setSelected(undefined);setRestoreTarget(undefined);setBranchDialog(undefined);setEditing(undefined);setName('');setTags('');return;}
+    if(!status()?.unlocked) {setVpnProfile(undefined);setCredentials({mullvad:false,ivpn:false});setProfiles([]);setSnapshots([]);setSelected(undefined);setRestoreTarget(undefined);setBranchDialog(undefined);setEditing(undefined);setName('');setTags('');return;}
     const list=await invoke<Profile[]>({action:'profiles'}); setProfiles(list);
     const next=[id,selected(),list[0]?.id].find(candidate=>list.some(profile=>profile.id===candidate)); setSelected(next);
     setSnapshots(next?await invoke<Snapshot[]>({action:'snapshots',id:next}):[]);
@@ -96,7 +100,7 @@ export default function App() {
       <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
       <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
       <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
-      <div class="sidebar-bottom"><div class="version">STYG <span>0.4.0 · session core preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
+      <div class="sidebar-bottom"><div class="version">STYG <span>0.5.0 · VPN setup preview</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
       <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={()=>void run(async()=>{const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();if(result.incompleteSnapshots)setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');})}>Lock workspace ↗</button></Show></div></header>
@@ -134,7 +138,7 @@ export default function App() {
                 <div class="tag-row"><For each={profile.tags}>{tag=><span class="tag">{tag}</span>}</For><Show when={!profile.tags.length}><span class="muted">No tags</span></Show></div>
                 <div class="config-line"><span>◷</span>{profile.timezone}</div><div class="config-line"><span>▱</span>{profile.screen}<span class="config-language">{profile.language}</span></div>
               </button>
-              <div class="card-footer"><span><span class="tiny-dot"/> Config saved</span><button class="secondary small" disabled={busy()} onClick={()=>openEditor(profile)}>Edit profile</button></div>
+              <div class="card-footer"><span><span class="tiny-dot"/> Config saved</span><button class="secondary small" disabled={busy()} onClick={()=>void run(async()=>{setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));setVpnProfile(profile);})}>VPN setup</button><button class="secondary small" disabled={busy()} onClick={()=>openEditor(profile)}>Edit profile</button></div>
             </article>}</For>
           </section>
           <Show when={current()}>{profile=><SnapshotPanel
@@ -151,7 +155,7 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg session core preview / 0.4.0</span></footer>
+          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Styg VPN setup preview / 0.5.0</span></footer>
         </Show>
       </main>
     </div>
@@ -175,5 +179,11 @@ export default function App() {
       </div>
     </section></div>}</Show>
     <Show when={branchDialog()}>{dialog=><BranchDialog dialog={dialog()} busy={busy()} error={error()} onCancel={()=>setBranchDialog(undefined)} onCreate={name=>void createBranch(name)} onConfirm={()=>void confirmBranch()}/>}</Show>
+    <Show when={vpnProfile()}>{profile=><VpnDialog profile={profile()} credentials={credentials()} busy={busy()} error={error()} onClose={()=>{setVpnProfile(undefined);setError('');}}
+      onSave={async(settings:VpnSettingsType)=>{await run(async()=>{const id=profile().id;await invoke({action:'updateProfile',id,input:{vpn:settings}});setVpnProfile(undefined);await refresh(id);setNotice('VPN settings saved with a pre-edit snapshot. Authentication and protected routing are pending.');});}}
+      onSaveCredential={async(provider,account)=>{await run(async()=>{await invoke({action:'saveVpnCredential',credential:{provider,account}});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
+      onClearCredential={async provider=>{await run(async()=>{await invoke({action:'clearVpnCredential',provider});setCredentials(await invoke<CredentialPresence>({action:'vpnCredentials'}));});}}
+      onCatalog={async provider=>{let result:RelayCatalog|undefined;await run(async()=>{result=await invoke<RelayCatalog>({action:'vpnCatalog',provider});});return result;}}
+    />}</Show>
   </div>;
 }

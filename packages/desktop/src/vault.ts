@@ -9,6 +9,8 @@ import {configurationDiff,profileConfiguration} from './profile-diff';
 import {Revision} from '../../shared/src/model';
 import { StateStore, type CapturedState } from './state-store';
 import { deriveMasterKey, openSnapshot, sealSnapshot } from './crypto';
+import {VpnCredential,VpnProvider,type VpnProviderType,type CredentialPresence} from '../../shared/src/vpn';
+import {sealCredential} from './vpn/credentials';
 
 const Metadata=z.object({version:z.literal(1),salt:z.string().regex(/^[a-f0-9]{64}$/),kdf:KdfParams}).strict();
 const passphraseSchema=z.string().min(12).max(1024);
@@ -21,7 +23,8 @@ CREATE TABLE restore_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON 
 CREATE TABLE fork_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE, operationId TEXT NOT NULL);
 CREATE TABLE discard_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE, operationId TEXT NOT NULL);
 CREATE UNIQUE INDEX branch_names ON profiles(parentProfileId,branchName COLLATE NOCASE) WHERE parentProfileId IS NOT NULL AND status<>'deleting';
-PRAGMA user_version=3;`;
+CREATE TABLE vpn_credentials(provider TEXT PRIMARY KEY CHECK(provider IN ('mullvad','ivpn')), envelope BLOB NOT NULL);
+PRAGMA user_version=4;`;
 
 export type BrowserProfileLease={directory:string;snapshotClosed:(browserVersion:string)=>Promise<Snapshot>;release:()=>void};
 export class Vault {
@@ -39,7 +42,8 @@ export class Vault {
       let version=db.pragma('user_version',{simple:true});
       if(version===1){db.exec('ALTER TABLE snapshots ADD COLUMN stateEnvelope BLOB; ALTER TABLE snapshots ADD COLUMN fileCount INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN stateBytes INTEGER NOT NULL DEFAULT 0; ALTER TABLE snapshots ADD COLUMN browserVersion TEXT; CREATE TABLE restore_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL);');version=2;}
       if(version===2){db.exec("ALTER TABLE profiles ADD COLUMN parentProfileId TEXT REFERENCES profiles(id) ON DELETE SET NULL; ALTER TABLE profiles ADD COLUMN branchName TEXT; ALTER TABLE profiles ADD COLUMN revision INTEGER NOT NULL DEFAULT 1; ALTER TABLE profiles ADD COLUMN status TEXT NOT NULL DEFAULT 'ready' CHECK(status IN ('ready','creating','deleting')); CREATE TABLE fork_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL); CREATE TABLE discard_jobs(profileId TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,operationId TEXT NOT NULL); CREATE UNIQUE INDEX branch_names ON profiles(parentProfileId,branchName COLLATE NOCASE) WHERE parentProfileId IS NOT NULL AND status<>'deleting';");version=3;}
-      if(version!==3)throw new Error('Unsupported workspace version');db.pragma('user_version=3');
+      if(version===3){db.exec("CREATE TABLE vpn_credentials(provider TEXT PRIMARY KEY CHECK(provider IN ('mullvad','ivpn')),envelope BLOB NOT NULL);");version=4;}
+      if(version!==4)throw new Error('Unsupported workspace version');db.pragma('user_version=4');
     })();
   }
   private async recover() {
@@ -106,6 +110,18 @@ export class Vault {
   profiles():Profile[] {
     this.guard();
     return (this.db.prepare("SELECT id FROM profiles WHERE status='ready' ORDER BY createdAt,id").all() as {id:string}[]).map(row=>this.get(row.id));
+  }
+  vpnCredentials():CredentialPresence {
+    this.guard();const providers=new Set((this.db.prepare('SELECT provider FROM vpn_credentials').all() as {provider:string}[]).map(row=>row.provider));
+    return {mullvad:providers.has('mullvad'),ivpn:providers.has('ivpn')};
+  }
+  saveVpnCredential(provider:VpnProviderType,account:string):void {
+    this.guard();const credential=VpnCredential.parse({provider,account});
+    const envelope=sealCredential(credential.account,this.key,credential.provider);
+    this.db.prepare('INSERT INTO vpn_credentials(provider,envelope) VALUES(?,?) ON CONFLICT(provider) DO UPDATE SET envelope=excluded.envelope').run(credential.provider,envelope);
+  }
+  clearVpnCredential(provider:VpnProviderType):void {
+    this.guard();VpnProvider.parse(provider);this.db.prepare('DELETE FROM vpn_credentials WHERE provider=?').run(provider);
   }
   createProfile(input:ProfileInputType):Profile {
     this.guard(); const config=ProfileInput.parse(input); const id=randomUUID(); const now=Date.now();

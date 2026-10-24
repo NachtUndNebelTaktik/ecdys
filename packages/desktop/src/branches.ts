@@ -71,7 +71,7 @@ export class BranchManager {
     const first=this.branch(id);this.ctx.states.assertIdle(id);this.ctx.states.assertIdle(first.parentProfileId!);
     this.ctx.db.transaction(()=>{
       const branch=this.branch(id),parent=this.ctx.get(branch.parentProfileId!);this.check(branch,branchRevision);this.check(parent,parentRevision);
-      const config={...profileConfiguration(parent),timezone:branch.timezone,language:branch.language,screen:branch.screen};
+      const config={...profileConfiguration(parent),timezone:branch.timezone,language:branch.language,screen:branch.screen,vpn:{...branch.vpn}};
       this.ctx.capture(parent.id,'pre_merge');
       this.ctx.db.prepare('UPDATE profiles SET config=?,updatedAt=?,revision=revision+1 WHERE id=?').run(JSON.stringify(config),Date.now(),parent.id);this.ctx.prune(parent.id);
     })();return this.ctx.get(first.parentProfileId!);

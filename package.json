@@ -1,8 +1,8 @@
 {
   "name": "styg",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
-  "description": "Styg desktop session and profile manager \u2014 managed session core",
+  "description": "Styg desktop session and profile manager \u2014 VPN setup preview",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@11.25.0",
   "engines": {

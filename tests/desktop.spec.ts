@@ -71,6 +71,26 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
       await window.styg!.invoke({action:'updateProfile',id,input:{language:'en-US'}});return result;
     });
     expect(stale.ok).toBe(false);
+    await page.getByRole('button',{name:'VPN setup',exact:true}).click();
+    if(process.env.STYG_TEST_LIVE_VPN_CATALOGS==='1'){
+      await dialog.getByLabel('VPN provider').selectOption('mullvad');
+      await dialog.getByRole('button',{name:'Load server list'}).click();
+      await expect(dialog.getByText(/\d+ servers · checked/)).toBeVisible();
+    }
+    await dialog.getByLabel('VPN provider').selectOption('ivpn');
+    if(process.env.STYG_TEST_LIVE_VPN_CATALOGS==='1'){
+      await dialog.getByRole('button',{name:'Load server list'}).click();
+      await expect(dialog.getByText(/\d+ servers · checked/)).toBeVisible();
+    }
+    await dialog.getByLabel('Provider account ID').fill('i-ABCD-EFGH-IJKL');
+    await dialog.getByRole('button',{name:'Save account',exact:true}).click();
+    await expect(dialog.getByText('Account saved · authentication unverified')).toBeVisible();
+    await expect(dialog.getByLabel('Provider account ID')).toHaveValue('');
+    await dialog.getByLabel('Endpoint hostname').fill('at1.wg.ivpn.net');
+    await dialog.getByLabel('Rotation policy').selectOption('every_5');
+    await page.screenshot({path:'test-results/styg-vpn-setup.png',fullPage:true});
+    await dialog.getByRole('button',{name:'Save VPN settings'}).click();
+    await expect(page.getByRole('button',{name:'Launch blocked'})).toBeDisabled();
     await page.getByRole('button',{name:'Create branch',exact:true}).click();
     await dialog.getByLabel('Branch name').fill('test-region');
     await dialog.getByRole('button',{name:'Create branch',exact:true}).click();
@@ -117,5 +137,12 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await reopened.getByRole('button',{name:/^Unlock workspace/}).click();
     await expect(reopened.locator('.profile-card h2')).toHaveText(['Research — Europe','Standalone experiment']);
     await expect(reopened.getByText('pre restore',{exact:true}).first()).toBeVisible();
+    await reopened.locator('.profile-card').filter({has:reopened.getByRole('heading',{name:'Research — Europe',exact:true})}).getByRole('button',{name:'VPN setup',exact:true}).click();
+    const vpnDialog=reopened.getByRole('dialog');
+    await expect(vpnDialog.getByLabel('VPN provider')).toHaveValue('ivpn');
+    await expect(vpnDialog.getByLabel('Endpoint hostname')).toHaveValue('at1.wg.ivpn.net');
+    await expect(vpnDialog.getByLabel('Rotation policy')).toHaveValue('every_5');
+    await expect(vpnDialog.getByText('Account saved · authentication unverified')).toBeVisible();
+    await expect(vpnDialog.getByLabel('Provider account ID')).toHaveValue('');
   } finally {await application?.close();await rm(root,{recursive:true,force:true});}
 });

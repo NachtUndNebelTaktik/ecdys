@@ -20,11 +20,11 @@ Branches count toward the 99-profile limit. They use the same 64 MiB / 4096-entr
 
 | Action | Result |
 |---|---|
-| Review merge | Compare the branch's timezone, language and screen settings against its parent. Confirmation checks both revisions, saves a **pre_merge** configuration rollback point, then replaces those three settings atomically. |
+| Review merge | Compare the branch's timezone, language, screen and VPN settings against its parent. Confirmation checks both revisions, saves a **pre_merge** configuration rollback point, then replaces those settings atomically. |
 | Promote to standalone | Clear ancestry while keeping the profile ID, configuration, browser files and snapshot history. |
 | Discard branch | Permanently remove that branch's configuration, history and browser directory after confirmation. Resolve its child branches first. Standalone profiles cannot be discarded through this action. |
 
-Merge preserves the parent's name, tags and browser files and keeps the branch. There is no cookie, file or session-state merge. The environment fields are saved settings in this build; VPN and fingerprint controls are not implemented. A nested branch merges into its immediate parent. Promoting a branch does not detach that profile's own children.
+Merge preserves the parent's name, tags and browser files and keeps the branch. There is no cookie, file or session-state merge. The environment fields are saved settings in this build; provider authentication, tunnels and fingerprint injection remain pending. Since 0.5, VPN configuration is copied/restored/merged with other environment settings; provider credentials stay workspace-level and outside profile history. See [VPN setup](VPN.md). A nested branch merges into its immediate parent. Promoting a branch does not detach that profile's own children.
 
 Promotion and discard also check the revision shown in their confirmation. Browser lock markers prevent copying/discarding closed-directory state; arbitrary external programs are not managed by Styg yet.
 

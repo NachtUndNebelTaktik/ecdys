@@ -6,10 +6,12 @@ import { Request, type Result } from '../../shared/src/model';
 import { Vault } from './vault';
 import { routingStatus } from './routing';
 import {BrowserSessions} from './browser/sessions';
+import {ProviderCatalog} from './vpn/catalog';
 const here=dirname(fileURLToPath(import.meta.url));
 let window:BrowserWindow|undefined;
 let vault:Vault|undefined;
 let sessions:BrowserSessions|undefined;
+let vpnCatalog:ProviderCatalog;
 let lockTask:Promise<{incompleteSnapshots:number}>|undefined;
 let quitting=false;
 let allowQuit=false;
@@ -41,6 +43,10 @@ async function handle(raw:unknown):Promise<unknown> {
   const active=requireVault(); touch();
   switch(request.action) {
     case 'profiles': return active.profiles();
+    case 'vpnCredentials': return active.vpnCredentials();
+    case 'saveVpnCredential': active.saveVpnCredential(request.credential.provider,request.credential.account);return null;
+    case 'clearVpnCredential': active.clearVpnCredential(request.provider);return null;
+    case 'vpnCatalog': return vpnCatalog.get(request.provider);
     case 'createProfile': return active.createProfile(request.input);
     case 'updateProfile': return active.updateProfile(request.id,request.input);
     case 'snapshots': return active.snapshots(request.id);
@@ -73,6 +79,11 @@ else {
   app.on('second-instance',()=>{window?.show();window?.focus();});
   app.whenReady().then(()=>{
     app.setName('Styg');
+    const catalogSession=session.fromPartition('styg-provider-catalog');
+    // Honor the host's outbound proxy; relay requests never contain credentials.
+    const proxy=process.env.HTTPS_PROXY??process.env.https_proxy??process.env.HTTP_PROXY??process.env.http_proxy;
+    const proxyReady=proxy?catalogSession.setProxy({proxyRules:proxy,proxyBypassRules:process.env.NO_PROXY??process.env.no_proxy??''}).then(()=>true,()=>false):Promise.resolve(true);
+    vpnCatalog=new ProviderCatalog(async(url,signal)=>{if(!await proxyReady)throw new Error('Outbound proxy unavailable');signal.throwIfAborted();return catalogSession.fetch(url,{signal,redirect:'error',credentials:'omit',cache:'no-store'});});
     session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
     session.defaultSession.setPermissionCheckHandler(()=>false);
     ipcMain.handle('styg:request',(event,raw)=>{

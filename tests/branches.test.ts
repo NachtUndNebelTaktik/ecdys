@@ -8,6 +8,7 @@ import {Vault} from '../packages/desktop/src/vault';
 import {deriveMasterKey,openSnapshot} from '../packages/desktop/src/crypto';
 import {openStateManifest} from '../packages/desktop/src/state-archive';
 import {configurationDiff} from '../packages/desktop/src/profile-diff';
+import {defaultVpn} from '../packages/shared/src/vpn';
 const passphrase='correct horse battery staple';
 const roots:string[]=[],vaults:Vault[]=[];
 async function fixture(){const root=await mkdtemp(join(tmpdir(),'styg-branches-'));roots.push(root);const dir=join(root,'vault');const v=await Vault.create(dir,passphrase,{memoryMiB:64,iterations:2});vaults.push(v);const p=v.createProfile({name:'Research',tags:['production'],timezone:'Europe/Berlin'});return {dir,v,p,browser:join(dir,'profiles',p.id,'browser')};}
@@ -15,7 +16,7 @@ async function external<T>(dir:string,fn:(db:Database.Database,key:Buffer)=>T|Pr
 afterEach(async()=>{for(const v of vaults.splice(0))v.close();for(const root of roots.splice(0))await rm(root,{recursive:true,force:true});});
 
 it('reports changed settings and added/removed tags without including identity metadata',()=>{
-  const before={name:'Before',tags:['old','kept'],timezone:'UTC',language:'en-US',screen:'1920 × 1080'} as const;
+  const before={name:'Before',tags:['old','kept'],timezone:'UTC',language:'en-US',screen:'1920 × 1080',vpn:defaultVpn()} as const;
   const after={...before,name:'After',tags:['new','kept'],timezone:'Europe/Berlin'};
   expect(configurationDiff({...before,tags:[...before.tags]},after)).toEqual([
     {field:'name',kind:'modified',before:'Before',after:'After'},

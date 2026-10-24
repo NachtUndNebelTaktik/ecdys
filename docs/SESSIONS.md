@@ -36,4 +36,4 @@ pnpm test tests/cdp-pipe.test.ts tests/chromium.test.ts tests/sessions.test.ts t
 
 Tests expect Linux and `/usr/bin/chromium`; `STYG_TEST_CHROMIUM` selects the test executable only. Failure fixtures exercise actual child processes, unresponsive shutdown, surviving group descendants, startup/protocol errors and lock ownership conflicts. No privileged routing proof is supplied by these tests; see [routing limits](ROUTING.md).
 
-Snapshot schema/encryption remain unchanged (database v3, workspace metadata v1). New triggers use the existing text column. State archives remain limited to 64 MiB and 4096 entries; an over-limit archive reports failure and preserves working files. Close Styg and back up the whole workspace before upgrading.
+Snapshot encryption remains unchanged (workspace metadata v1). Session triggers use the existing text column. VPN setup in 0.5 migrates the database to v4 and adds non-secret VPN configuration to snapshot contents. State archives remain limited to 64 MiB and 4096 entries; an over-limit archive reports failure and preserves working files. Close Styg and back up the whole workspace before upgrading.

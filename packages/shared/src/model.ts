@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {VpnSettings,defaultVpn,VpnProvider,VpnCredential} from './vpn';
 
 export const Id = z.uuid();
 const timezone = z.string().max(80).refine(value => {
@@ -9,11 +10,13 @@ const ProfileFields = z.object({
   tags:z.array(z.string().trim().min(1).max(32)).max(12),
   timezone, language:z.enum(['en-US','en-GB','de-DE','fr-FR']),
   screen:z.enum(['1920 × 1080','1440 × 900','1366 × 768']),
+  vpn:VpnSettings,
 }).strict();
 export const ProfileInput = ProfileFields.extend({
   tags:ProfileFields.shape.tags.default([]), timezone:timezone.default('UTC'),
   language:ProfileFields.shape.language.default('en-US'),
   screen:ProfileFields.shape.screen.default('1920 × 1080'),
+  vpn:VpnSettings.default(defaultVpn),
 });
 // Defaults belong to creation only: Zod defaults inside optional fields would
 // otherwise reset omitted settings when parsing a partial update.
@@ -36,6 +39,10 @@ export const Request = z.discriminatedUnion('action', [
   z.object({action:z.literal('unlock'),passphrase:z.string().min(1).max(1024)}).strict(),
   z.object({action:z.literal('lock')}).strict(),
   z.object({action:z.literal('profiles')}).strict(),
+  z.object({action:z.literal('vpnCredentials')}).strict(),
+  z.object({action:z.literal('saveVpnCredential'),credential:VpnCredential}).strict(),
+  z.object({action:z.literal('clearVpnCredential'),provider:VpnProvider}).strict(),
+  z.object({action:z.literal('vpnCatalog'),provider:VpnProvider}).strict(),
   z.object({action:z.literal('createProfile'),input:ProfileInput}).strict(),
   z.object({action:z.literal('updateProfile'),id:Id,input:ProfilePatch}).strict(),
   z.object({action:z.literal('snapshots'),id:Id}).strict(),

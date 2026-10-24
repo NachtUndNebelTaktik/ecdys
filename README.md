@@ -1,6 +1,6 @@
 # Styg
 
-Desktop session and profile management. This is the Styg 0.4 managed-session core preview, not the full v1.0 blueprint.
+Desktop session and profile management. This is the Styg 0.5 VPN setup preview, not the full v1.0 blueprint.
 
 ## What works
 
@@ -13,8 +13,9 @@ Desktop session and profile management. This is the Styg 0.4 managed-session cor
 - Random AES-256-GCM snapshot keys wrapped by a master-derived key, authenticated snapshot/profile identity, gzip level 9, pinning and retention of 20 unpinned snapshots.
 - Internal managed Chromium lifecycle with private DevTools pipes, exclusive profile ownership, automatic closed-state snapshots and crash cleanup; exercised by local fixture tests.
 - A backend/UI block on unverified networked launches and a Linux routing laboratory.
+- Recoverable Mullvad/IVPN settings, encrypted workspace account storage, public WireGuard relay catalogs and saved rotation policies with explicit unverified-route diagnostics.
 
-**Normal browser launches remain disabled until a verified route supervisor and browser distribution are available.** VPN integration, fingerprint injection, billing and team services are not implemented yet. Timezone, screen size and language are saved settings, not browser overrides. Real Chromium recovery tests restore persistent cookies, localStorage and IndexedDB on Linux with the same build/account and a test basic password store. OS-protected/cross-device cookies, tab history and sessionStorage recovery remain unverified.
+**Normal browser launches remain disabled until a verified route supervisor and browser distribution are available.** VPN authentication/tunnels, fingerprint injection, billing and team services are not implemented yet. VPN rotation policies are saved settings; automatic rotation is pending. Timezone, screen size and language are saved settings, not browser overrides. Real Chromium recovery tests restore persistent cookies, localStorage and IndexedDB on Linux with the same build/account and a test basic password store. OS-protected/cross-device cookies, tab history and sessionStorage recovery remain unverified.
 
 ## Run
 
@@ -33,7 +34,7 @@ pnpm build
 pnpm start
 ```
 
-The workspace lives in Electron's `app.getPath('userData')/workspace`. Back up the whole workspace while Styg is closed: `workspace.json` holds non-secret KDF settings, `workspace.db` holds encrypted records/archives, and `profiles/` contains ordinary browser working files. Never delete them to resolve an unlock error. Schemas v1/v2 migrate automatically to v3; older 0.1/0.2 apps require a matching pre-migration backup to roll back.
+The workspace lives in Electron's `app.getPath('userData')/workspace`. Back up the whole workspace while Styg is closed: `workspace.json` holds non-secret KDF settings, `workspace.db` holds encrypted records/archives, and `profiles/` contains ordinary browser working files. Never delete them to resolve an unlock error. Schemas v1/v2/v3 migrate automatically to v4; older apps require a matching pre-migration backup to roll back.
 
 Passphrases require at least 12 characters and cannot be recovered. Default Argon2id cost: 256 MiB, 2 iterations. Alternatives: 64 MiB, 1 GiB or 4 GiB. Memory availability is checked before derivation. Styg locks after 15 minutes without a workspace operation, then reloads the renderer.
 
@@ -63,7 +64,7 @@ sudo node scripts/routing-proof.mjs --run
 
 Exit 2 means prerequisites are missing, not that isolation passed. The lab uses simulated tunnel interfaces and checks IPv4/IPv6 HTTP, UDP and DNS, usable fallback controls and repeated disconnect blocking. Its privileged run remains unvalidated here; real loopback tests validate the probes only. It is not a provider VPN or full browser validation. A lab pass never enables launches.
 
-See [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [current implementation plan](docs/superpowers/plans/2026-10-23-managed-session-core.md).
+See [VPN setup and provider corrections](docs/VPN.md), [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [current implementation plan](docs/superpowers/plans/2026-10-24-vpn-setup.md).
 
 ## Security boundaries
 
@@ -74,3 +75,5 @@ This development foundation is not validated for high-risk investigations. The O
 ![Styg branches workspace](docs/images/branches.png)
 
 ![Review environment changes before merging](docs/images/merge-preview.png)
+
+![Styg VPN setup with explicit routing boundaries](docs/images/vpn-setup.png)
