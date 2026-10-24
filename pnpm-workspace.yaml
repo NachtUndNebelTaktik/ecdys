@@ -6,4 +6,3 @@ allowBuilds:
   better-sqlite3-multiple-ciphers: true
   argon2: true
   esbuild: true
-
