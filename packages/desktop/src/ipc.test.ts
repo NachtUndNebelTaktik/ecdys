@@ -2,6 +2,36 @@ import {describe, expect, it} from 'vitest';
 import {isTrustedFrame, safeError, parseInvocation} from './ipc';
 
 describe('privileged IPC boundary', () => {
+  it('accepts only acknowledged temporary launches and bounded browser operations', () => {
+    const id = '19ab1b20-cc99-4a9b-8ae4-d99dc272d192';
+    expect(() =>
+      parseInvocation({method: 'startTemporaryBrowser', args: [{profileId: id, revision: 1}]}),
+    ).toThrow();
+    expect(() =>
+      parseInvocation({method: 'navigateBrowser', args: [id, 'file:///etc/passwd']}),
+    ).toThrow();
+    expect(() =>
+      parseInvocation({method: 'navigateBrowser', args: [id, 'https://user:secret@example.com/']}),
+    ).toThrow();
+    expect(() =>
+      parseInvocation({
+        method: 'inputBrowser',
+        args: [id, {type: 'evaluate', expression: 'process.env'}],
+      }),
+    ).toThrow();
+    expect(() =>
+      parseInvocation({
+        method: 'inputBrowser',
+        args: [id, {type: 'pointer', action: 'down', button: 'left', x: 50000, y: 0}],
+      }),
+    ).toThrow();
+    expect(
+      parseInvocation({
+        method: 'startTemporaryBrowser',
+        args: [{profileId: id, revision: 1, acceptTemporary: true}],
+      }),
+    ).toMatchObject({method: 'startTemporaryBrowser'});
+  });
   it('rejects remote origins, lookalike hosts and child frames', () => {
     expect(isTrustedFrame('ecdys://app/index.html', true)).toBe(true);
     expect(isTrustedFrame('https://ecdys.app', true)).toBe(false);

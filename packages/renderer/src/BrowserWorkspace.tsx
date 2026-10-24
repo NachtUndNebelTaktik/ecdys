@@ -1,5 +1,6 @@
 import {batch, createMemo, createSignal, For, Show} from 'solid-js';
-import type {Profile} from '@ecdys/shared';
+import type {EcdysApi, Profile} from '@ecdys/shared';
+import {TemporaryBrowser} from './TemporaryBrowser';
 import {AppearanceControls, BrowserMark, browserStyle} from './BrowserAppearance';
 import {orderProfiles, type Appearance} from './appearance';
 
@@ -11,6 +12,8 @@ interface Tab {
   query: string;
 }
 export function BrowserWorkspace(props: {
+  api: EcdysApi;
+  refresh: () => Promise<void>;
   active: boolean;
   preferences: Appearance;
   update: (patch: Partial<Appearance>) => void;
@@ -29,6 +32,7 @@ export function BrowserWorkspace(props: {
   const [activeId, setActiveId] = createSignal(1);
   const [message, setMessage] = createSignal('');
   const [customizing, setCustomizing] = createSignal(false);
+  const [live, setLive] = createSignal(false);
   const active = createMemo(() => tabs().find(({id}) => id === activeId())!);
   const sorted = createMemo(() => orderProfiles(props.profiles, props.preferences.profileOrder));
   const visible = createMemo(() =>
@@ -94,7 +98,7 @@ export function BrowserWorkspace(props: {
       return;
     }
     setMessage(
-      'Managed browsing is not available in this build. Your local start page stays open; review launch requirements in Profiles.',
+      'Managed browsing with persistent state remains in development. Use Open temporary browser to visit websites through a saved proxy; this local start page stays open.',
     );
   }
   function tabKey(event: KeyboardEvent, id: number) {
@@ -127,7 +131,17 @@ export function BrowserWorkspace(props: {
             {customizing() ? 'Hide appearance' : 'Customize appearance'} ☷
           </button>
         </div>
+        <TemporaryBrowser
+          api={props.api}
+          refresh={props.refresh}
+          preferences={props.preferences}
+          profiles={props.profiles}
+          selectedId={props.selectedId}
+          selectProfile={props.selectProfile}
+          onActive={setLive}
+        />
         <section
+          hidden={live()}
           class="browser-surface"
           role="region"
           aria-label="Browser surface"

@@ -2,12 +2,12 @@
   "name": "ecdys",
   "private": true,
   "type": "module",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "build": "pnpm --filter @ecdys/renderer build && pnpm --filter @ecdys/desktop build",
     "dev": "pnpm build && electron packages/desktop/dist/main.cjs",
-    "test": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run",
+    "test": "pnpm --filter @ecdys/desktop build && cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run",
     "typecheck": "tsc --noEmit",
     "native:rebuild": "electron-rebuild --force --only better-sqlite3-multiple-ciphers",
     "test:ui": "playwright test"

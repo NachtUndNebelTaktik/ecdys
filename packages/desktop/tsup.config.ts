@@ -1,7 +1,7 @@
 import {defineConfig} from 'tsup';
 
 export default defineConfig({
-  entry: ['src/main.ts', 'src/preload.ts', 'src/kdf-worker.ts'],
+  entry: ['src/main.ts', 'src/preload.ts', 'src/kdf-worker.ts', 'src/browser-worker.ts'],
   outDir: 'dist',
   format: ['cjs'],
   outExtension: () => ({js: '.cjs'}),

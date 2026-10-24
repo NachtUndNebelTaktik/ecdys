@@ -4,7 +4,7 @@ Product name: **ecdys**. Domain: **ecdys.app**.
 
 A sovereign desktop browser workstation for security operations, crypto/Web3 and browser-based trading. Proxies, authenticated SOCKS5 switching and Monero remain essential requirements. Team collaboration and offline operation are built-in capabilities of the same station.
 
-The first application foundation is implemented. It provides a real encrypted local configuration vault and workspace; it does not launch managed browsing sessions yet.
+The application now includes a real encrypted local configuration vault and a first temporary Linux browser runtime. Temporary sessions navigate actual pages through saved SOCKS5 or HTTP CONNECT proxies; their site data is discarded on close. Persistent managed sessions remain in development.
 
 ## Run
 
@@ -23,15 +23,19 @@ Electron downloads its platform binary on first use. In environments requiring a
 - SQLCipher-compatible encrypted database and random master key wrapped using Argon2id.
 - Explicit 1/2/4/8 GiB KDF selection, default 4 GiB; production derivation runs in a worker.
 - Local profiles, revisions, search, tags, folder labels, protected-execution policy and route configuration.
+- Temporary Linux Chromium browsing with private network/PID/mount namespaces, a credential-isolated proxy broker, live viewport, navigation, mouse/keyboard input and WebSockets.
 - Rounded Browser workspace with interactive local tabs, profile search, keyboard tab navigation and local workspace shortcuts.
 - Light, Dark, System, Night and Crimson appearance profiles; System follows desktop changes, Night applies an adjustable warm filter, Crimson uses night-black surfaces and crimson accents across the app.
 - Live shared controls for accent, corners, density, browser text size, bookmarks, sidebar and transitions, plus a Settings preview.
 - Remembered profile sorting and grid/list layouts; appearance reset preserves those organization choices.
+- OSINT workspace with a draggable mindmap, typed nodes, source notes, labeled connections, zoom/pan/fit, keyboard movement and undo.
+- Searchable OSINT tool library with categories, pins and editable custom website tools; links open through the active routed temporary session.
+- Research autosave inside the encrypted vault, revision conflict protection and recovery after reload/lock. No automatic external tool queries.
 - Encrypted proxy passwords omitted from public responses.
 - Encrypted named proxy pools, URI/JSON import previews and duplicate removal.
 - Real authenticated SOCKS5 and HTTP CONNECT tunnel tests, HTTPS certificate verification, bounded deadlines and lock cancellation.
 - Revision-checked assignment and rotation of saved proxy routes, with per-profile outcomes and pre-change checkpoints.
-- In-place migration of existing configuration vaults to the proxy-library schema.
+- Transactional upgrades of existing vaults to the proxy-library and encrypted research schemas.
 - Independently encrypted baseline/edit/manual/pre-restore configuration checkpoints, pins and twenty-unpinned retention.
 - Independent configuration branches with copied history, pins and re-encrypted secret references.
 - Manual lock and lock after fifteen minutes of system inactivity.
@@ -39,11 +43,13 @@ Electron downloads its platform binary on first use. In environments requiring a
 
 ## Implementation boundary
 
-Checkpoints currently cover configuration only. Full browser-state recovery, native route enforcement, VPN integration, switching live browser traffic, protected browser storage, managed Chromium, fingerprints/WebRTC, Selenium, Monero/payments, licensing, teams and controlled updates remain required work. Proxy tunnel diagnostics and saved-route switching are implemented; a successful diagnostic does not prove public IP identity or native containment. The UI identifies them as unavailable; browser launch stays blocked.
+Checkpoints currently cover configuration only. Full browser-state recovery, cross-platform route enforcement, VPN integration, switching live browser traffic, protected persistent browser storage, bundled Chromium, fingerprints/WebRTC, Selenium, Monero/payments, licensing, teams and controlled updates remain required work. Proxy tunnel diagnostics and saved-route switching are implemented; a successful diagnostic does not prove public IP identity or native containment. Persistent profile launch stays blocked; the separately acknowledged temporary mode is available on supported Linux systems.
 
 Local configuration operations work offline. Signed commercial offline entitlements are specified but not implemented. The foundation allows ten local profiles; there is no simulated activation.
 
 The foundation has been exercised on Linux. Windows/macOS native verification and Windows durable directory publication remain release gates.
+
+Temporary browsing requires Linux user/network namespaces, bubblewrap, util-linux prlimit, system Chromium 154 at the supported Debian path, and disabled swap. It currently supports one Standard session, no downloads or persistent site-state recovery, and a streamed development viewport. See [browser runtime and limitations](docs/BROWSER-RUNTIME.md).
 
 ## Verify
 
@@ -64,6 +70,9 @@ The UI test uses Electron's headless Ozone backend without disabling renderer sa
 - [Foundation implementation scope](docs/FOUNDATION-IMPLEMENTATION.md)
 - [Proxy pool operations and diagnostics](docs/ROUTE-MANAGEMENT.md)
 - [Browser appearance and workspace controls](docs/BROWSER-APPEARANCE.md)
+- [Temporary browser runtime](docs/BROWSER-RUNTIME.md)
+- [OSINT mindmap and tool library](docs/OSINT-WORKSPACE.md)
+- [GitHub repository setup](docs/GITHUB.md)
 - [Build status and remaining gates](docs/BUILD-STATUS.md)
 - [Documentation revision verification](VERIFICATION-v4.0.md)
 

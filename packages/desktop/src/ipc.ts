@@ -3,13 +3,34 @@ import {
   ProfileDraftSchema,
   VaultSetupSchema,
   ProxyChangeSchema,
+  BrowserInputSchema,
+  BrowserUrlSchema,
+  SaveResearchSchema,
   type SafeError,
 } from '@ecdys/shared';
 import {WorkspaceError, type WorkspaceService} from './workspace';
+import type {TemporaryBrowserRuntime} from './browser-runtime';
 
 const id = z.uuid();
 const revision = z.number().int().positive();
 const invocation = z.discriminatedUnion('method', [
+  z.object({method: z.literal('researchWorkspace'), args: z.tuple([])}).strict(),
+  z
+    .object({method: z.literal('saveResearchWorkspace'), args: z.tuple([SaveResearchSchema])})
+    .strict(),
+  z.object({method: z.literal('browserSupport'), args: z.tuple([])}).strict(),
+  z.object({method: z.literal('browserSession'), args: z.tuple([])}).strict(),
+  z
+    .object({
+      method: z.literal('startTemporaryBrowser'),
+      args: z.tuple([
+        z.object({profileId: id, revision, acceptTemporary: z.literal(true)}).strict(),
+      ]),
+    })
+    .strict(),
+  z.object({method: z.literal('navigateBrowser'), args: z.tuple([id, BrowserUrlSchema])}).strict(),
+  z.object({method: z.literal('inputBrowser'), args: z.tuple([id, BrowserInputSchema])}).strict(),
+  z.object({method: z.literal('stopBrowser'), args: z.tuple([id])}).strict(),
   z.object({method: z.literal('status'), args: z.tuple([])}).strict(),
   z.object({method: z.literal('createVault'), args: z.tuple([VaultSetupSchema])}).strict(),
   z.object({method: z.literal('unlock'), args: z.tuple([z.string().min(1).max(1024)])}).strict(),
@@ -80,9 +101,52 @@ export function safeError(error: unknown): SafeError {
     message: 'The operation could not be completed. Your workspace was not intentionally replaced.',
   };
 }
-export async function dispatch(service: WorkspaceService, input: unknown): Promise<unknown> {
+export async function dispatch(
+  service: WorkspaceService,
+  input: unknown,
+  runtime?: TemporaryBrowserRuntime,
+): Promise<unknown> {
   const request = parseInvocation(input);
   switch (request.method) {
+    case 'researchWorkspace':
+      return service.researchWorkspace();
+    case 'saveResearchWorkspace':
+      return service.saveResearchWorkspace(request.args[0]);
+    case 'browserSupport':
+      return (
+        runtime?.support() || {
+          available: false,
+          reasons: ['The browser runtime is unavailable.'],
+          platform: process.platform,
+          mode: 'temporary_linux',
+        }
+      );
+    case 'browserSession':
+      await service.listProfiles();
+      runtime?.replayFrame();
+      return runtime?.session() || null;
+    case 'startTemporaryBrowser': {
+      if (!runtime)
+        throw new WorkspaceError('BROWSER_UNAVAILABLE', 'The browser runtime is unavailable.');
+      const input = request.args[0];
+      const context = await service.prepareTemporaryBrowser(input.profileId, input.revision);
+      return runtime.start(context);
+    }
+    case 'navigateBrowser':
+      await service.listProfiles();
+      if (!runtime)
+        throw new WorkspaceError('BROWSER_UNAVAILABLE', 'The browser runtime is unavailable.');
+      return runtime.navigate(...request.args);
+    case 'inputBrowser':
+      await service.listProfiles();
+      if (!runtime)
+        throw new WorkspaceError('BROWSER_UNAVAILABLE', 'The browser runtime is unavailable.');
+      return runtime.input(...request.args);
+    case 'stopBrowser':
+      await service.listProfiles();
+      if (!runtime)
+        throw new WorkspaceError('BROWSER_UNAVAILABLE', 'The browser runtime is unavailable.');
+      return runtime.stop(...request.args);
     case 'status':
       return service.status();
     case 'createVault':
@@ -92,6 +156,7 @@ export async function dispatch(service: WorkspaceService, input: unknown): Promi
       await service.unlock(request.args[0]);
       return service.status();
     case 'lock':
+      await runtime?.stop();
       await service.lock();
       return service.status();
     case 'listProfiles':

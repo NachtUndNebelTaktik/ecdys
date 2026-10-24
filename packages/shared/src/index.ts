@@ -1,5 +1,7 @@
 import {z} from 'zod';
+import type {ResearchDraft, ResearchWorkspace} from './research';
 export {z};
+export * from './research';
 
 const host = z
   .string()
@@ -121,7 +123,12 @@ export interface Profile {
   snapshotCount: number;
   lastSnapshotAt: number;
 }
-export type SnapshotTrigger = 'baseline' | 'manual' | 'auto_edit' | 'auto_pre_restore';
+export type SnapshotTrigger =
+  | 'baseline'
+  | 'manual'
+  | 'auto_edit'
+  | 'auto_pre_restore'
+  | 'auto_pre_launch';
 export interface Snapshot {
   id: string;
   profileId: string;
@@ -174,6 +181,22 @@ export function evaluateLaunch(input: {
   return {allowed: reasons.length === 0, reasons};
 }
 export interface EcdysApi {
+  researchWorkspace(): Promise<ResearchWorkspace>;
+  saveResearchWorkspace(input: {
+    revision: number;
+    draft: ResearchDraft;
+  }): Promise<ResearchWorkspace>;
+  browserSupport(): Promise<BrowserSupport>;
+  browserSession(): Promise<TemporaryBrowserSession | null>;
+  startTemporaryBrowser(input: {
+    profileId: string;
+    revision: number;
+    acceptTemporary: true;
+  }): Promise<TemporaryBrowserSession>;
+  navigateBrowser(sessionId: string, url: string): Promise<void>;
+  inputBrowser(sessionId: string, input: BrowserInput): Promise<void>;
+  stopBrowser(sessionId: string): Promise<void>;
+  onBrowserEvent(listener: (event: BrowserEvent) => void): () => void;
   onVaultLocked(listener: () => void): () => void;
   status(): Promise<VaultStatus>;
   createVault(input: z.input<typeof VaultSetupSchema>): Promise<VaultStatus>;
@@ -246,3 +269,86 @@ export interface SafeError {
   message: string;
 }
 export type IpcResult<T> = {ok: true; data: T} | {ok: false; error: SafeError};
+
+export const BrowserUrlSchema = z
+  .string()
+  .max(4096)
+  .transform((value, ctx) => {
+    if (value === 'about:blank') return value;
+    try {
+      const url = new URL(value);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
+        throw new Error();
+      return url.href;
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Use an HTTP or HTTPS address without embedded credentials.',
+      });
+      return z.NEVER;
+    }
+  });
+const coordinateX = z.number().min(0).max(1200),
+  coordinateY = z.number().min(0).max(720);
+export const BrowserInputSchema = z.discriminatedUnion('type', [
+  z.object({type: z.literal('text'), text: z.string().min(1).max(4096)}).strict(),
+  z
+    .object({
+      type: z.literal('key'),
+      key: z.enum([
+        'Enter',
+        'Backspace',
+        'Tab',
+        'Escape',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+        'Delete',
+        'Home',
+        'End',
+      ]),
+      shift: z.boolean().default(false),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('pointer'),
+      action: z.enum(['down', 'up']),
+      button: z.enum(['left', 'right']),
+      x: coordinateX,
+      y: coordinateY,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('wheel'),
+      x: coordinateX,
+      y: coordinateY,
+      deltaX: z.number().min(-2000).max(2000),
+      deltaY: z.number().min(-2000).max(2000),
+    })
+    .strict(),
+]);
+export type BrowserInput = z.input<typeof BrowserInputSchema>;
+export interface BrowserSupport {
+  available: boolean;
+  reasons: string[];
+  platform: string;
+  mode: 'temporary_linux';
+}
+export interface TemporaryBrowserSession {
+  id: string;
+  profileId: string;
+  profileName: string;
+  startedAt: number;
+  url: string;
+  version: string;
+  mode: 'temporary';
+  width: 1200;
+  height: 720;
+  status: 'launching' | 'active' | 'stopped' | 'crashed';
+}
+export type BrowserEvent =
+  | {type: 'session'; session: TemporaryBrowserSession | null}
+  | {type: 'frame'; sessionId: string; data: string};

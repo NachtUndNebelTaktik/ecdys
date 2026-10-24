@@ -1,6 +1,7 @@
 import {Modal} from './Modal';
 import {RoutesWorkspace} from './RoutesWorkspace';
 import {BrowserWorkspace} from './BrowserWorkspace';
+import {OsintWorkspace} from './OsintWorkspace';
 import {AppearanceControls, AppearancePreview} from './BrowserAppearance';
 import {
   accentColors,
@@ -27,12 +28,15 @@ import {
   type ProfileDraft,
   type Snapshot,
   type VaultStatus,
+  type TemporaryBrowserSession,
 } from '@ecdys/shared';
 
 const integrations = [
   {
     name: 'Native route enforcement',
-    detail: 'Required before any browsing session can launch.',
+    state: 'PARTIAL',
+    detail:
+      'Linux temporary browsing uses a private network namespace and a saved-proxy broker. Persistent and cross-platform sessions remain pending.',
     category: 'NETWORK',
   },
   {
@@ -44,7 +48,9 @@ const integrations = [
   },
   {
     name: 'Managed Chromium',
-    detail: 'Browser provisioning, fingerprint controls and WebRTC validation are pending.',
+    state: 'PARTIAL',
+    detail:
+      'Temporary Linux sessions use system Chromium 154 with private control pipes. Browser provisioning, fingerprint controls and full WebRTC validation remain pending.',
     category: 'BROWSER',
   },
   {
@@ -74,7 +80,7 @@ const integrations = [
     category: 'MAINTENANCE',
   },
 ];
-type View = 'Profiles' | 'Browser' | 'Routes' | 'Snapshots' | 'Diagnostics' | 'Settings';
+type View = 'Profiles' | 'Browser' | 'OSINT' | 'Routes' | 'Snapshots' | 'Diagnostics' | 'Settings';
 function Mark() {
   return (
     <span class="brand-mark" aria-hidden="true">
@@ -157,6 +163,7 @@ export default function App() {
   });
   const [status, setStatus] = createSignal<VaultStatus>();
   const [profiles, setProfiles] = createSignal<Profile[]>([]);
+  const [browserSession, setBrowserSession] = createSignal<TemporaryBrowserSession | null>(null);
   const [view, setView] = createSignal<View>('Profiles');
   const [search, setSearch] = createSignal('');
   const [filter, setFilter] = createSignal('all');
@@ -174,6 +181,7 @@ export default function App() {
   const [branch, setBranch] = createSignal<Profile>();
   const [branchName, setBranchName] = createSignal('');
   let searchInput!: HTMLInputElement;
+  let flushResearch: (() => Promise<void>) | undefined;
   const selected = createMemo(() => profiles().find((profile) => profile.id === selectedId()));
   const filtered = createMemo(() =>
     orderProfiles(profiles(), appearance().profileOrder).filter((profile) => {
@@ -202,10 +210,13 @@ export default function App() {
   }
   async function refresh() {
     setProfiles(await api!.listProfiles());
+    setBrowserSession(await api!.browserSession());
     setStatus(await api!.status());
   }
   async function lock() {
+    await flushResearch?.();
     await api!.lock();
+    setBrowserSession(null);
     setProfiles([]);
     setSnapshots([]);
     setSelectedId();
@@ -241,7 +252,13 @@ export default function App() {
         if (current.unlocked) await refresh();
       });
     if (api) {
+      onCleanup(
+        api.onBrowserEvent((event) => {
+          if (event.type === 'session') setBrowserSession(event.session);
+        }),
+      );
       const unsubscribe = api.onVaultLocked(() => {
+        setBrowserSession(null);
         setProfiles([]);
         setSnapshots([]);
         setSelectedId();
@@ -336,7 +353,11 @@ export default function App() {
               </div>
               <Stamp>WORKSPACE</Stamp>
               <nav aria-label="Workspace navigation">
-                <For each={['Profiles', 'Browser', 'Routes', 'Snapshots', 'Diagnostics'] as View[]}>
+                <For
+                  each={
+                    ['Profiles', 'Browser', 'OSINT', 'Routes', 'Snapshots', 'Diagnostics'] as View[]
+                  }
+                >
                   {(item) => (
                     <button
                       class={view() === item ? 'nav-item active' : 'nav-item'}
@@ -350,6 +371,7 @@ export default function App() {
                           {
                             Profiles: '▦',
                             Browser: '▱',
+                            OSINT: '⌘',
                             Routes: '⇄',
                             Snapshots: '◷',
                             Diagnostics: '⌁',
@@ -427,7 +449,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.3.4</span>
+                  FOUNDATION BUILD <span>v0.4.0</span>
                 </div>
               </div>
             </aside>
@@ -452,26 +474,30 @@ export default function App() {
                       ? 'Profile workspace'
                       : view() === 'Browser'
                         ? 'Browser workspace'
-                        : view() === 'Routes'
-                          ? 'Network routes'
-                          : view() === 'Snapshots'
-                            ? 'Configuration history'
-                            : view() === 'Diagnostics'
-                              ? 'System diagnostics'
-                              : 'Workspace settings'}
+                        : view() === 'OSINT'
+                          ? 'Research workspace'
+                          : view() === 'Routes'
+                            ? 'Network routes'
+                            : view() === 'Snapshots'
+                              ? 'Configuration history'
+                              : view() === 'Diagnostics'
+                                ? 'System diagnostics'
+                                : 'Workspace settings'}
                   </h1>
                   <p>
                     {view() === 'Profiles'
                       ? 'Persistent identities. Deliberate configuration. Recoverable changes.'
                       : view() === 'Browser'
                         ? 'A calmer surface for your work. Shape it around the way you operate.'
-                        : view() === 'Routes'
-                          ? 'First-class VPN and proxy configuration, including authenticated SOCKS5.'
-                          : view() === 'Snapshots'
-                            ? 'Inspect and restore committed configuration checkpoints.'
-                            : view() === 'Diagnostics'
-                              ? 'Implementation status and the boundaries of this foundation build.'
-                              : 'Local ownership, encryption parameters and workspace identity.'}
+                        : view() === 'OSINT'
+                          ? 'Follow the leads. Connect the evidence. Keep your tools within reach.'
+                          : view() === 'Routes'
+                            ? 'First-class VPN and proxy configuration, including authenticated SOCKS5.'
+                            : view() === 'Snapshots'
+                              ? 'Inspect and restore committed configuration checkpoints.'
+                              : view() === 'Diagnostics'
+                                ? 'Implementation status and the boundaries of this foundation build.'
+                                : 'Local ownership, encryption parameters and workspace identity.'}
                   </p>
                 </div>
                 <Show when={view() === 'Profiles' || view() === 'Routes'}>
@@ -505,8 +531,9 @@ export default function App() {
                 <div>
                   <strong>Configuration foundation</strong>
                   <span>
-                    Local profiles and encrypted checkpoints are available. Browsing remains blocked
-                    until native routing and protected browser storage are implemented.
+                    Profiles and configuration checkpoints are encrypted. Temporary browsing is
+                    available on supported Linux systems; persistent browser sessions remain in
+                    development.
                   </span>
                 </div>
                 <button onClick={() => setView('Diagnostics')}>View status ↗</button>
@@ -518,7 +545,13 @@ export default function App() {
                     value={String(profiles().length).padStart(2, '0')}
                     detail={'/ ' + status()!.profileLimit + ' local allowance'}
                   />
-                  <Metric title="ACTIVE SESSIONS" value="00" detail="Browser integration pending" />
+                  <Metric
+                    title="ACTIVE SESSIONS"
+                    value={browserSession()?.status === 'active' ? '01' : '00'}
+                    detail={
+                      browserSession() ? 'Temporary · memory only' : 'No browser session running'
+                    }
+                  />
                   <Metric
                     title="CONFIG CHECKPOINTS"
                     value={String(profiles().reduce((n, p) => n + p.snapshotCount, 0)).padStart(
@@ -761,6 +794,8 @@ export default function App() {
               </Show>
               <div hidden={view() !== 'Browser'}>
                 <BrowserWorkspace
+                  api={api!}
+                  refresh={refresh}
                   active={view() === 'Browser'}
                   preferences={appearance()}
                   update={updateAppearance}
@@ -771,6 +806,17 @@ export default function App() {
                   selectProfile={setSelectedId}
                   open={setView}
                   createProfile={() => setEditor('new')}
+                />
+              </div>
+              <div hidden={view() !== 'OSINT'}>
+                <OsintWorkspace
+                  api={api!}
+                  active={view() === 'OSINT'}
+                  session={browserSession()}
+                  openBrowser={() => setView('Browser')}
+                  registerFlush={(flush) => {
+                    flushResearch = flush;
+                  }}
                 />
               </div>
               <Show when={view() === 'Snapshots'}>
@@ -1000,7 +1046,7 @@ export default function App() {
               </Show>
               <footer class="page-footer">
                 <span>ecdys / LOCAL-FIRST WORKSTATION</span>
-                <span>FOUNDATION · CONFIGURATION OPERATIONS ONLY</span>
+                <span>FOUNDATION · DEVELOPMENT BUILD</span>
               </footer>
             </main>
           </div>
@@ -1174,7 +1220,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.3.4 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.4.0 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">

@@ -5,6 +5,7 @@ import {mkdirSync} from 'node:fs';
 import {WorkspaceService} from './workspace';
 import {dispatch, isTrustedFrame, safeError} from './ipc';
 import {shouldLockVault} from './idle';
+import {TemporaryBrowserRuntime} from './browser-runtime';
 
 protocol.registerSchemesAsPrivileged([
   {scheme: 'ecdys', privileges: {standard: true, secure: true, supportFetchAPI: true}},
@@ -19,6 +20,7 @@ app.setPath('userData', userDataDirectory);
 if (!app.requestSingleInstanceLock()) app.quit();
 let window: BrowserWindow | null = null;
 let service: WorkspaceService;
+let browserRuntime: TemporaryBrowserRuntime;
 let quitting = false;
 
 function createWindow() {
@@ -44,6 +46,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  browserRuntime = new TemporaryBrowserRuntime((event) => {
+    if (window && !window.isDestroyed()) window.webContents.send('ecdys:browser-event', event);
+  });
   service = new WorkspaceService({
     directory: process.env.ECDYS_DATA_DIR || join(app.getPath('userData'), 'workspace'),
   });
@@ -90,7 +95,7 @@ app.whenReady().then(() => {
       };
     }
     try {
-      return {ok: true, data: await dispatch(service, input)};
+      return {ok: true, data: await dispatch(service, input, browserRuntime)};
     } catch (error) {
       return {ok: false, error: safeError(error)};
     }
@@ -101,6 +106,7 @@ app.whenReady().then(() => {
       .status()
       .then(async (status) => {
         if (shouldLockVault(status.unlocked, powerMonitor.getSystemIdleTime())) {
+          await browserRuntime.stop();
           await service.lock();
           if (window && !window.isDestroyed()) window.webContents.send('ecdys:vault-locked');
         }
@@ -125,6 +131,9 @@ app.on('before-quit', (event) => {
   if (!quitting && service) {
     event.preventDefault();
     quitting = true;
-    void service.lock().finally(() => app.quit());
+    void browserRuntime
+      .stop()
+      .then(() => service.lock())
+      .finally(() => app.quit());
   }
 });

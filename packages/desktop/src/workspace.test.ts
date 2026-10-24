@@ -51,6 +51,48 @@ afterEach(async () => {
 });
 
 describe('encrypted workspace lifecycle', () => {
+  it('leases a checkpointed proxy profile without exposing its credential and revokes on lock', async () => {
+    const {service} = await fixture();
+    const profile = await service.createProfile({
+      name: 'Temporary research',
+      route: {
+        kind: 'socks5',
+        host: 'proxy.test',
+        port: 1080,
+        username: 'operator',
+        password: 'runtime-secret',
+      },
+    });
+    const context = await service.prepareTemporaryBrowser(profile.id, profile.revision);
+    expect(context.route.password).toBe('runtime-secret');
+    expect(JSON.stringify(await service.listProfiles())).not.toContain('runtime-secret');
+    expect((await service.listSnapshots(profile.id))[0]?.trigger).toBe('auto_pre_launch');
+    await expect(
+      service.updateProfile(profile.id, profile.revision, {name: 'Changed'}),
+    ).rejects.toMatchObject({code: 'BROWSER_ACTIVE'});
+    await expect(service.deleteProfile(profile.id, profile.revision)).rejects.toMatchObject({
+      code: 'BROWSER_ACTIVE',
+    });
+    await service.lock();
+    expect(context.signal.aborted).toBe(true);
+    await context.release();
+    delete context.route.password;
+  });
+  it('requires a proxy and preserves protected execution from temporary launches', async () => {
+    const {service} = await fixture();
+    const unrouted = await service.createProfile({name: 'No route'});
+    await expect(
+      service.prepareTemporaryBrowser(unrouted.id, unrouted.revision),
+    ).rejects.toMatchObject({code: 'PROXY_REQUIRED'});
+    const protectedProfile = await service.createProfile({
+      name: 'Trading',
+      policy: 'protected_execution',
+      route: {kind: 'socks5', host: 'proxy.test', port: 1080},
+    });
+    await expect(
+      service.prepareTemporaryBrowser(protectedProfile.id, protectedProfile.revision),
+    ).rejects.toMatchObject({code: 'POLICY_UNAVAILABLE'});
+  });
   it.each(['missing', 'empty'])(
     'does not replace a %s database during unlock',
     async (condition) => {
@@ -449,7 +491,7 @@ describe('encrypted proxy library and route operations', () => {
       db.pragma('legacy=4');
       db.key(key);
       db.exec(
-        'DROP TABLE IF EXISTS proxy_endpoints; DROP TABLE IF EXISTS proxy_pools; PRAGMA user_version=1;',
+        'DROP TABLE IF EXISTS research_workspace; DROP TABLE IF EXISTS proxy_endpoints; DROP TABLE IF EXISTS proxy_pools; PRAGMA user_version=1;',
       );
     } finally {
       db.close();

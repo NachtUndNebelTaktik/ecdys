@@ -11,6 +11,19 @@ async function call<T>(method: keyof EcdysApi, ...args: unknown[]): Promise<T> {
   return response.data;
 }
 const api: EcdysApi = {
+  researchWorkspace: () => call('researchWorkspace'),
+  saveResearchWorkspace: (input) => call('saveResearchWorkspace', input),
+  browserSupport: () => call('browserSupport'),
+  browserSession: () => call('browserSession'),
+  startTemporaryBrowser: (input) => call('startTemporaryBrowser', input),
+  navigateBrowser: (id, url) => call('navigateBrowser', id, url),
+  inputBrowser: (id, input) => call('inputBrowser', id, input),
+  stopBrowser: (id) => call('stopBrowser', id),
+  onBrowserEvent: (listener) => {
+    const handler = (_event: unknown, value: Parameters<typeof listener>[0]) => listener(value);
+    ipcRenderer.on('ecdys:browser-event', handler);
+    return () => ipcRenderer.removeListener('ecdys:browser-event', handler);
+  },
   onVaultLocked: (listener) => {
     const handler = () => listener();
     ipcRenderer.on('ecdys:vault-locked', handler);

@@ -190,6 +190,104 @@
 .browser-workspace-main {
   min-width: 0;
 }
+.temporary-launchbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--browser-border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--browser-text);
+}
+.temporary-launchbar > div {
+  flex: 1 1 190px;
+}
+.temporary-launchbar strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.temporary-launchbar p {
+  font-size: 9px;
+  color: var(--browser-muted);
+  margin-top: 5px;
+}
+.temporary-launchbar label {
+  flex: 1 1 150px;
+  max-width: 220px;
+  font-size: 9px;
+  margin: 0;
+  color: var(--browser-muted);
+}
+.temporary-launchbar select {
+  font-size: 10px;
+  padding: 8px;
+}
+.temporary-launchbar .button {
+  font-size: 10px;
+}
+.temporary-unavailable {
+  flex: 1 1 200px;
+}
+.temporary-session-heading {
+  padding: 12px 16px;
+  gap: 10px;
+}
+.temporary-session-heading strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.temporary-session-heading .browser-local-badge {
+  margin-left: auto;
+  padding: 0;
+}
+.temporary-session-heading .text-button {
+  font-size: 10px;
+}
+.temporary-live-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.temporary-viewport {
+  position: relative;
+  aspect-ratio: 5 / 3;
+  background: #fff;
+  overflow: hidden;
+  outline-offset: -2px;
+}
+.temporary-viewport:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.temporary-viewport img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+.temporary-frame-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--browser-page);
+  color: var(--browser-muted);
+  font-size: 12px;
+}
+.temporary-session-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  font-size: 9px;
+  color: var(--browser-muted);
+  border-top: 1px solid var(--browser-border);
+}
 .browser-section-caption {
   display: flex;
   justify-content: space-between;

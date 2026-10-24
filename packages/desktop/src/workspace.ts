@@ -20,11 +20,15 @@ import {
   ProfileDraftSchema,
   VaultSetupSchema,
   ProxyChangeSchema,
+  initialResearch,
+  type ResearchDraft,
+  type ResearchWorkspace,
   type ProxyChange,
   type ProxyChangeResult,
   type ProxyPool,
   type ProxyDiagnostic,
   type ProxyImportPreview,
+  type ProxyRouteDraft,
   type Profile,
   type ProfileDraft,
   type PublicRoute,
@@ -37,6 +41,7 @@ import {WorkspaceError} from './errors';
 import {ProxyLibrary, routeIdentity} from './proxy-library';
 import {previewProxyImport} from './route-import';
 import {probeProxy} from './proxy-probe';
+import {ResearchLibrary} from './research';
 export {WorkspaceError} from './errors';
 interface VaultHeader {
   format: 1;
@@ -88,6 +93,7 @@ export class WorkspaceService {
   private warnings = new Set<string>();
   private diagnosticEpoch = 0;
   private diagnostics = new Set<AbortController>();
+  private browserLease?: {profileId: string; controller: AbortController};
   private readonly directory: string;
   private readonly limit: number;
   private readonly deriveKey: NonNullable<Options['deriveKey']>;
@@ -220,7 +226,10 @@ export class WorkspaceService {
         if (database && database !== this.db) database.close();
         this.closeData();
         master?.fill(0);
-        if (error instanceof WorkspaceError && error.code === 'VAULT_RECOVERY_REQUIRED')
+        if (
+          error instanceof WorkspaceError &&
+          ['VAULT_RECOVERY_REQUIRED', 'RESEARCH_RECOVERY_REQUIRED'].includes(error.code)
+        )
           throw error;
         throw new WorkspaceError(
           'UNLOCK_FAILED',
@@ -235,6 +244,8 @@ export class WorkspaceService {
     return this.serial(() => this.closeData());
   }
   private closeData() {
+    this.browserLease?.controller.abort();
+    this.browserLease = undefined;
     this.diagnosticEpoch++;
     for (const controller of this.diagnostics) controller.abort();
     this.diagnostics.clear();
@@ -293,7 +304,7 @@ export class WorkspaceService {
           )
           .all();
         if (
-          ![1, 2].includes(Number(version)) ||
+          ![1, 2, 3].includes(Number(version)) ||
           tables.length !== 3 ||
           db.pragma('quick_check', {simple: true}) !== 'ok'
         ) {
@@ -303,7 +314,7 @@ export class WorkspaceService {
           );
         }
         if (
-          version === 2 &&
+          Number(version) >= 2 &&
           db
             .prepare(
               "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('proxy_pools','proxy_endpoints')",
@@ -313,6 +324,18 @@ export class WorkspaceService {
           throw new WorkspaceError(
             'VAULT_RECOVERY_REQUIRED',
             'The proxy library schema is incomplete. Restore your backup.',
+          );
+        if (
+          version === 3 &&
+          !db
+            .prepare(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name='research_workspace'",
+            )
+            .get()
+        )
+          throw new WorkspaceError(
+            'VAULT_RECOVERY_REQUIRED',
+            'The research schema is incomplete. Restore your backup; its contents were preserved.',
           );
       }
       if (db.pragma('user_version', {simple: true}) === 1)
@@ -324,6 +347,18 @@ export class WorkspaceService {
         PRAGMA user_version = 2;
       `),
         )();
+      if (db.pragma('user_version', {simple: true}) === 2)
+        db.transaction(() => {
+          db.exec(
+            `CREATE TABLE research_workspace (id INTEGER PRIMARY KEY CHECK(id = 1), document TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision > 0), updated_at INTEGER NOT NULL);`,
+          );
+          db.prepare('INSERT INTO research_workspace VALUES (1, ?, 1, ?)').run(
+            JSON.stringify(initialResearch()),
+            Date.now(),
+          );
+          db.pragma('user_version = 3');
+        })();
+      new ResearchLibrary(db).read();
       chmodSync(join(this.directory, 'workspace.sqlite'), 0o600);
       return db;
     } catch (error) {
@@ -448,6 +483,11 @@ export class WorkspaceService {
       );
   }
   private checkRevision(row: ProfileRow, revision: number) {
+    if (this.browserLease?.profileId === row.id)
+      throw new WorkspaceError(
+        'BROWSER_ACTIVE',
+        'Close the temporary browser before changing its profile or route.',
+      );
     if (row.revision !== revision)
       throw new WorkspaceError(
         'REVISION_CONFLICT',
@@ -590,6 +630,15 @@ export class WorkspaceService {
     }
     return removed;
   }
+  researchWorkspace(): Promise<ResearchWorkspace> {
+    return this.serial(() => new ResearchLibrary(this.database()).read());
+  }
+  saveResearchWorkspace(input: {
+    revision: number;
+    draft: ResearchDraft;
+  }): Promise<ResearchWorkspace> {
+    return this.serial(() => new ResearchLibrary(this.database()).save(input));
+  }
   listProfiles(): Promise<Profile[]> {
     return this.serial(() =>
       (
@@ -642,6 +691,60 @@ export class WorkspaceService {
       delete context.route.password;
       this.diagnostics.delete(context.controller);
     }
+  }
+  prepareTemporaryBrowser(id: string, revision: number) {
+    return this.serial(() => {
+      const row = this.row(id);
+      this.checkRevision(row, revision);
+      if (this.browserLease)
+        throw new WorkspaceError('BROWSER_ACTIVE', 'Close the current temporary browser first.');
+      const config = JSON.parse(row.config) as Config;
+      if (!config.route || config.route.kind === 'vpn')
+        throw new WorkspaceError(
+          'PROXY_REQUIRED',
+          'Select an authenticated SOCKS5 or HTTP CONNECT route for this browser.',
+        );
+      if (config.policy !== 'standard')
+        throw new WorkspaceError(
+          'POLICY_UNAVAILABLE',
+          'Protected execution needs persistent browser recovery. Use a Standard profile for temporary browsing.',
+        );
+      const {secretRef, hasPassword, ...publicRoute} = config.route;
+      const route: ProxyRouteDraft = {...publicRoute};
+      if (hasPassword) {
+        if (!secretRef)
+          throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
+        const secret = this.database()
+          .prepare('SELECT envelope FROM secrets WHERE id = ? AND profile_id = ?')
+          .get(secretRef, id) as {envelope: string} | undefined;
+        if (!secret)
+          throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
+        const key = subkey(this.master!, 'ecdys:secrets:1');
+        try {
+          const plaintext = unseal(JSON.parse(secret.envelope), key, secretRef);
+          try {
+            route.password = plaintext.toString();
+          } finally {
+            plaintext.fill(0);
+          }
+        } finally {
+          key.fill(0);
+        }
+      }
+      this.transaction(() => this.capture(row, 'auto_pre_launch'));
+      this.prune(id);
+      const lease = {profileId: id, controller: new AbortController()};
+      this.browserLease = lease;
+      return {
+        profile: this.profile(this.row(id)),
+        route,
+        signal: lease.controller.signal,
+        release: () =>
+          this.serial(() => {
+            if (this.browserLease === lease) this.browserLease = undefined;
+          }),
+      };
+    });
   }
   changeProxyRoutes(input: ProxyChange): Promise<ProxyChangeResult[]> {
     return this.serial(() => {
