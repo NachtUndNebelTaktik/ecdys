@@ -161,11 +161,11 @@
 .browser-workspace-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 22px;
+  gap: 16px;
   align-items: start;
 }
 .browser-workspace-layout.with-customizer {
-  grid-template-columns: minmax(0, 1fr) 264px;
+  grid-template-columns: minmax(0, 1fr) 228px;
 }
 .browser-workspace-main {
   min-width: 0;
@@ -733,7 +733,7 @@
   border: 1px solid var(--border);
   background: var(--panel);
   border-radius: 14px;
-  padding: 22px 19px 18px;
+  padding: 18px 15px;
   min-width: 0;
   position: sticky;
   top: 20px;
@@ -1189,9 +1189,6 @@
   background-color: #171b14;
 }
 @media (max-width: 1250px) {
-  .browser-workspace-layout.with-customizer {
-    grid-template-columns: minmax(0, 1fr) 238px;
-  }
   .interface-settings {
     grid-template-columns: 220px minmax(0, 1fr);
     gap: 24px;

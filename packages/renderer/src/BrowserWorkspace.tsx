@@ -28,7 +28,7 @@ export function BrowserWorkspace(props: {
   ]);
   const [activeId, setActiveId] = createSignal(1);
   const [message, setMessage] = createSignal('');
-  const [customizing, setCustomizing] = createSignal(true);
+  const [customizing, setCustomizing] = createSignal(false);
   const active = createMemo(() => tabs().find(({id}) => id === activeId())!);
   const sorted = createMemo(() => orderProfiles(props.profiles, props.preferences.profileOrder));
   const visible = createMemo(() =>

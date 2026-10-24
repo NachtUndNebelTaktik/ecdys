@@ -42,6 +42,16 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await browserNav.click();
     await page.setViewportSize({width: 1440, height: 1100});
     const surface = page.getByRole('region', {name: 'Browser surface', exact: true});
+    const customize = page.getByRole('button', {name: 'Customize appearance', exact: false});
+    const customizer = page.getByRole('complementary', {name: 'Customize browser appearance'});
+    const workspace = page.locator('.browser-workspace-layout');
+    await expect(customize).toHaveAttribute('aria-expanded', 'false');
+    await expect(customizer).not.toBeVisible();
+    const fullWidth = (await surface.boundingBox())!.width;
+    expect(fullWidth).toBeCloseTo((await workspace.boundingBox())!.width, 0);
+    await customize.click();
+    await expect(customizer).toBeVisible();
+    expect((await surface.boundingBox())!.width).toBeLessThan(fullWidth - 200);
     await expect(surface).toHaveCSS('border-top-left-radius', '24px');
     await expect(surface.getByRole('navigation', {name: 'Browser bookmarks'})).toBeVisible();
     await expect(
@@ -143,12 +153,19 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await expect(surface).toHaveCSS('border-top-left-radius', '32px');
     await expect(surface).toHaveCSS('background-color', 'rgb(23, 23, 19)');
     await expect(page.locator('.night-filter')).toBeVisible();
+    await customize.click();
     await page.getByRole('button', {name: 'Reset appearance', exact: true}).click();
     await expect(surface).toHaveCSS('border-top-left-radius', '24px');
     await expect(surface).toHaveCSS('font-size', '14px');
     await expect(page.locator('.night-filter')).not.toBeVisible();
     await expect(surface.getByRole('navigation', {name: 'Browser bookmarks'})).toBeVisible();
     await page.setViewportSize({width: 1440, height: 1250});
+    await page.getByRole('button', {name: 'Hide appearance', exact: false}).click();
+    await expect(customizer).not.toBeVisible();
+    expect((await surface.boundingBox())!.width).toBeCloseTo(
+      (await workspace.boundingBox())!.width,
+      0,
+    );
     await page
       .getByRole('heading', {name: 'Browser workspace', exact: true})
       .scrollIntoViewIfNeeded();
@@ -157,6 +174,14 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await expect(surface).toBeVisible();
     expect(
       await surface.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+    ).toBe(true);
+    await customize.click();
+    await expect(customizer).toBeVisible();
+    expect(
+      await surface.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+    ).toBe(true);
+    expect(
+      await customizer.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
     ).toBe(true);
     await page
       .getByRole('heading', {name: 'Browser workspace', exact: true})
@@ -171,9 +196,7 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await expect(surface).toHaveCSS('transition-duration', '0s');
     const beforeHiding = (await surface.boundingBox())!.width;
     await page.getByRole('button', {name: 'Hide appearance', exact: false}).click();
-    await expect(
-      page.getByRole('complementary', {name: 'Customize browser appearance'}),
-    ).not.toBeVisible();
+    await expect(customizer).not.toBeVisible();
     expect((await surface.boundingBox())!.width).toBeGreaterThan(beforeHiding);
     await page.getByRole('button', {name: 'Customize appearance', exact: false}).click();
     await page

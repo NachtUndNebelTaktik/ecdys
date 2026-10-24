@@ -79,8 +79,10 @@ The reviewer found no additional credential-return, pool-deletion dependency, at
 
 Review limits remain explicit: native containment, protected browser storage, live traffic switching, Windows/macOS durability, production provider interoperability and power-loss recovery are not certified by these local protocol and database tests. They remain in the full implementation plan and release gates.
 
-## Browser interface verification (v0.3.0)
+## Browser interface verification (v0.3.2)
 
 The additional desktop scenario exercises the rendered Browser surface and shared Settings controls. It verifies Light/Dark/System/Night colors, live desktop-theme following, Night filter strength, real CSS corner/text/spacing changes, bookmark and sidebar visibility, reduced-motion behavior, independent tab searches, keyboard tab movement and close/final-tab focus, local-address navigation, refusal of website and prototype-property addresses, alphabetical sorting, list/grid layout and persisted preferences after reload. Reset preserves sort/layout, and the profile API returns exactly the same saved configuration afterward.
 
 The author visually inspected desktop screenshots for Dark, Light, Night and the 1050 px minimum layout. No new managed-browser or native routing availability is claimed by these interface changes. Native browsing and existing release gates remain unchanged. The new appearance preferences contain UI choices only, with no profile names, identifiers, URLs, credentials or browsing history.
+
+The browser now opens at the full available workspace width. Appearance controls open on demand in a slimmer side panel. Electron checks verify that the default surface fills its workspace, opening and closing the panel changes its width, and the browser and controls fit at the minimum supported width.

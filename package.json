@@ -2,7 +2,7 @@
   "name": "ecdys",
   "private": true,
   "type": "module",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "build": "pnpm --filter @ecdys/renderer build && pnpm --filter @ecdys/desktop build",
