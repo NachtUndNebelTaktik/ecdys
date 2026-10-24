@@ -1,0 +1,9 @@
+{
+  "name": "@ecdys/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"build": "vite build"},
+  "dependencies": {"@ecdys/shared": "workspace:*", "solid-js": "1.9.17"},
+  "devDependencies": {"vite": "8.3.5", "vite-plugin-solid": "^2.11.10"}
+}

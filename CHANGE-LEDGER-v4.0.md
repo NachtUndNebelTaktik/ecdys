@@ -1,0 +1,165 @@
+# ecdys.app — Blueprint v4.0 Change Ledger
+
+**Source:** The complete v3.0 blueprint supplied in this conversation, its 30 numbered requirements and 36 locked design decisions, the approved revision plan, and subsequent owner instructions.
+
+**Rule:** Preserve the workstation and every capability. Correct mechanisms that cannot deliver the intended behavior, expose missing architecture, and distinguish implementation targets from verified facts.
+
+**Owner decisions carried forward:** Full replacement rather than an overriding companion; self-hosted collaboration; permanent offline use for activated one-time licenses; pricing reconciliation deferred; product named ecdys.app; proxies, SOCKS5 switching, and Monero mandatory; teams and offline access are built-in features, not separate product identities.
+
+## 1. Product continuity
+
+| Source intent | v4.0 treatment |
+| --- | --- |
+| Sovereign operator workstation | Executive summary and architecture center locally controlled operational work rather than recasting the application as a generic profile SaaS. |
+| Security, research, crypto/Web3, and trading | Preserved as operating contexts. No custodial wallet, exchange order engine, or offensive toolkit is invented. |
+| Complete feature set | All US-1–US-30 remain. All M0–M22 remain. There is no reduced MVP substituted for v1.0. |
+| Proxies/SOCKS5 | Elevated to explicit first-class routes, authenticated setup/import, pools, individual and bulk switching, diagnostics, and failure tests. This owner instruction overrides v3.0's VPN-only framing. |
+| Monero | Preserved as a release-blocking payment method with subaddresses and self-hosted payment infrastructure; merchant authority moves out of desktops. |
+| Team feature | Preserved with self-hosted service responsibilities made explicit; single-user local operation does not depend on the service. |
+| Offline feature | Preserved, including permanent one-time license operation; no forced commercial phone-home introduced. |
+| Desktop-only | Preserved across macOS/Linux/Windows subject to native release gates; no PWA substitute. |
+| 99 profiles | Preserved; active concurrency, disposable resources, archived state, provider capacity, and entitlements are distinguished. |
+| Local ownership and no telemetry | Converted into documented outbound policy, explicit sharing, local reports, and no application telemetry. Website/provider traffic remains accurately attributed. |
+
+## 2. Technical corrections and preserved capabilities
+
+| ID | v3.0 issue | v4.0 correction | Capability preserved / consequence |
+| --- | --- | --- | --- |
+| C01 | Chromium 120 frozen with occasional manual patches; Electron 28+ treated as sufficient. | Supported pinned engine/driver/Electron release sets, advisory response, explicit maintained-patch obligations. | Stable repeatable environments and controlled updates; cannot claim old binaries become secure merely by downloading them. |
+| C02 | Provider REST calls stand in for actual independent tunnels. | Native route helper, actual tunnel/proxy management, capability adapters, OS enforcement, device/capacity gates. | Dedicated/explicitly shared profile routes remain; feasibility must be demonstrated per OS. |
+| C03 | ipinfo before each request and later CDP pause promise leak prevention. | Native fail-closed rules installed before launch; route-specific probes only as explicit diagnostics. | Route lock remains and gains enforceable acceptance criteria. |
+| C04 | SOCKS5 is described as a fallback and lacks switching/auth/DNS detail. | First-class mandatory SOCKS5 and HTTP CONNECT with upstream-auth gateway, remote resolution, imports/pools, staged route replacement. | Proxies and changing SOCKS5 become core behavior, as instructed by the owner. |
+| C05 | License signing, merchant SDK secrets, and wallet RPC sit in distributed desktop. | Separate operator commerce service and restricted signer. | All payment methods and offline verification remain; no customer receives merchant signing authority. |
+| C06 | CDP port described as WebDriver; page headers carry control tokens. | Actual matched ChromeDriver behind authenticated gateway; tokens on transport only; internal control inaccessible to pages. | Real Python/Node Selenium compatibility and per-session rates remain. |
+| C07 | Python and Node packages execute directly inside browser WebWorker. | Isolated browser JS interpreter/bridge; Python/Node external-client examples remain downloadable. | Playground and both integration languages remain. Executable in-worker language is explicitly corrected. |
+| C08 | SQLCipher/snapshots imply encryption of Chromium working files. | Protected storage adapter and path coverage, UI/full lock distinction, explicit OS-bound secret limits. | Encrypted local operational storage becomes a real implementation obligation. |
+| C09 | Derived snapshot keys are stored as raw hex and tied to timestamp/source ID. | Random object keys, authenticated wrapping, stable original identity metadata, rewrapping on transfer. | Independent encrypted snapshots, branches, passphrase changes, and capsules remain recoverable. |
+| C10 | gzip ratio/speed called security or guaranteed for all data. | Keep gzip 9, stream in bounded workers, measure representative compression separately. | Compression preference remains; deterministic size/speed guarantees are removed. |
+| C11 | JSON cookies/localStorage or raw open DB copying treated as complete session backup. | Declared state inventory, consistent capture/closure, journals, atomic restore and compatibility checks. | Recoverable sessions remain, with honest coverage and tested limitations. |
+| C12 | Non-Chromium presets imply actual Firefox/Safari/Tor behavior. | Retain targets and legacy IDs; expose actual Chromium engine and supported property coverage. | Presets/customization remain without inventing a second browser engine. |
+| C13 | Unique Canvas hash and universal scores imply anonymity; external checks always take ~7 seconds. | Evidence-based observations, local baseline, external consent, unavailable states, bounded deadlines/resource admission. | Four validation suites, strict/warning/disabled, history and counters remain. |
+| C14 | A flag alone supposedly proves WebRTC fully disabled. | Actual build behavior tested across contexts/transports; native patches if needed become maintained code. | Base/paranoid modes remain; unsupported settings cannot claim success. |
+| C15 | Team role tables imply cross-machine collaboration, keys, and sync. | Self-hosted service, devices, explicit grants/E2EE, revisions, leases/fences, conflict branches. | Team invitations, shared work and accountability become implementable; private local work stays local. |
+| C16 | Permanent offline license also immediately revocable/transferrable everywhere. | Preserve permanent offline use and disclose disconnected revocation limits. | One-time licensing and one ownership transfer remain, with accepted enforcement tradeoff. |
+| C17 | Issuing a new license can reset transfer eligibility. | Stable license family with transfer limit spanning successors. | One-time transfer policy is preserved through the full ownership lineage. |
+| C18 | Static XMR address plus any old transfer above amount activates purchase. | One open invoice, exact output allocation, replay protection, quote/partial/late-payment reconciliation. | Account subaddresses and confirmed XMR settlement remain without duplicate activation. |
+| C19 | Public manifest leaks profile identity; signature verified before decrypting its signed plaintext; HMAC key unclear. | Encrypted manifest/signature/content hashes, integrity/decryption then signer trust and bounded extraction. | Tamper-evident encrypted capsules remain; metadata privacy is restored. |
+| C20 | chmod 000 / deny Everyone applied before browser writes; Windows allow does not undo deny. | Brokered writable staging, per-child quarantine, tested permissions, explicit copy/release. | Quarantined downloads and copy-based promotion remain; permission rules cannot be a cosmetic badge. |
+| C21 | Disposables bypass physical session/resource limits. | Exempt only from saved-profile slots until promotion; account for real processes/resources. | Disposable convenience remains without unlimited resource exhaustion. |
+| C22 | Idle suspension and maintenance can interrupt capital-sensitive execution. | Protected execution policy defers automatic disruption and explicit-input replication; route failure still blocks. | Trading continuity becomes testable while all original maintenance controls remain. |
+| C23 | Main Chromium PID stands in for total RAM and process ownership. | Process-tree metrics/handles, launch reservations, safe owned-tree cleanup; termination-backed suspension releases memory. | Resource governor/auto-suspend/graphs remain with reliable accounting. |
+| C24 | Domain overlap proves shared cookies; capped graph may omit findings. | Label overlap accurately; keep complete graph and aggregate only rendering; preview deletion actions. | Connection map and all five original edge types remain; proxy sharing is included. |
+| C25 | Generic logs, raw webhook payloads, command arguments, and CSV create secret/content leakage. | Allowlisted encrypted diagnostic records, safe exports, redaction/consent, commercial/operational log separation. | Flight recorder and audit/support exports remain. |
+| C26 | LocalStorage persists sensitive workspace associations; duplicate state libraries assumed necessary. | Encrypted workspace layout, minimal UI prefs, Solid state default, extra stores only for justified needs. | Maps/layout persistence remain without unnecessary dependencies or plaintext identity names. |
+| C27 | Live foreign sites might be embedded into privileged Electron panes. | Separate managed Chromium with private frame/input bridge and scoped lab commands. | Live comparison, sync scrolling/actions, pixel/structural diffs remain behind feasibility/performance evidence. |
+| C28 | Observer endpoint enumerates unrelated-origin state and conflates timezone methods. | Origin-scoped measurements, provenance, no permission side effects, separate JS timezone/geolocation. | Inspection and drift tracking remain; fake confidence is excluded. |
+| C29 | Rollback reinstalls old binaries over migrated directories and erases newer work. | Compatible staged checkpoints, preserved newer state, signed release sets, external bootstrapper. | Three-version rollback and failure recovery remain without unsafe in-place downgrade. |
+| C30 | Scheduled/forced updates contradict offline and protected operation. | Quiescent scheduling, explicit OS scheduler choice, signed offline bundles, new-launch restrictions rather than killing active work. | Controlled/security updates and offline access coexist honestly. |
+| C31 | Blanket zero-memory-secret/performance/coverage claims replace evidence. | Bounded memory exposure statements, workload/host benchmarks, scenario gates alongside coverage. | Security/performance work remains substantial and measurable. |
+| C32 | Grace/reactivation/archive timing and commercial figures contradict each other. | Seven days after paid-through, non-destructive archive, later purchase can restore local data; prices deferred into one catalog. | Purchase/cancellation/export features remain; no silent deletion deadline or invented price. |
+| C33 | Identity and permissions conflate random ID, passphrase, and email support. | Separate account identifier, local vault, service/device proof, and object grants. | Random-ID/email setup, support, and team roles remain without treating a public ID as authentication. |
+| C34 | Original counts/trigger enums/milestone placement disagree. | 30 requirement IDs, 23 milestones, complete trigger/state contracts, explicit team workstream and feasibility gates. | Full original scope is traceable to concrete delivery obligations. |
+
+### Independent review corrections
+
+Before delivery, an independent read-only review found six internal consistency issues in the draft. All were corrected without removing a capability:
+
+1. Strict validation now requires pass for every required due observation; unknown/unsupported/unavailable/missing/timeouts do not bypass it.
+2. Route configurations now persist an explicit egress/fallback/DNS policy instead of an ambiguous Boolean alone.
+3. Monero output allocation now references a real PaymentOutput UUID while retaining uniqueness of wallet/transaction/output.
+4. Entitlements can be pending_signature with no JWT; signing completion atomically activates the issued record.
+5. Both Selenium clients serialize and pace control requests, including cleanup, for the free five-per-second allowance.
+6. The gateway inventory now includes page-title and window operations used/promised elsewhere.
+
+## 3. Original 36 decisions
+
+Status **Preserved** means the preference survives; **Clarified** adds necessary engineering detail; **Corrected** changes an unsound mechanism while keeping its purpose. None is silently deleted.
+
+| Original ID | Original locked decision | Status | Replacement and reason |
+| --- | --- | --- | --- |
+| D01 | New Stripe/PayPal merchant accounts | Preserved | Accounts remain release prerequisites owned by the operator; no account was provisioned during this revision. |
+| D02 | CakeWallet/monero-wallet-rpc gateway | Clarified | monero-wallet-rpc is the payment implementation; Cake Wallet interoperability is optional deployment tooling, not a daemon identity. |
+| D03 | Self-hosted Monero node/wallet RPC | Preserved | Operator self-hosts monerod + authenticated private wallet RPC; customer desktops receive invoice status only. |
+| D04 | One XMR subaddress per account | Preserved | Keep indices and address uniqueness; allocate outputs to invoices exactly once. |
+| D05 | Single master Ed25519 license key | Clarified | Stable master trust anchor remains; key ID, restricted signer and emergency successor-key procedure address compromise. Update signing is separate. |
+| D06 | Seven-day read-only grace | Preserved | Count from signed paid-through expiry or connected transfer notice, not from cancellation request. |
+| D07 | Mullvad/IVPN test accounts unavailable | Preserved | Credentials/provider permission remain prerequisites, not assumed working integrations. |
+| D08 | Assume ~60 provider requests/minute until tested | Corrected | Use capability discovery, caching and rate-aware adapters; no historical guessed allowance becomes a contract. |
+| D09 | ipinfo.io / icanhazip.com probes | Clarified | Keep selectable probes with route binding, contact disclosure, and explicit external checks; they are not enforcement. |
+| D10 | Base flag and paranoid --disable-webrtc | Corrected | Preserve modes; test actual browser APIs/transports and maintain patches if required. A possible no-op flag is not proof. |
+| D11 | Detect GnuPG at launch | Preserved | Detect availability/version safely and report selected provider. |
+| D12 | Import key from file or paste | Preserved | Retain both import choices with key identity preview, supported format validation, and no key text logging. |
+| D13 | Quiet OpenPGP.js fallback | Clarified | Automatic fallback for compatible operations, with selected provider visible in settings; unavailable hardware/non-exportable keys require a truthful error/path. |
+| D14 | Encrypt whole capsule tarball | Preserved | Encrypt archive plus manifest/signature so names and inventory remain private. |
+| D15 | Retain 20 recent snapshots, pinned exempt | Preserved | Newest 20 unpinned ordinary snapshots; update recovery holds are also exempt. |
+| D16 | gzip 9 as maximum/security | Clarified | Level 9 remains; security comes from authenticated encryption, compression ratio/speed is measured. |
+| D17 | Per-snapshot Argon2(passphrase+profile+time) | Corrected | Random independent AES keys with authenticated wrapping preserve uniqueness/recovery without raw keys or repeated heavy KDFs. |
+| D18 | Four suites parallel in ~7 seconds | Corrected | Up to four concurrent same-build/route suites, bounded by resources/site behavior; no fixed external timing claim. |
+| D19 | Counter-based every 1/5/10/manual | Preserved | Successful activation counters, baseline validation, then checks before launches 6/11 at interval 5. |
+| D20 | Strict default; warning/off alternatives | Clarified | Required local checks strict by default; external required checks are deliberate and unavailable states stay explicit. |
+| D21 | Pixel and structural lab diffs | Preserved | Both retained with equal capture dimensions, provenance, dynamic exclusions, and accessibility/DOM limitations. |
+| D22 | Sync actions default off | Preserved | Keep explicit enablement warning and profile-scoped input; protect live execution from accidental replication. |
+| D23 | VPN/extensions/folders/ancestry/cookie edges | Preserved | All retained, plus proxy network sharing; domain overlap is labeled accurately. |
+| D24 | JSON connection map export | Preserved | Export complete underlying graph and preview sensitive metadata. |
+| D25 | URL logs explicit opt-in | Preserved | Keep default off, with query/fragment redaction and no script/content dumping. |
+| D26 | 90-day logs; 30/60/90/180 options | Preserved | Bounded encrypted segments with safe retention; logs are not described as immutable forever. |
+| D27 | Self-hosted CDN + GitHub fallback | Preserved | Both distribute independently signed manifests/artifacts; locations do not confer trust. |
+| D28 | Puppeteer download equals browser patching | Corrected | Verified artifact acquisition stays; real security updates/backports require maintained supported releases or an actual patch/build program. |
+| D29 | Keep three previous versions ~900 MB | Clarified | Three compatible release sets retained; measure actual multi-architecture/helper/browser/checkpoint disk requirements. |
+| D30 | 12-character code/QR, single use, seven days | Preserved | CSPRNG, stored hash, atomic redemption, origin verification, rate limits and roles. |
+| D31 | Admin-only all-team CSV audit | Preserved | Keep export with grants, safe cells, service ordering, signatures and explicit offline coverage limits. |
+| D32 | Deny-all quarantine directory | Corrected | Writable broker staging then restricted per-file storage/release; avoid preventing download or ineffective deny/allow reversal. |
+| D33 | Copy-based disposable promotion | Preserved | New admitted profile preserves source for review; discarded state belongs only to that child. |
+| D34 | Bearer in standard Authorization header | Preserved | Apply to WebDriver transport, not target website traffic. |
+| D35 | 10 requests/sec per session | Preserved | Rolling monotonic admission, paid/trial 10 and free 5, no execution of excess requests, Retry-After. |
+| D36 | Client-side WebWorker, no server Node | Corrected | Client-side restricted JS runtime in worker; external Python/Node examples remain. Ordinary worker alone cannot execute those languages or guarantee confinement. |
+
+## 4. Requirement continuity map
+
+| Requirement | v4.0 destination | Retained capability / correction focus |
+| --- | --- | --- |
+| US-1 | Blueprint §5 US-1 | Random ID/email, local vault, XMR address, offline setup, safe recovery/authentication. |
+| US-2 | Blueprint §5 US-2 | All tiers/terms/seats/payment methods; catalog reconciles figures later. |
+| US-3 | Blueprint §5 US-3 | Automatic consistent checkpoints, state inventory, pruning, independent keys. |
+| US-4 | Blueprint §5 US-4 | Timeline, differences, pins, reversible atomic restoration. |
+| US-5 | Blueprint §5 US-5 | Independent branches, merge/discard/promote, recoverable keys. |
+| US-6 | Blueprint §5 US-6 | Mullvad/IVPN, first-class authenticated SOCKS5/HTTP CONNECT, imports and tests. |
+| US-7 | Blueprint §5 US-7 | Native route locking and no silent bypass. |
+| US-8 | Blueprint §5 US-8 | Scheduled/manual route/proxy rotation and SOCKS5 changing. |
+| US-9 | Blueprint §5 US-9 | Tested base/paranoid WebRTC modes. |
+| US-10 | Blueprint §5 US-10 | Health sections, actionable diagnostics, local safe export. |
+| US-11 | Blueprint §5 US-11 | Flight recorder, privacy filtering, rotation/retention, CSV. |
+| US-12 | Blueprint §5 US-12 | Folders, tags, combinations, saved filters, counts. |
+| US-13 | Blueprint §5 US-13 | Spatial workspace, command palette, layout persistence/export. |
+| US-14 | Blueprint §5 US-14 | Bulk queues, cancellation, per-profile rollback/partial success. |
+| US-15 | Blueprint §5 US-15 | Resources, budgets, launch queue, graphs, actual-memory suspension. |
+| US-16 | Blueprint §5 US-16 | All preset intents, overrides/import, supported-property reporting. |
+| US-17 | Blueprint §5 US-17 | Four suites, strict/warning/disabled, auto-check counters, history. |
+| US-18 | Blueprint §5 US-18 | Two-to-five lab, synchronized actions/scroll, both diff engines, saved tests. |
+| US-19 | Blueprint §5 US-19 | Encrypted signed capsules, import/conflicts, key portability and safe parsing. |
+| US-20 | Blueprint §5 US-20 | Complete shared-resource graph, filters/actions, JSON export. |
+| US-21 | Blueprint §5 US-21 | Self-hosted inspection, comparison, provenance, drift/export. |
+| US-22 | Blueprint §5 US-22 | Recipe library/versioning/import/export and controlled profile updates. |
+| US-23 | Blueprint §5 US-23 | Disposable children, quarantine, copy promotion, expiry and owned cleanup. |
+| US-24 | Blueprint §5 US-24 | Built-in self-hosted team invites, code/QR, roles and single-use expiry. |
+| US-25 | Blueprint §5 US-25 | Admin team audit, filters, CSV, retention and qualified coverage. |
+| US-26 | Blueprint §5 US-26 | Allowances, reminders, renewal/cancellation, seven-day grace and data retention. |
+| US-27 | Blueprint §5 US-27 | One-time transfer, authenticated support, family-wide limit and offline tradeoff. |
+| US-28 | Blueprint §5 US-28 | Signed controlled updates, offline installation, compatibility and recovery rollback. |
+| US-29 | Blueprint §5 US-29 | Real authenticated Selenium, examples, error/rate behavior, integration check. |
+| US-30 | Blueprint §5 US-30 | Free/trial playground, safe executable JS, external Python/Node, portable data. |
+
+## 5. Assumptions and unresolved prerequisites
+
+These are recorded dependencies, not claims that the owner agreed to details not discussed:
+
+- Supported Electron/browser/driver/native binding versions are pinned after implementation-time compatibility verification; no current release number was invented.
+- Native routing, protected-storage and lab bridges must pass early platform feasibility tests. Their existence as a requirement is not proof of working code.
+- Four-GiB master KDF target remains with measured setup/headroom; per-snapshot KDF mechanism is changed explicitly in D17.
+- A 120-second team lease with 30-second renewal is an engineering default. It fences a partitioned shared writer; protected local/private execution has no team-service dependency.
+- Expired disposables block browsing pending review/discard rather than deleting unreviewed state silently.
+- Private profile operations can remain offline. Shared execution needs a valid lease; a private fork is the intentional disconnected route.
+- Prices and exact commercial quotas remain deferred. The catalog must be approved before real checkout or entitlement release.
+- Source v3.0 was supplied in the conversation, not as a repository file. No existing code, production database, or migration was available to validate.
+- Product branding does not establish domain ownership, deployed endpoints, support inboxes, merchant accounts, or code-signing credentials.
+- This revision does not promise a delivery date, zero jitter, universal anonymity, total debugger resistance, complete offline audit observation, or instant offline revocation.

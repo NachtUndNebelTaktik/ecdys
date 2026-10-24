@@ -1,0 +1,33 @@
+import {contextBridge, ipcRenderer} from 'electron';
+import type {EcdysApi, IpcResult} from '@ecdys/shared';
+
+async function call<T>(method: keyof EcdysApi, ...args: unknown[]): Promise<T> {
+  const response = (await ipcRenderer.invoke('ecdys:workspace', {method, args})) as IpcResult<T>;
+  if (!response.ok) {
+    const error = new Error(response.error.message);
+    Object.assign(error, {code: response.error.code});
+    throw error;
+  }
+  return response.data;
+}
+const api: EcdysApi = {
+  onVaultLocked: (listener) => {
+    const handler = () => listener();
+    ipcRenderer.on('ecdys:vault-locked', handler);
+    return () => ipcRenderer.removeListener('ecdys:vault-locked', handler);
+  },
+  status: () => call('status'),
+  createVault: (input) => call('createVault', input),
+  unlock: (passphrase) => call('unlock', passphrase),
+  lock: () => call('lock'),
+  listProfiles: () => call('listProfiles'),
+  createProfile: (draft) => call('createProfile', draft),
+  updateProfile: (id, revision, draft) => call('updateProfile', id, revision, draft),
+  deleteProfile: (id, revision) => call('deleteProfile', id, revision),
+  branchProfile: (id, name) => call('branchProfile', id, name),
+  listSnapshots: (id) => call('listSnapshots', id),
+  restoreSnapshot: (id, snapshotId, revision) => call('restoreSnapshot', id, snapshotId, revision),
+  createSnapshot: (id) => call('createSnapshot', id),
+  pinSnapshot: (id, pinned) => call('pinSnapshot', id, pinned),
+};
+contextBridge.exposeInMainWorld('ecdys', Object.freeze(api));

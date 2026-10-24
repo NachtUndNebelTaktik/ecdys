@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "better-sqlite3-multiple-ciphers": [
+        "./packages/desktop/node_modules/better-sqlite3-multiple-ciphers/index.d.ts"
+      ]
+    }
+  },
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts", "*.config.ts"]
+}

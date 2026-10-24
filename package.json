@@ -1,0 +1,26 @@
+{
+  "name": "ecdys-app",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "pnpm --filter @ecdys/renderer build && pnpm --filter @ecdys/desktop build",
+    "dev": "pnpm build && electron packages/desktop/dist/main.cjs",
+    "test": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run",
+    "typecheck": "tsc --noEmit",
+    "native:rebuild": "electron-rebuild --force --only better-sqlite3-multiple-ciphers",
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^24.0.0",
+    "cross-env": "^10.1.0",
+    "electron": "45.0.0",
+    "prettier": "3.6.2",
+    "tsup": "9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "5.0.5"
+  }
+}
