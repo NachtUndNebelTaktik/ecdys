@@ -67,6 +67,7 @@ The UI test uses Electron's headless Ozone backend without disabling renderer sa
 ## Specification and progress
 
 - [Consolidated master spec — Tooling Revision 2](MASTER-SPEC-REVISION-2.md)
+- [Original-plan continuity audit](docs/CONTINUITY-AUDIT-2026-10-24.md)
 - [Revision 2 changes and implementation boundaries](docs/REVISION-2-VERIFICATION.md)
 - [Tooling platform capability matrix — Gate 1](docs/TOOLING-CAPABILITY-MATRIX.md)
 - [Detailed browser blueprint v4.0](BLUEPRINT-v4.0.md)
