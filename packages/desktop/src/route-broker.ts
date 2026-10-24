@@ -4,7 +4,59 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import type {ProxyRouteDraft} from '@ecdys/shared';
-import {openProxyTunnel, ProxyTunnelError, type TunnelDestination} from './proxy-tunnel';
+import {
+  normalizeTunnelDestination,
+  openProxyTunnel,
+  ProxyTunnelError,
+  type TunnelDestination,
+} from './proxy-tunnel';
+
+export type TemporaryBrowserRoute = ProxyRouteDraft | {kind: 'direct'};
+
+// Direct is an explicitly chosen transport. This function is never a recovery
+// path for a failed proxy. The broker admits destinations before calling it.
+async function openDirectConnection(
+  target: TunnelDestination,
+  signal: AbortSignal,
+): Promise<Socket> {
+  const destination = normalizeTunnelDestination(target);
+  if (signal.aborted) throw new ProxyTunnelError('CANCELLED');
+  const socket = connect(destination);
+  socket.pause();
+  socket.on('error', () => undefined);
+  const abort = () => socket.destroy(new ProxyTunnelError('CANCELLED'));
+  signal.addEventListener('abort', abort, {once: true});
+  socket.once('close', () => signal.removeEventListener('abort', abort));
+  const timer = setTimeout(() => socket.destroy(new ProxyTunnelError('TIMEOUT')), 6000);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        socket.off('connect', ready);
+        socket.off('error', failed);
+        socket.off('close', closed);
+      };
+      const ready = () => {
+        cleanup();
+        resolve();
+      };
+      const failed = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const closed = () => failed(new ProxyTunnelError('CONNECTION_CLOSED'));
+      socket.once('connect', ready);
+      socket.once('error', failed);
+      socket.once('close', closed);
+    });
+    if (signal.aborted) throw new ProxyTunnelError('CANCELLED');
+    return socket;
+  } catch (error) {
+    socket.destroy();
+    throw error instanceof ProxyTunnelError ? error : new ProxyTunnelError('NETWORK_ERROR');
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export function readControlLine(socket: Socket): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -42,7 +94,10 @@ export function readControlLine(socket: Socket): Promise<string> {
 
 // Only this host-side broker can open internet sockets. The contained browser
 // sees a Unix socket and a private loopback HTTP proxy, never these credentials.
-export async function createRouteBroker(route: ProxyRouteDraft) {
+export async function createRouteBroker(input: TemporaryBrowserRoute) {
+  // Capture the selected policy for this session; a later profile/object edit
+  // cannot switch an existing broker to a different transport.
+  const route: TemporaryBrowserRoute = {...input};
   const directory = await mkdtemp(join(tmpdir(), 'ecdys-route-'));
   await chmod(directory, 0o700);
   const socketPath = join(directory, 'route.sock'),
@@ -90,11 +145,11 @@ export async function createRouteBroker(route: ProxyRouteDraft) {
           });
         if (closed || client.destroyed || !allowed.has(destinationKey))
           throw new Error('Destination not admitted by the browser page.');
-        upstream = await openProxyTunnel(
-          route,
-          {host: request.host, port: request.port},
-          {signal: controller.signal},
-        );
+        const destination = {host: request.host, port: request.port};
+        upstream =
+          route.kind === 'direct'
+            ? await openDirectConnection(destination, controller.signal)
+            : await openProxyTunnel(route, destination, {signal: controller.signal});
         if (closed || client.destroyed) {
           upstream.destroy();
           return;
@@ -154,7 +209,8 @@ export async function createRouteBroker(route: ProxyRouteDraft) {
       controller.abort();
       for (const client of clients) client.destroy();
       await new Promise<void>((resolve) => server.close(() => resolve()));
-      delete route.password;
+      if (route.kind !== 'direct') delete route.password;
+      if (input.kind !== 'direct') delete input.password;
       await rm(directory, {recursive: true, force: true});
     },
   };
@@ -171,7 +227,7 @@ export async function connectBroker(
   const reply = await readControlLine(socket);
   if (reply !== 'OK') {
     socket.destroy();
-    throw new Error('The selected proxy could not open this connection.');
+    throw new Error('The selected route could not open this connection.');
   }
   return socket;
 }

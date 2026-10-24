@@ -65,10 +65,19 @@ afterEach(async () => {
 });
 
 describe('encrypted OSINT research', () => {
+  it('starts with no tool definitions and preserves the empty shelf across reopen', async () => {
+    const {service} = await fixture();
+    expect(initialResearch().tools).toEqual([]);
+    expect((await service.researchWorkspace()).tools).toEqual([]);
+    await service.lock();
+    await service.unlock(phrase);
+    expect((await service.researchWorkspace()).tools).toEqual([]);
+  });
   it('retains linked notes, positions and custom tools across lock and reopen without plaintext files', async () => {
     const {service, directory} = await fixture();
     const first = await service.researchWorkspace();
     expect(first.nodes).toEqual([]);
+    expect(first.tools).toEqual([]);
     const root = {
       ...node('Sensitive research subject'),
       note: 'private-research-note-6d123',
@@ -125,13 +134,51 @@ describe('encrypted OSINT research', () => {
     expect(results[1]).toMatchObject({status: 'rejected', reason: {code: 'REVISION_CONFLICT'}});
     expect((await service.researchWorkspace()).title).toBe('First writer');
   });
+  it('preserves existing website records during an older research-vault upgrade', async () => {
+    const {service, directory} = await fixture();
+    const {revision, updatedAt: _updatedAt, ...draft} = await service.researchWorkspace();
+    const existing: ResearchDraft = {
+      ...draft,
+      tools: [
+        {
+          id: randomUUID(),
+          name: 'Previously saved source',
+          category: 'Infrastructure',
+          description: 'Retained from an earlier workspace.',
+          url: 'https://saved-source.example/records',
+          pinned: true,
+        },
+      ],
+    };
+    const saved = await service.saveResearchWorkspace({revision, draft: existing});
+    await service.lock();
+    await alterDatabase(directory, (db) =>
+      db.exec('DROP TABLE notepad_files; DROP TABLE notepad; PRAGMA user_version=3;'),
+    );
+    await service.unlock(phrase);
+    expect(await service.researchWorkspace()).toEqual(saved);
+  });
   it('validates graph references, IDs, limits and tool URLs at the IPC and storage boundary', async () => {
     const {service} = await fixture(),
       before = await service.researchWorkspace(),
       a = node('A'),
       b = node('B');
     const edge = {id: randomUUID(), source: a.id, target: b.id, label: ''};
-    const draft = {...initialResearch(), nodes: [a, b], edges: [edge]};
+    const draft: ResearchDraft = {
+      ...initialResearch(),
+      nodes: [a, b],
+      edges: [edge],
+      tools: [
+        {
+          id: randomUUID(),
+          name: 'Operator fixture',
+          category: 'Custom',
+          description: 'Explicitly configured test source.',
+          url: 'https://fixture.example/source',
+          pinned: false,
+        },
+      ],
+    };
     expect(ResearchDraftSchema.safeParse(draft).success).toBe(true);
     const invalid: unknown[] = [
       {...draft, nodes: [a, a]},
@@ -182,6 +229,7 @@ describe('encrypted OSINT research', () => {
     expect(await service.listSnapshots(profile.id)).toHaveLength(1);
     expect(await service.listProxyPools()).toEqual([pool]);
     expect((await service.researchWorkspace()).nodes).toEqual([]);
+    expect((await service.researchWorkspace()).tools).toEqual([]);
     const result = await service.changeProxyRoutes({
       targets: [{id: profile.id, revision: profile.revision}],
       choice: {mode: 'assign', endpointId: pool.endpoints[0]!.id},

@@ -250,3 +250,101 @@ test('real browser viewport uses authenticated SOCKS5 for pages, input and WebSo
     await rm(directory, {recursive: true, force: true});
   }
 });
+
+test('Direct browsing works without a configured proxy and clearly identifies device networking', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ecdys-direct-browser-'));
+  const sockets = new Set<Socket>(),
+    visits: string[] = [];
+  const site = createServer((request, response) => {
+    visits.push(request.url!);
+    response.setHeader('Content-Type', 'text/html; charset=utf-8');
+    response.end(
+      '<!doctype html><html><body style="margin:0;padding:64px;background:#101010;color:#ededee;font:18px system-ui"><p style="font-size:12px;letter-spacing:3px;color:#c4ef91">ECDYS · DIRECT RUNTIME CHECK</p><h1 style="font-weight:500;margin:40px 0 20px">Direct is a deliberate choice.</h1><p style="max-width:650px;line-height:1.9;color:#aaaab0">This owned local fixture was loaded by real Chromium through the explicitly selected Direct transport. No profile VPN or proxy was configured.</p><p style="margin-top:40px;font-size:13px;color:#85858c">The browser uses the device network and DNS. This is a test fixture.</p><script>window.addEventListener("load",()=>fetch("/ready"))</script></body></html>',
+    );
+  });
+  site.on('connection', (socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+  });
+  await new Promise<void>((resolve) => site.listen(0, '127.0.0.1', resolve));
+  let app: ElectronApplication | undefined;
+  try {
+    app = await electron.launch({
+      args: [
+        '--ozone-platform=headless',
+        '--user-data-dir=' + join(directory, 'electron'),
+        resolve('packages/desktop/dist/main.cjs'),
+      ],
+      env: {...process.env, ECDYS_DATA_DIR: join(directory, 'vault')},
+    });
+    const page = await app.firstWindow(),
+      errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.setViewportSize({width: 1440, height: 1250});
+    await page.getByLabel('Passphrase', {exact: true}).fill('direct route integration passphrase');
+    await page.getByLabel('Confirm passphrase').fill('direct route integration passphrase');
+    await page.getByLabel('Key derivation memory').selectOption('1024');
+    await page.getByRole('button', {name: 'Create local vault'}).click();
+    await expect(page.getByRole('heading', {name: 'Profile workspace'})).toBeVisible({
+      timeout: 60000,
+    });
+    await page.getByRole('button', {name: 'New profile', exact: false}).click();
+    let dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Profile name').fill('Direct browser fixture');
+    await expect(dialog.getByLabel('Route type')).toHaveValue('none');
+    await expect(
+      dialog.getByText('Direct uses this device’s network connection and DNS.', {exact: false}),
+    ).toBeVisible();
+    await dialog.getByRole('button', {name: 'Create profile', exact: true}).click();
+    await expect(dialog).not.toBeVisible();
+    const profile = (await page.evaluate(() => window.ecdys!.listProfiles()))[0]!;
+    expect(profile.route).toBeNull();
+    await page
+      .getByRole('navigation')
+      .getByRole('button', {name: /^Browser/})
+      .click();
+    await page.getByRole('button', {name: 'Open temporary browser', exact: true}).click();
+    dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Direct is selected.', {exact: false})).toBeVisible();
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', {name: 'Start temporary browser'}).click();
+    await expect(dialog).not.toBeVisible({timeout: 30000});
+    expect(visits).toEqual([]);
+    await expect(page.locator('.temporary-session-footer')).toContainText(
+      'Direct · device network and DNS',
+    );
+    const url = `http://localhost:${(site.address() as {port: number}).port}/direct`;
+    await page.getByRole('textbox', {name: 'Live browser address'}).fill(url);
+    await page.getByRole('textbox', {name: 'Live browser address'}).press('Enter');
+    await expect.poll(() => visits.includes('/ready')).toBe(true);
+    await expect(page.getByRole('img', {name: 'Live browser page'})).toHaveJSProperty(
+      'complete',
+      true,
+    );
+    expect((await page.evaluate(() => window.ecdys!.browserSession()))?.routeMode).toBe('direct');
+    await page.reload();
+    await page
+      .getByRole('navigation')
+      .getByRole('button', {name: /^Browser/})
+      .click();
+    await expect(page.locator('.temporary-session-footer')).toContainText(
+      'Direct · device network and DNS',
+    );
+    await expect(page.getByRole('img', {name: 'Live browser page'})).toBeVisible();
+    await page
+      .getByRole('heading', {name: 'Browser workspace', exact: true})
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({path: 'artifacts/browser-direct.png'});
+    await page
+      .locator('.sidebar')
+      .getByRole('button', {name: 'Lock workspace', exact: false})
+      .click();
+    await expect(page.getByRole('button', {name: 'Unlock workspace'})).toBeVisible();
+    expect(errors).toEqual([]);
+  } finally {
+    await app?.close();
+    for (const socket of sockets) socket.destroy();
+    await new Promise<void>((resolve) => site.close(() => resolve()));
+    await rm(directory, {recursive: true, force: true});
+  }
+});

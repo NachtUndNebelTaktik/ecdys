@@ -1007,16 +1007,31 @@ export function OsintWorkspace(props: {
             </div>
             <Show when={!tools().length}>
               <div class="empty-state">
+                <Show when={!query() && category() === 'All'}>
+                  <div class="empty-symbol" aria-hidden="true">
+                    ⊞
+                  </div>
+                </Show>
                 <h2>
-                  {query() || category() !== 'All'
-                    ? 'No matching tools.'
-                    : 'Build your own toolkit.'}
+                  {query() || category() !== 'All' ? 'No matching tools.' : 'No tools configured.'}
                 </h2>
                 <p>
                   {query() || category() !== 'All'
                     ? 'Try another search or category.'
-                    : 'Add a website tool to keep it within reach.'}
+                    : 'This shelf starts empty. Add a website tool from a source you trust.'}
                 </p>
+                <Show when={!query() && category() === 'All'}>
+                  <p class="muted">Website links only. Executables are not run from this shelf.</p>
+                  <button
+                    class="button primary"
+                    onClick={() => {
+                      setToolError('');
+                      setToolEditor(blankTool());
+                    }}
+                  >
+                    ＋ Add your first website
+                  </button>
+                </Show>
               </div>
             </Show>
             <footer class="research-footer">

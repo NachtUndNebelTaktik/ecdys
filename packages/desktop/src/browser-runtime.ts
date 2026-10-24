@@ -71,7 +71,7 @@ export class TemporaryBrowserRuntime {
   }
   async start(context: Context): Promise<TemporaryBrowserSession> {
     if (this.starting || this.active || this.stopping) {
-      delete context.route.password;
+      if (context.route.kind !== 'direct') delete context.route.password;
       await context.release();
       throw new WorkspaceError('BROWSER_ACTIVE', 'Close the current temporary browser first.');
     }
@@ -177,6 +177,7 @@ export class TemporaryBrowserRuntime {
         url: 'about:blank',
         version: '',
         mode: 'temporary',
+        routeMode: context.route.kind,
         width: 1200,
         height: 720,
         status: 'launching',
@@ -369,7 +370,7 @@ export class TemporaryBrowserRuntime {
         });
       }
       if (context) {
-        delete context.route.password;
+        if (context.route.kind !== 'direct') delete context.route.password;
         await context.release();
       }
       this.emit({type: 'session', session: null});

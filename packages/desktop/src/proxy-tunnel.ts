@@ -232,11 +232,7 @@ export interface TunnelDestination {
   host: string;
   port: number;
 }
-export async function openProxyTunnel(
-  input: ProxyRouteDraft,
-  target: TunnelDestination,
-  options: {signal?: AbortSignal; timeoutMs?: number} = {},
-): Promise<Socket> {
+export function normalizeTunnelDestination(target: TunnelDestination): TunnelDestination {
   const host = isIP(target.host) ? target.host : domainToASCII(target.host);
   if (
     !host ||
@@ -247,6 +243,14 @@ export async function openProxyTunnel(
     target.port > 65535
   )
     throw new ProxyTunnelError('INVALID_CONFIGURATION');
+  return {host, port: target.port};
+}
+export async function openProxyTunnel(
+  input: ProxyRouteDraft,
+  target: TunnelDestination,
+  options: {signal?: AbortSignal; timeoutMs?: number} = {},
+): Promise<Socket> {
+  const destination = normalizeTunnelDestination(target);
   const parsed = ProxyRouteDraftSchema.safeParse(input);
   if (!parsed.success) throw new ProxyTunnelError('INVALID_CONFIGURATION');
   if (options.signal?.aborted) throw new ProxyTunnelError('CANCELLED');
@@ -289,7 +293,6 @@ export async function openProxyTunnel(
       socket.once('error', failed);
       socket.once('close', failed);
     });
-    const destination = {host, port: target.port};
     if (route.kind === 'socks5') await socksHandshake(socket, reader, route, destination);
     else await connectHandshake(socket, reader, route, destination);
     reader.release();

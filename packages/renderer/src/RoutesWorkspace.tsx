@@ -12,7 +12,7 @@ import type {
 import {Modal} from './Modal';
 
 function address(route: PublicRoute | null): string {
-  if (!route) return 'No route configured';
+  if (!route) return 'Direct · device network';
   if (route.kind === 'vpn') return route.provider.toUpperCase() + ' · ' + route.endpoint;
   return (route.host.includes(':') ? '[' + route.host + ']' : route.host) + ':' + route.port;
 }
@@ -386,8 +386,9 @@ export function RoutesWorkspace(props: {
           </div>
         </Show>
         <p class="field-help">
-          These operations update saved configuration. Native enforcement and protected browser
-          storage remain required before sessions can launch.
+          These operations update saved configuration. Temporary browsing uses the selected Direct
+          or proxy policy. Persistent sessions still require native enforcement and protected
+          browser storage.
         </p>
       </section>
 

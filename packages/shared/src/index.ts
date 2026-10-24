@@ -164,14 +164,12 @@ export interface VaultStatus {
 }
 export type ObservationState = 'pass' | 'fail' | 'unknown' | 'unavailable' | 'unsupported';
 export function evaluateLaunch(input: {
-  hasRoute: boolean;
   nativeRouteReady: boolean;
   protectedStorageReady: boolean;
   browserReady: boolean;
   requiredObservations: ObservationState[];
 }): {allowed: boolean; reasons: string[]} {
   const reasons: string[] = [];
-  if (!input.hasRoute) reasons.push('Configure a VPN or proxy route.');
   if (!input.nativeRouteReady) reasons.push('Native route enforcement is not available.');
   if (!input.protectedStorageReady) reasons.push('Protected browser storage is not available.');
   if (!input.browserReady) reasons.push('The managed browser is not available.');
@@ -352,6 +350,7 @@ export interface TemporaryBrowserSession {
   url: string;
   version: string;
   mode: 'temporary';
+  routeMode: 'direct' | 'socks5' | 'http_connect';
   width: 1200;
   height: 720;
   status: 'launching' | 'active' | 'stopped' | 'crashed';

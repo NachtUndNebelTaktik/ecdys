@@ -98,7 +98,10 @@ export function TemporaryBrowser(props: {
         <div class="temporary-launchbar">
           <div>
             <strong>Temporary browsing</strong>
-            <p>Memory-only session · your saved proxy route</p>
+            <p>
+              Memory-only session ·{' '}
+              {profile()?.route ? 'selected proxy route' : 'Direct · device network and DNS'}
+            </p>
           </div>
           <Show
             when={support()?.available}
@@ -280,7 +283,15 @@ export function TemporaryBrowser(props: {
               </Show>
             </div>
             <div class="temporary-session-footer">
-              <span>{current().version} · route required · downloads disabled</span>
+              <span>
+                {current().version} ·{' '}
+                {current().routeMode === 'direct'
+                  ? 'Direct · device network and DNS'
+                  : current().routeMode === 'socks5'
+                    ? 'SOCKS5 proxy'
+                    : 'HTTP CONNECT proxy'}{' '}
+                · downloads disabled
+              </span>
               <span>Site data is discarded on close or workspace lock</span>
             </div>
           </section>
@@ -300,9 +311,16 @@ export function TemporaryBrowser(props: {
           </Show>
           <p class="confirmation-copy">
             {prompt() === 'start'
-              ? 'This first browsing mode uses a separate Chromium process and your selected saved proxy. Cookies, logins, tabs and site storage stay in memory and are discarded on close or workspace lock. Downloads, persistent browser recovery, protected execution and live route switching are not available in this mode.'
+              ? 'This browsing mode uses a separate Chromium process and your selected network policy. Cookies, logins, tabs and site storage stay in memory and are discarded on close or workspace lock. Downloads, persistent browser recovery, protected execution and live route switching are not available in this mode.'
               : 'Closing discards this temporary session’s cookies, logins, tabs and site storage. The saved profile configuration and its checkpoints remain available.'}
           </p>
+          <Show when={prompt() === 'start' && !profile()?.route}>
+            <p class="field-help">
+              Direct is selected. Connections and DNS use this device’s network; sites and network
+              providers can observe that connection’s identity. No profile VPN or proxy is added by
+              ecdys.
+            </p>
+          </Show>
           <Show when={prompt() === 'start'}>
             <label class="checkbox-label">
               <input

@@ -47,6 +47,7 @@ import {previewProxyImport} from './route-import';
 import {probeProxy} from './proxy-probe';
 import {ResearchLibrary} from './research';
 import {NotepadLibrary} from './notepad';
+import type {TemporaryBrowserRoute} from './route-broker';
 export {WorkspaceError} from './errors';
 interface VaultHeader {
   format: 1;
@@ -785,37 +786,41 @@ export class WorkspaceService {
       if (this.browserLease)
         throw new WorkspaceError('BROWSER_ACTIVE', 'Close the current temporary browser first.');
       const config = JSON.parse(row.config) as Config;
-      if (!config.route || config.route.kind === 'vpn')
+      if (config.route?.kind === 'vpn')
         throw new WorkspaceError(
-          'PROXY_REQUIRED',
-          'Select an authenticated SOCKS5 or HTTP CONNECT route for this browser.',
+          'VPN_UNAVAILABLE',
+          'VPN launch is not connected in this build. Choose Direct, SOCKS5 or HTTP CONNECT explicitly.',
         );
       if (config.policy !== 'standard')
         throw new WorkspaceError(
           'POLICY_UNAVAILABLE',
           'Protected execution needs persistent browser recovery. Use a Standard profile for temporary browsing.',
         );
-      const {secretRef, hasPassword, ...publicRoute} = config.route;
-      const route: ProxyRouteDraft = {...publicRoute};
-      if (hasPassword) {
-        if (!secretRef)
-          throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
-        const secret = this.database()
-          .prepare('SELECT envelope FROM secrets WHERE id = ? AND profile_id = ?')
-          .get(secretRef, id) as {envelope: string} | undefined;
-        if (!secret)
-          throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
-        const key = subkey(this.master!, 'ecdys:secrets:1');
-        try {
-          const plaintext = unseal(JSON.parse(secret.envelope), key, secretRef);
+      let route: TemporaryBrowserRoute = {kind: 'direct'};
+      if (config.route) {
+        const {secretRef, hasPassword, ...publicRoute} = config.route;
+        const proxyRoute: ProxyRouteDraft = {...publicRoute};
+        if (hasPassword) {
+          if (!secretRef)
+            throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
+          const secret = this.database()
+            .prepare('SELECT envelope FROM secrets WHERE id = ? AND profile_id = ?')
+            .get(secretRef, id) as {envelope: string} | undefined;
+          if (!secret)
+            throw new WorkspaceError('SECRET_MISSING', 'The saved proxy credential is missing.');
+          const key = subkey(this.master!, 'ecdys:secrets:1');
           try {
-            route.password = plaintext.toString();
+            const plaintext = unseal(JSON.parse(secret.envelope), key, secretRef);
+            try {
+              proxyRoute.password = plaintext.toString();
+            } finally {
+              plaintext.fill(0);
+            }
           } finally {
-            plaintext.fill(0);
+            key.fill(0);
           }
-        } finally {
-          key.fill(0);
         }
+        route = proxyRoute;
       }
       this.transaction(() => this.capture(row, 'auto_pre_launch'));
       this.prune(id);

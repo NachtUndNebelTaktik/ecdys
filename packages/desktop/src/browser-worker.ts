@@ -80,7 +80,7 @@ async function start(config: {token: string; timezone: string; hostNetwork: stri
         forwarded.once('socket', () => socket.resume());
         forwarded.on('error', () => {
           if (!response.headersSent) response.writeHead(502);
-          response.end('The selected proxy could not load this page.');
+          response.end('The selected route could not load this page.');
         });
         response.once('close', () => {
           forwarded.destroy();
@@ -89,7 +89,7 @@ async function start(config: {token: string; timezone: string; hostNetwork: stri
         request.pipe(forwarded);
       } catch {
         response.writeHead(502);
-        response.end('The selected proxy could not load this page.');
+        response.end('The selected route could not load this page.');
       }
     })();
   });

@@ -36,7 +36,7 @@ const integrations = [
     name: 'Native route enforcement',
     state: 'PARTIAL',
     detail:
-      'Linux temporary browsing uses a private network namespace and a saved-proxy broker. Persistent and cross-platform sessions remain pending.',
+      'Linux temporary browsing uses a private network namespace and an explicit Direct/proxy broker. Persistent and cross-platform sessions remain pending.',
     category: 'NETWORK',
   },
   {
@@ -106,7 +106,7 @@ function Stamp(props: {children: JSX.Element}) {
 function RouteLabel(props: {profile: Profile}) {
   const route = () => props.profile.route;
   return (
-    <Show when={route()} fallback={<span class="muted">No route configured</span>}>
+    <Show when={route()} fallback={<span class="muted">Direct · device network</span>}>
       <span class="route-label">
         <span class="small-square" />
         {route()?.kind === 'vpn'
@@ -234,7 +234,6 @@ export default function App() {
   }
   function launchReasons(profile: Profile) {
     return evaluateLaunch({
-      hasRoute: profile.route !== null,
       nativeRouteReady: false,
       protectedStorageReady: false,
       browserReady: false,
@@ -449,7 +448,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.5.0</span>
+                  FOUNDATION BUILD <span>v0.6.0</span>
                 </div>
               </div>
             </aside>
@@ -1220,7 +1219,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.5.0 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.6.0 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">
@@ -1451,7 +1450,7 @@ function ProfileEditor(props: {
         </div>
         <div class="form-section-heading">
           <Stamp>NETWORK CONFIGURATION</Stamp>
-          <Pill>ROUTE LOCK REQUIRED</Pill>
+          <Pill>{kind() === 'none' ? 'DIRECT' : 'ROUTE LOCK REQUIRED'}</Pill>
         </div>
         <label>
           Route type
@@ -1459,12 +1458,18 @@ function ProfileEditor(props: {
             value={kind()}
             onChange={(e) => setKind(e.currentTarget.value as ReturnType<typeof kind>)}
           >
-            <option value="none">Configure later — browsing blocked</option>
+            <option value="none">Direct — no proxy</option>
             <option value="socks5">SOCKS5 proxy</option>
             <option value="http_connect">HTTP CONNECT proxy</option>
             <option value="vpn">VPN — Mullvad / IVPN</option>
           </select>
         </label>
+        <Show when={kind() === 'none'}>
+          <p class="field-help">
+            Direct uses this device’s network connection and DNS. ecdys does not add a profile VPN
+            or proxy.
+          </p>
+        </Show>
         <Show when={kind() === 'socks5' || kind() === 'http_connect'}>
           <div class="form-grid">
             <label>
@@ -1574,8 +1579,8 @@ function ProfileEditor(props: {
           </p>
         </Show>
         <div class="form-note">
-          Configuration only. Saving a route does not establish or test a connection. Browser launch
-          stays blocked.
+          Saving configuration does not test a connection. Temporary browsing is available on
+          supported Linux systems; persistent and protected sessions remain in development.
         </div>
         <div class="modal-actions">
           <button type="button" class="button" disabled={props.busy} onClick={props.close}>

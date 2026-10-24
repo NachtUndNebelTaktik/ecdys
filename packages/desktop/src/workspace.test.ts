@@ -64,6 +64,7 @@ describe('encrypted workspace lifecycle', () => {
       },
     });
     const context = await service.prepareTemporaryBrowser(profile.id, profile.revision);
+    if (context.route.kind === 'direct') throw new Error('Expected the saved proxy route.');
     expect(context.route.password).toBe('runtime-secret');
     expect(JSON.stringify(await service.listProfiles())).not.toContain('runtime-secret');
     expect((await service.listSnapshots(profile.id))[0]?.trigger).toBe('auto_pre_launch');
@@ -78,12 +79,20 @@ describe('encrypted workspace lifecycle', () => {
     await context.release();
     delete context.route.password;
   });
-  it('requires a proxy and preserves protected execution from temporary launches', async () => {
+  it('admits explicit Direct while preserving unsupported VPN and protected execution gates', async () => {
     const {service} = await fixture();
     const unrouted = await service.createProfile({name: 'No route'});
-    await expect(
-      service.prepareTemporaryBrowser(unrouted.id, unrouted.revision),
-    ).rejects.toMatchObject({code: 'PROXY_REQUIRED'});
+    const direct = await service.prepareTemporaryBrowser(unrouted.id, unrouted.revision);
+    expect(direct.route).toEqual({kind: 'direct'});
+    expect((await service.listSnapshots(unrouted.id))[0]?.trigger).toBe('auto_pre_launch');
+    await direct.release();
+    const vpn = await service.createProfile({
+      name: 'VPN not connected',
+      route: {kind: 'vpn', provider: 'mullvad', endpoint: 'provider-reference'},
+    });
+    await expect(service.prepareTemporaryBrowser(vpn.id, vpn.revision)).rejects.toMatchObject({
+      code: 'VPN_UNAVAILABLE',
+    });
     const protectedProfile = await service.createProfile({
       name: 'Trading',
       policy: 'protected_execution',
@@ -91,6 +100,13 @@ describe('encrypted workspace lifecycle', () => {
     });
     await expect(
       service.prepareTemporaryBrowser(protectedProfile.id, protectedProfile.revision),
+    ).rejects.toMatchObject({code: 'POLICY_UNAVAILABLE'});
+    const protectedDirect = await service.createProfile({
+      name: 'Protected direct',
+      policy: 'protected_execution',
+    });
+    await expect(
+      service.prepareTemporaryBrowser(protectedDirect.id, protectedDirect.revision),
     ).rejects.toMatchObject({code: 'POLICY_UNAVAILABLE'});
   });
   it.each(['missing', 'empty'])(

@@ -118,13 +118,32 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
     await page.screenshot({path: 'artifacts/osint-mindmap.png'});
 
     await page.getByRole('tab', {name: 'OSINT tools', exact: false}).click();
-    await page.getByLabel('Search OSINT tools').fill('crt');
+    await expect(
+      page.getByRole('heading', {name: 'No tools configured.', exact: true}),
+    ).toBeVisible();
+    await expect(page.locator('.research-tool')).toHaveCount(0);
+    expect((await page.evaluate(() => window.ecdys!.researchWorkspace())).tools).toEqual([]);
+    await page.screenshot({path: 'artifacts/osint-empty-tools.png', fullPage: true});
+    const addWebsite = async (name: string, url: string, category: string) => {
+      await page.getByRole('button', {name: 'Add tool', exact: false}).click();
+      await page.getByLabel('Tool name', {exact: true}).fill(name);
+      await page.getByLabel('Tool website URL', {exact: true}).fill(url);
+      await page.getByLabel('Tool category', {exact: true}).selectOption(category);
+      await page
+        .getByLabel('Tool description', {exact: true})
+        .fill('An operator-configured fixture source.');
+      await page.getByRole('dialog').getByRole('button', {name: 'Save tool'}).click();
+      await expect(page.getByRole('heading', {name, exact: true})).toBeVisible();
+    };
+    await addWebsite('Operator DNS source', 'https://fixture.example/dns', 'Infrastructure');
+    await addWebsite('Operator archive', 'https://fixture.example/archive', 'Archives');
+    await page.getByLabel('Search OSINT tools').fill('DNS source');
     await expect(page.locator('.research-tool')).toHaveCount(1);
-    await expect(page.getByRole('heading', {name: 'crt.sh'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Operator DNS source'})).toBeVisible();
     await page.getByLabel('Search OSINT tools').fill('');
     await page.getByRole('button', {name: 'Archives', exact: true}).click();
     await expect(page.locator('.research-tool')).toHaveCount(1);
-    await expect(page.getByRole('heading', {name: 'Wayback Machine'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Operator archive'})).toBeVisible();
     await page.getByRole('button', {name: 'All', exact: true}).click();
     await page.getByRole('button', {name: 'Add tool', exact: false}).click();
     await page.getByLabel('Tool name', {exact: true}).fill('Operator source');

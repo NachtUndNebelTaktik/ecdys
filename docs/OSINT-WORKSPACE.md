@@ -12,11 +12,11 @@ Undo keeps the last twenty structural changes for the current unlocked view. It 
 
 ## Tool shelf
 
-The starter library contains public homepage links for DuckDuckGo, crt.sh, RIPEstat, Wayback Machine, Shodan and mempool.space. These are editable links, not integrations or endorsements. The operator can add, edit, remove, pin, search and categorize up to sixty tools. Removing a starter tool is persistent; reopening the vault does not repopulate a customized library.
+Fresh workspaces contain no tool definitions, bundled binaries or starter catalogue. The designed empty state says **No tools configured.** The operator can manually add website links from sources they trust, then edit, remove, pin, search and categorize up to sixty saved links. An empty shelf remains empty after reopening or migration; no tools are fetched or repopulated. Existing saved records, including links retained from an earlier build, are preserved as operator-owned data and are never wiped automatically.
 
 Website and source URLs accept HTTP or HTTPS without embedded credentials. Scripts, local files and executable commands are rejected. Cards load no external favicons or previews. No query, subject, note or node is sent automatically to any tool.
 
-Open requires an active routed temporary session. It navigates that session through the saved proxy; it does not open the operating system's default browser. Without a session, Go to Browser lets the operator set one up. Source links use the same path. Normal website requests, authentication and third-party service terms then apply. There is no target-scanning engine, local command runner, paid API connector or secret-bearing tool API configuration in this slice.
+Open requires an active browser session. It navigates that session through its selected route; it does not open the operating system's default browser. Without a session, Go to Browser lets the operator set one up. Source links use the same path. Normal website requests, authentication and third-party service terms then apply. This implemented shelf is for website links. The declarative executable registry, binary health checks, manifest/catalogue import, native execution console and isolation-profile choices in Tooling Revision 2 remain implementation work; no nonfunctional controls simulate them.
 
 ## Storage and failure handling
 
@@ -28,6 +28,6 @@ Schema v3 adds the research document transactionally after the earlier proxy mig
 
 ## Verification
 
-Database tests exercise encrypted at-rest notes, lock refusal, reopen persistence, persistent tool removal, stale writers, graph and URL validation, v2 migration and refusal to replace damaged v3 data. Autosave tests exercise overlapping writes and failure/retry with a retained newer draft.
+Database tests exercise an empty fresh shelf, empty-state persistence, preservation of saved operator links, encrypted at-rest notes, lock refusal, reopen persistence, persistent tool removal, stale writers, graph and URL validation, v2 migration and refusal to replace damaged v3 data. Autosave tests exercise overlapping writes and failure/retry with a retained newer draft.
 
-The real Electron scenario creates and edits a map, drags and moves nodes by keyboard, connects findings, removes/undoes a node, searches and customizes tools, rejects a script URL, reloads, recovers from a revision conflict and locks/unlocks. A separate live Chromium/SOCKS5 scenario opens a saved tool against an owned fixture and verifies it uses the selected proxy. Tests do not query the starter services or investigate real subjects.
+The real Electron scenario first confirms the designed empty shelf, then manually configures its own fixture website tools. It creates and edits a map, drags and moves nodes by keyboard, connects findings, removes/undoes a node, searches and customizes tools, rejects a script URL, reloads, recovers from a revision conflict and locks/unlocks. A separate live Chromium/SOCKS5 scenario opens an operator-configured website tool against an owned fixture and verifies it uses the selected proxy. Tests do not query external services or investigate real subjects.

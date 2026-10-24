@@ -43,9 +43,18 @@ describe('profile and route boundaries', () => {
 });
 
 describe('launch admission', () => {
+  it('does not require a proxy when the selected network policy and other gates pass', () => {
+    expect(
+      evaluateLaunch({
+        nativeRouteReady: true,
+        protectedStorageReady: true,
+        browserReady: true,
+        requiredObservations: ['pass'],
+      }),
+    ).toEqual({allowed: true, reasons: []});
+  });
   it('blocks unsupported enforcement even when a SOCKS5 route has been entered', () => {
     const result = evaluateLaunch({
-      hasRoute: true,
       nativeRouteReady: false,
       protectedStorageReady: true,
       browserReady: true,
@@ -59,7 +68,6 @@ describe('launch admission', () => {
     (state) => {
       expect(
         evaluateLaunch({
-          hasRoute: true,
           nativeRouteReady: true,
           protectedStorageReady: true,
           browserReady: true,
