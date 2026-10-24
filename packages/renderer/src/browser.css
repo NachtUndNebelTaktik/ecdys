@@ -50,23 +50,23 @@
 }
 :root[data-ui-theme='crimson'] {
   color-scheme: dark;
-  --bg: #120d11;
-  --panel: #1a1218;
-  --border: #422a36;
-  --muted: #c7a7b4;
-  --text: #f5e8ed;
-  --accent-ink: #2a101a;
-  --browser-bg: #1c1319;
-  --browser-chrome: #291921;
-  --browser-page: #170f15;
-  --browser-border: #53323f;
-  --browser-field: #21151c;
-  --browser-text: #f5e8ed;
-  --browser-muted: #c7a7b4;
-  --browser-faint: #a2818f;
-  --browser-card: #281a22;
-  --browser-shadow: #07020580;
-  --control-bg: #251820;
+  --bg: #080808;
+  --panel: #101010;
+  --border: #282828;
+  --muted: #aaaab0;
+  --text: #ededee;
+  --accent-ink: #0b0b0b;
+  --browser-bg: #121212;
+  --browser-chrome: #191919;
+  --browser-page: #0c0c0c;
+  --browser-border: #303030;
+  --browser-field: #141414;
+  --browser-text: #ededee;
+  --browser-muted: #aaaab0;
+  --browser-faint: #85858c;
+  --browser-card: #181818;
+  --browser-shadow: #0008;
+  --control-bg: #161616;
 }
 .night-filter {
   position: fixed;
@@ -1244,8 +1244,11 @@
   border-color: var(--border);
 }
 :root[data-ui-theme='crimson'] .foundation-banner {
-  background: color-mix(in srgb, var(--accent), transparent 96%);
+  background: var(--panel);
   border-color: var(--browser-border);
+}
+:root[data-ui-theme='crimson'] :is(.browser-start-page, .browser-mini-home) {
+  background: var(--browser-page);
 }
 :root[data-ui-theme='crimson']
   :is(
@@ -1256,7 +1259,7 @@
     .selected-card,
     .route-profile-row.selected
   ) {
-  background: color-mix(in srgb, var(--accent), var(--panel) 90%);
+  background: var(--browser-card);
   border-color: color-mix(in srgb, var(--accent), var(--border) 60%);
   color: var(--text);
 }
@@ -1266,7 +1269,7 @@
 }
 :root[data-ui-theme='crimson']
   :is(.profile-icon, .avatar, .nav-count, .card-tags > span, .empty-symbol) {
-  background: color-mix(in srgb, var(--accent), var(--panel) 90%);
+  background: var(--browser-card);
   border-color: var(--browser-border);
   color: var(--accent);
 }
@@ -1293,7 +1296,8 @@
   border-color: var(--browser-border);
 }
 :root[data-ui-theme='crimson'] .button:hover:not(:disabled, .primary) {
-  background: color-mix(in srgb, var(--accent), var(--browser-card) 92%);
+  background: var(--control-bg);
+  border-color: var(--accent);
 }
 :root[data-ui-theme='crimson']
   :is(

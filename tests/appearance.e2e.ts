@@ -201,17 +201,22 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await page.getByRole('button', {name: 'Customize appearance', exact: false}).click();
     await page.getByLabel('Interface theme', {exact: true}).selectOption('crimson');
     await expect(page.locator('html')).toHaveAttribute('data-ui-theme', 'crimson');
-    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(18, 13, 17)');
-    await expect(surface).toHaveCSS('background-color', 'rgb(28, 19, 25)');
-    await expect(surface).toHaveCSS('color', 'rgb(245, 232, 237)');
-    await expect(page.locator('.sidebar')).toHaveCSS('background-color', 'rgb(26, 18, 24)');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(8, 8, 8)');
+    await expect(surface).toHaveCSS('background-color', 'rgb(18, 18, 18)');
+    await expect(surface).toHaveCSS('color', 'rgb(237, 237, 238)');
+    await expect(surface.locator('.browser-start-page')).toHaveCSS(
+      'background-color',
+      'rgb(12, 12, 12)',
+    );
+    await expect(surface.locator('.browser-start-page')).toHaveCSS('background-image', 'none');
+    await expect(page.locator('.sidebar')).toHaveCSS('background-color', 'rgb(16, 16, 16)');
     await expect(page.getByRole('button', {name: 'Crimson accent', exact: true})).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     await expect(surface.locator('.browser-primary-action')).toHaveCSS(
       'background-color',
-      'rgb(244, 119, 147)',
+      'rgb(240, 68, 100)',
     );
     await expect(page.locator('.night-filter')).not.toBeVisible();
     expect(
@@ -222,7 +227,7 @@ test('browser appearance controls change rendered surfaces and preserve workspac
       'background-color',
       'rgb(166, 207, 255)',
     );
-    await expect(surface).toHaveCSS('background-color', 'rgb(28, 19, 25)');
+    await expect(surface).toHaveCSS('background-color', 'rgb(18, 18, 18)');
     await page.getByRole('button', {name: 'Crimson accent', exact: true}).click();
     await page.getByRole('slider', {name: 'Browser text size'}).focus();
     await page.getByRole('slider', {name: 'Browser text size'}).press('Home');
@@ -240,11 +245,11 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await expect(page.getByLabel('Interface theme', {exact: true})).toHaveValue('crimson');
     await expect(
       page.getByRole('region', {name: 'Live appearance preview'}).locator('.browser-surface'),
-    ).toHaveCSS('background-color', 'rgb(28, 19, 25)');
+    ).toHaveCSS('background-color', 'rgb(18, 18, 18)');
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-ui-theme', 'crimson');
     await browserNav.click();
-    await expect(surface).toHaveCSS('background-color', 'rgb(28, 19, 25)');
+    await expect(surface).toHaveCSS('background-color', 'rgb(18, 18, 18)');
     await customize.click();
     await expect(page.getByLabel('Interface theme', {exact: true})).toHaveValue('crimson');
     await expect(page.getByRole('button', {name: 'Crimson accent', exact: true})).toHaveAttribute(
@@ -261,7 +266,7 @@ test('browser appearance controls change rendered surfaces and preserve workspac
     await expect(page.getByLabel('Profile layout', {exact: true})).toHaveValue('list');
     await expect(page.locator('.profile-card').first()).toHaveCSS(
       'background-color',
-      'rgb(28, 19, 25)',
+      'rgb(18, 18, 18)',
     );
     expect(await page.evaluate(() => window.ecdys!.listProfiles())).toEqual(before);
     await browserNav.click();

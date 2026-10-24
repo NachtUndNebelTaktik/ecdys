@@ -24,7 +24,7 @@ Electron downloads its platform binary on first use. In environments requiring a
 - Explicit 1/2/4/8 GiB KDF selection, default 4 GiB; production derivation runs in a worker.
 - Local profiles, revisions, search, tags, folder labels, protected-execution policy and route configuration.
 - Rounded Browser workspace with interactive local tabs, profile search, keyboard tab navigation and local workspace shortcuts.
-- Light, Dark, System, Night and Crimson appearance profiles; System follows desktop changes, Night applies an adjustable warm filter, Crimson uses burgundy surfaces and crimson accents across the app.
+- Light, Dark, System, Night and Crimson appearance profiles; System follows desktop changes, Night applies an adjustable warm filter, Crimson uses night-black surfaces and crimson accents across the app.
 - Live shared controls for accent, corners, density, browser text size, bookmarks, sidebar and transitions, plus a Settings preview.
 - Remembered profile sorting and grid/list layouts; appearance reset preserves those organization choices.
 - Encrypted proxy passwords omitted from public responses.

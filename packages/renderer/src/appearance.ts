@@ -19,7 +19,7 @@ export const accentColors = {
   sage: {dark: '#c4ef91', light: '#466a35'},
   ice: {dark: '#a6cfff', light: '#32699d'},
   copper: {dark: '#efba95', light: '#96582e'},
-  crimson: {dark: '#f47793', light: '#ad2448'},
+  crimson: {dark: '#f04464', light: '#ad2448'},
 };
 export function orderProfiles(profiles: Profile[], order: Appearance['profileOrder']): Profile[] {
   return [...profiles].sort((a, b) => {

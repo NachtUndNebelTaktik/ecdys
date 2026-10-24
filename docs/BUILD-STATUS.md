@@ -79,7 +79,7 @@ The reviewer found no additional credential-return, pool-deletion dependency, at
 
 Review limits remain explicit: native containment, protected browser storage, live traffic switching, Windows/macOS durability, production provider interoperability and power-loss recovery are not certified by these local protocol and database tests. They remain in the full implementation plan and release gates.
 
-## Browser interface verification (v0.3.3)
+## Browser interface verification (v0.3.4)
 
 The additional desktop scenario exercises the rendered Browser surface and shared Settings controls. It verifies Light/Dark/System/Night colors, live desktop-theme following, Night filter strength, real CSS corner/text/spacing changes, bookmark and sidebar visibility, reduced-motion behavior, independent tab searches, keyboard tab movement and close/final-tab focus, local-address navigation, refusal of website and prototype-property addresses, alphabetical sorting, list/grid layout and persisted preferences after reload. Reset preserves sort/layout, and the profile API returns exactly the same saved configuration afterward.
 
@@ -87,4 +87,4 @@ The author visually inspected desktop screenshots for Dark, Light, Night and the
 
 The browser now opens at the full available workspace width. Appearance controls open on demand in a slimmer side panel. Electron checks verify that the default surface fills its workspace, opening and closing the panel changes its width, and the browser and controls fit at the minimum supported width.
 
-Crimson adds burgundy surfaces throughout the browser and application chrome with a matching accent, also available separately. Selecting Crimson applies that accent; further accent changes remain supported. The Electron scenario checks the palette on browser/profile/Settings surfaces, persistence after reload, accent overrides, reset to Dark/Sage, and the compact control layout.
+Crimson adds night-black surfaces throughout the browser and application chrome with a matching accent, also available separately. Selecting Crimson applies that accent; further accent changes remain supported. The Electron scenario checks the palette on browser/profile/Settings surfaces, persistence after reload, accent overrides, reset to Dark/Sage, and the compact control layout.
