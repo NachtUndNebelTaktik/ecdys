@@ -1,6 +1,6 @@
-"""ecdys.app WebDriver transport example.
+"""ecdys WebDriver transport example.
 
-Requires a supported Selenium 4 release and a running ecdys.app gateway.
+Requires a supported Selenium 4 release and a running ecdys gateway.
 This file is an integration specification example, not a gateway implementation.
 It navigates to ECDYS_TARGET_URL (https://example.com by default).
 The session token belongs on the control connection, never on website requests.
@@ -52,7 +52,7 @@ def main() -> None:
         or parsed.query
         or parsed.fragment
     ):
-        raise ValueError("Use the numeric-loopback gateway URL from ecdys.app.")
+        raise ValueError("Use the numeric-loopback gateway URL from ecdys.")
 
     token = os.environ.get("ECDYS_WEBDRIVER_TOKEN", "")
     if re.fullmatch(r"[A-Za-z0-9_-]{43,128}", token) is None:

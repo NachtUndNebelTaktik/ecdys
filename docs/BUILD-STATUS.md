@@ -1,4 +1,6 @@
-# ecdys.app — Build status
+# ecdys — Build status
+
+Product display name: **ecdys**. **ecdys.app** is the domain. Window titles, native application metadata and interface wordmarks use the product name. The earlier user-data directory is preserved so the display-name correction does not relocate saved vaults or appearance preferences; explicit user-data overrides still take precedence.
 
 ## Current slice
 

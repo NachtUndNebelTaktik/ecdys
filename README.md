@@ -1,4 +1,6 @@
-# ecdys.app
+# ecdys
+
+Product name: **ecdys**. Domain: **ecdys.app**.
 
 A sovereign desktop browser workstation for security operations, crypto/Web3 and browser-based trading. Proxies, authenticated SOCKS5 switching and Monero remain essential requirements. Team collaboration and offline operation are built-in capabilities of the same station.
 

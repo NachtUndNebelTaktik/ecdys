@@ -1,10 +1,10 @@
-# ecdys.app — Blueprint v4.0 Change Ledger
+# ecdys — Blueprint v4.0 Change Ledger
 
 **Source:** The complete v3.0 blueprint supplied in this conversation, its 30 numbered requirements and 36 locked design decisions, the approved revision plan, and subsequent owner instructions.
 
 **Rule:** Preserve the workstation and every capability. Correct mechanisms that cannot deliver the intended behavior, expose missing architecture, and distinguish implementation targets from verified facts.
 
-**Owner decisions carried forward:** Full replacement rather than an overriding companion; self-hosted collaboration; permanent offline use for activated one-time licenses; pricing reconciliation deferred; product named ecdys.app; proxies, SOCKS5 switching, and Monero mandatory; teams and offline access are built-in features, not separate product identities.
+**Owner decisions carried forward:** Full replacement rather than an overriding companion; self-hosted collaboration; permanent offline use for activated one-time licenses; pricing reconciliation deferred; product named ecdys (ecdys.app is the domain); proxies, SOCKS5 switching, and Monero mandatory; teams and offline access are built-in features, not separate product identities.
 
 ## 1. Product continuity
 

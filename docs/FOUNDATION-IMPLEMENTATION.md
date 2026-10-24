@@ -1,4 +1,4 @@
-# ecdys.app — Desktop foundation implementation
+# ecdys — Desktop foundation implementation
 
 Source: BLUEPRINT-v4.0.md and specs/DATA-CONTRACTS-v4.0.md.
 

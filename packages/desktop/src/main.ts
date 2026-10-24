@@ -1,6 +1,7 @@
 import {app, BrowserWindow, ipcMain, powerMonitor, protocol, session} from 'electron';
 import {join, resolve, sep} from 'node:path';
 import {readFile} from 'node:fs/promises';
+import {mkdirSync} from 'node:fs';
 import {WorkspaceService} from './workspace';
 import {dispatch, isTrustedFrame, safeError} from './ipc';
 import {shouldLockVault} from './idle';
@@ -8,7 +9,13 @@ import {shouldLockVault} from './idle';
 protocol.registerSchemesAsPrivileged([
   {scheme: 'ecdys', privileges: {standard: true, secure: true, supportFetchAPI: true}},
 ]);
-app.setName('ecdys.app');
+app.setName('ecdys');
+// Display branding must not relocate existing vaults or appearance preferences.
+// Keep the established data directory, and honor an explicit runtime override.
+const userDataDirectory =
+  app.commandLine.getSwitchValue('user-data-dir') || join(app.getPath('appData'), 'ecdys.app');
+mkdirSync(userDataDirectory, {recursive: true, mode: 0o700});
+app.setPath('userData', userDataDirectory);
 if (!app.requestSingleInstanceLock()) app.quit();
 let window: BrowserWindow | null = null;
 let service: WorkspaceService;
@@ -16,7 +23,7 @@ let quitting = false;
 
 function createWindow() {
   window = new BrowserWindow({
-    title: 'ecdys.app',
+    title: 'ecdys',
     width: 1440,
     height: 940,
     minWidth: 1050,

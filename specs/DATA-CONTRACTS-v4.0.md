@@ -1,4 +1,4 @@
-# ecdys.app — Data and Interface Contracts v4.0
+# ecdys — Data and Interface Contracts v4.0
 
 **Authority:** [Replacement blueprint](../BLUEPRINT-v4.0.md). These are normative design contracts for future implementation, not migrations executed against a running application.
 

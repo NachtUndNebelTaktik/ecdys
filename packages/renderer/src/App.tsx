@@ -277,7 +277,7 @@ export default function App() {
       fallback={
         <div class="bridge-error">
           <Mark />
-          <h1>Open ecdys.app on your desktop.</h1>
+          <h1>Open ecdys on your desktop.</h1>
           <p>
             The privileged desktop bridge is unavailable. This browser view does not create a
             substitute vault.
@@ -324,9 +324,7 @@ export default function App() {
             <aside class="sidebar">
               <a class="brand" href="#" onClick={(e) => e.preventDefault()}>
                 <Mark />
-                <span>
-                  ecdys<span class="brand-app">.app</span>
-                </span>
+                <span>ecdys</span>
               </a>
               <div class="workspace-label">
                 <span class="status-dot" />
@@ -429,7 +427,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.3.0</span>
+                  FOUNDATION BUILD <span>v0.3.1</span>
                 </div>
               </div>
             </aside>
@@ -983,7 +981,7 @@ export default function App() {
                     </dd>
                     <dt>Team and offline features</dt>
                     <dd>
-                      Part of ecdys.app. Local configuration operations work offline; team sync is
+                      Part of ecdys. Local configuration operations work offline; team sync is
                       pending.
                     </dd>
                   </dl>
@@ -1001,7 +999,7 @@ export default function App() {
                 </section>
               </Show>
               <footer class="page-footer">
-                <span>ecdys.app / LOCAL-FIRST WORKSTATION</span>
+                <span>ecdys / LOCAL-FIRST WORKSTATION</span>
                 <span>FOUNDATION · CONFIGURATION OPERATIONS ONLY</span>
               </footer>
             </main>
@@ -1150,9 +1148,7 @@ function VaultScreen(props: {
       <div class="vault-story">
         <div class="brand">
           <Mark />
-          <span>
-            ecdys<span class="brand-app">.app</span>
-          </span>
+          <span>ecdys</span>
         </div>
         <Stamp>SOVEREIGN BROWSER WORKSTATION</Stamp>
         <h1>
@@ -1178,7 +1174,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.3.0 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.3.1 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">

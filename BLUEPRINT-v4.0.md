@@ -1,4 +1,6 @@
-# ecdys.app
+# ecdys
+
+**Product name:** ecdys. **Domain:** ecdys.app.
 
 ## Complete Implementation Blueprint v4.0
 
@@ -32,7 +34,7 @@ This is one replacement specification. The [change ledger](CHANGE-LEDGER-v4.0.md
 
 A desktop browser workstation that manages up to 99 persistent profiles with separate browsing storage, configurable fingerprints, dedicated or explicitly shared network routes, automatic snapshots, automation, diagnostics, and workspace tools.
 
-Profiles are the infrastructure for operational work. ecdys.app brings configuration, recovery, comparison, network policy, and resource control into one locally owned workspace. It is intended to become the operator's working environment, including work involving sensitive investigations or real capital. Proxies, authenticated SOCKS5 configuration and switching, and Monero payments are core requirements, not optional future integrations.
+Profiles are the infrastructure for operational work. ecdys brings configuration, recovery, comparison, network policy, and resource control into one locally owned workspace. It is intended to become the operator's working environment, including work involving sensitive investigations or real capital. Proxies, authenticated SOCKS5 configuration and switching, and Monero payments are core requirements, not optional future integrations.
 
 The complete product includes folders, tags, maps, bulk operations, recipes, disposable children, comparison labs, capsules, team collaboration, billing, licensing, and controlled updates. These capabilities are retained as part of v1.0. Sequencing them is an implementation dependency decision, not permission to delete them.
 
@@ -663,7 +665,7 @@ Original identifiers are retained for traceability. These are application capabi
 - Show invalid, expired, revoked, used, seat-full, and server-unavailable errors without account enumeration.
 - Admin can list status and revoke unused invitations. Redemption is rate limited.
 - Membership and grants determine access; joining never automatically decrypts every profile or reveals VPN/proxy credentials.
-- Team capability is part of ecdys.app. Single-user operators do not need to deploy or contact a team service.
+- Team capability is part of ecdys. Single-user operators do not need to deploy or contact a team service.
 
 ### US-25 — View and export team audit records
 
@@ -779,7 +781,7 @@ Service APIs are HTTPS JSON under /v1 with authentication, object-level authoriz
 
 ## 7. Technical examples
 
-Examples specify the corrected integration shape. They are not proof that an unbuilt ecdys.app gateway works. Pin supported Selenium versions in release CI and run both languages against the shipped gateway before publishing them as tested.
+Examples specify the corrected integration shape. They are not proof that an unbuilt ecdys gateway works. Pin supported Selenium versions in release CI and run both languages against the shipped gateway before publishing them as tested.
 
 ### 7.1 Transport-authenticated Python Selenium
 
@@ -995,10 +997,10 @@ Reference hosts, OS versions, power modes, GPU, CPU, physical RAM, display resol
 
 The [ledger](CHANGE-LEDGER-v4.0.md#3-original-36-decisions) records all 36 original decisions individually. The following additional decisions govern this revision:
 
-1. Product name is ecdys.app. Do not retain Gab AI branding or assume an unconfigured support address is live.
+1. Product name is ecdys. Do not retain Gab AI branding or assume an unconfigured support address is live.
 2. All 30 requirements and advanced capabilities remain in the product.
 3. Proxies, authenticated SOCKS5 switching, and Monero are essential, first-class capabilities.
-4. Collaboration is built in and uses a self-hosted team service; it does not redefine ecdys.app as a team product.
+4. Collaboration is built in and uses a self-hosted team service; it does not redefine ecdys as a team product.
 5. Offline operation is built in, including permanent offline use for activated one-time licenses.
 6. Network enforcement is native and fail closed; external probes and CDP are diagnostics/control aids.
 7. Payment and license authority are outside distributed desktops; operational browsing data is outside the commercial service.
@@ -1028,7 +1030,7 @@ Target macOS signed/notarized distributions for Intel and Apple Silicon, Windows
 
 An AppImage cannot by itself guarantee privileged networking or sandbox support on every distribution. Document helper installation and required OS capabilities. Windows signing does not guarantee SmartScreen reputation; macOS notarization does not certify every application behavior.
 
-Use ecdys.app branding in metadata, desktop entries, installers, docs, and display names. Canonical filesystem slugs may use ecdys-app. Distribution/download/API/support hostnames are deployment configuration until the owner provisions and verifies them; the product name does not prove control of a domain.
+Use ecdys branding in metadata, desktop entries, installers, docs, and display names. Canonical distribution slugs use ecdys. Existing storage-directory names are retained where needed for compatibility. Distribution/download/API/support hostnames are deployment configuration until the owner provisions and verifies them; the product name does not prove control of a domain.
 
 Primary owner-controlled CDN and GitHub Releases mirror serve the same signed manifests/artifacts. Publish SHA-256 checksums and signatures, SBOM/dependency notices, supported release matrix, and offline verification instructions. Do not ship license signer keys, merchant secrets, development keyrings, or test wallet credentials.
 

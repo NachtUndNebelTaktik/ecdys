@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * ecdys.app WebDriver transport example.
+ * ecdys WebDriver transport example.
  * Requires a supported selenium-webdriver release and a running gateway.
  * It visits ECDYS_TARGET_URL (https://example.com by default).
  * Authorization authenticates control requests; it never enters page headers.
@@ -53,7 +53,7 @@ async function main() {
     parsed.search !== '' ||
     parsed.hash !== ''
   ) {
-    throw new Error('Use the numeric-loopback gateway URL from ecdys.app.');
+    throw new Error('Use the numeric-loopback gateway URL from ecdys.');
   }
 
   const token = process.env.ECDYS_WEBDRIVER_TOKEN || '';

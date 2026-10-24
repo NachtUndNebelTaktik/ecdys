@@ -1,4 +1,4 @@
-# ecdys.app — Proxy pools and route operations
+# ecdys — Proxy pools and route operations
 
 Source: BLUEPRINT-v4.0.md, especially first-class proxies, recoverable changes, and honest diagnostics. This continues the existing desktop foundation without removing Monero, team, offline, or advanced workstation capabilities.
 

@@ -1,8 +1,8 @@
 {
-  "name": "ecdys-app",
+  "name": "ecdys",
   "private": true,
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "build": "pnpm --filter @ecdys/renderer build && pnpm --filter @ecdys/desktop build",

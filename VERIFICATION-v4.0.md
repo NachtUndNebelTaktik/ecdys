@@ -1,4 +1,4 @@
-# ecdys.app — Blueprint Revision Verification
+# ecdys — Blueprint Revision Verification
 
 **Date:** 2026-10-24  
 **Task:** Implement the approved full blueprint revision.  
@@ -11,7 +11,7 @@
 | Requirement coverage | All US-1 through US-30 appear once as full requirement sections, in order, and appear in the change-ledger continuity map. |
 | Milestone coverage | All 23 milestones M0–M22 appear in order, with dependency/exit evidence and a team workstream. |
 | Original decisions | All 36 original decisions D01–D36 have an explicit preserved/clarified/corrected disposition and rationale. |
-| Owner steering | ecdys.app naming, essential proxies/SOCKS5 switching/Monero, self-hosted team feature, permanent offline one-time licenses, and deferred prices are explicit. |
+| Owner steering | ecdys naming, essential proxies/SOCKS5 switching/Monero, self-hosted team feature, permanent offline one-time licenses, and deferred prices are explicit. |
 | Data separation | Local operational, self-hosted collaboration, commercial authority, and ephemeral runtime data have separate contracts. |
 | Integration examples | Python AST parse and Node.js syntax check passed. Both include request pacing for free-tier compatibility. No dependency installation, running gateway, website navigation, screenshot capture, or Selenium end-to-end test was performed. |
 | Local document links | All relative links and local heading fragments resolve. |
