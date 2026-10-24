@@ -13,7 +13,7 @@ import {
   closeSync,
   fsyncSync,
 } from 'node:fs';
-import {join} from 'node:path';
+import {join, resolve, sep} from 'node:path';
 import {gzipSync, gunzipSync} from 'node:zlib';
 import Database from 'better-sqlite3-multiple-ciphers';
 import {
@@ -23,6 +23,10 @@ import {
   initialResearch,
   type ResearchDraft,
   type ResearchWorkspace,
+  type NotepadDraft,
+  type NotepadDocument,
+  type NotepadState,
+  type NotepadFile,
   type ProxyChange,
   type ProxyChangeResult,
   type ProxyPool,
@@ -42,6 +46,7 @@ import {ProxyLibrary, routeIdentity} from './proxy-library';
 import {previewProxyImport} from './route-import';
 import {probeProxy} from './proxy-probe';
 import {ResearchLibrary} from './research';
+import {NotepadLibrary} from './notepad';
 export {WorkspaceError} from './errors';
 interface VaultHeader {
   format: 1;
@@ -228,7 +233,11 @@ export class WorkspaceService {
         master?.fill(0);
         if (
           error instanceof WorkspaceError &&
-          ['VAULT_RECOVERY_REQUIRED', 'RESEARCH_RECOVERY_REQUIRED'].includes(error.code)
+          [
+            'VAULT_RECOVERY_REQUIRED',
+            'RESEARCH_RECOVERY_REQUIRED',
+            'NOTEPAD_RECOVERY_REQUIRED',
+          ].includes(error.code)
         )
           throw error;
         throw new WorkspaceError(
@@ -304,7 +313,7 @@ export class WorkspaceService {
           )
           .all();
         if (
-          ![1, 2, 3].includes(Number(version)) ||
+          ![1, 2, 3, 4].includes(Number(version)) ||
           tables.length !== 3 ||
           db.pragma('quick_check', {simple: true}) !== 'ok'
         ) {
@@ -326,7 +335,7 @@ export class WorkspaceService {
             'The proxy library schema is incomplete. Restore your backup.',
           );
         if (
-          version === 3 &&
+          Number(version) >= 3 &&
           !db
             .prepare(
               "SELECT name FROM sqlite_master WHERE type='table' AND name='research_workspace'",
@@ -336,6 +345,18 @@ export class WorkspaceService {
           throw new WorkspaceError(
             'VAULT_RECOVERY_REQUIRED',
             'The research schema is incomplete. Restore your backup; its contents were preserved.',
+          );
+        if (
+          Number(version) >= 4 &&
+          db
+            .prepare(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('notepad','notepad_files')",
+            )
+            .all().length !== 2
+        )
+          throw new WorkspaceError(
+            'VAULT_RECOVERY_REQUIRED',
+            'The notepad schema is incomplete. Restore your backup; its contents were preserved.',
           );
       }
       if (db.pragma('user_version', {simple: true}) === 1)
@@ -359,6 +380,16 @@ export class WorkspaceService {
           db.pragma('user_version = 3');
         })();
       new ResearchLibrary(db).read();
+      if (db.pragma('user_version', {simple: true}) === 3)
+        db.transaction(() => {
+          db.exec(`CREATE TABLE notepad (id INTEGER PRIMARY KEY CHECK(id = 1), title TEXT NOT NULL, body TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision > 0), updated_at INTEGER NOT NULL);
+            CREATE TABLE notepad_files (id TEXT PRIMARY KEY, name TEXT NOT NULL, bytes INTEGER NOT NULL CHECK(bytes >= 0), sha256 TEXT NOT NULL, created_at INTEGER NOT NULL);`);
+          db.prepare("INSERT INTO notepad VALUES (1, 'Encrypted notepad', '', 1, ?)").run(
+            Date.now(),
+          );
+          db.pragma('user_version = 4');
+        })();
+      this.notepadLibrary(db, master).read();
       chmodSync(join(this.directory, 'workspace.sqlite'), 0o600);
       return db;
     } catch (error) {
@@ -424,6 +455,61 @@ export class WorkspaceService {
     for (const {id} of this.database().prepare('SELECT id FROM profiles').all() as {id: string}[])
       this.prune(id);
     this.syncDirectory(path);
+    this.notepadLibrary().reconcile();
+  }
+  private notepadLibrary(db = this.database(), master = this.master!): NotepadLibrary {
+    return new NotepadLibrary(
+      db,
+      master,
+      join(this.directory, 'notepad-files'),
+      (path) => this.syncDirectory(path),
+      (message) => this.warnings.add(message),
+    );
+  }
+  notepad(): Promise<NotepadState> {
+    return this.serial(() => this.notepadLibrary().read());
+  }
+  saveNotepad(input: {revision: number; draft: NotepadDraft}): Promise<NotepadDocument> {
+    return this.serial(() => this.notepadLibrary().save(input));
+  }
+  notepadTicket(): Promise<number> {
+    return this.serial(() => {
+      this.database();
+      return this.diagnosticEpoch;
+    });
+  }
+  private checkNotepadTicket(ticket: number) {
+    this.database();
+    if (ticket !== this.diagnosticEpoch)
+      throw new WorkspaceError(
+        'VAULT_CHANGED',
+        'The workspace changed while the file dialog was open. Select the file again.',
+      );
+  }
+  notepadFile(id: string): Promise<NotepadFile> {
+    return this.serial(() => this.notepadLibrary().file(id));
+  }
+  importNotepadFile(path: string, ticket: number): Promise<NotepadFile> {
+    return this.serial(() => {
+      this.checkNotepadTicket(ticket);
+      return this.notepadLibrary().import(path);
+    });
+  }
+  exportNotepadFile(id: string, path: string, ticket: number): Promise<void> {
+    return this.serial(() => {
+      this.checkNotepadTicket(ticket);
+      const destination = resolve(path),
+        vault = resolve(this.directory);
+      if (destination === vault || destination.startsWith(vault + sep))
+        throw new WorkspaceError(
+          'FILE_DESTINATION',
+          'Choose an export location outside the encrypted vault.',
+        );
+      this.notepadLibrary().export(id, destination);
+    });
+  }
+  removeNotepadFile(id: string): Promise<void> {
+    return this.serial(() => this.notepadLibrary().remove(id));
   }
   private database(): Database.Database {
     if (!this.db || !this.master)

@@ -449,7 +449,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.4.0</span>
+                  FOUNDATION BUILD <span>v0.5.0</span>
                 </div>
               </div>
             </aside>
@@ -1220,7 +1220,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.4.0 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.5.0 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">

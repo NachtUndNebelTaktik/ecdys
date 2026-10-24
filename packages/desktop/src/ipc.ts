@@ -6,6 +6,7 @@ import {
   BrowserInputSchema,
   BrowserUrlSchema,
   SaveResearchSchema,
+  SaveNotepadSchema,
   type SafeError,
 } from '@ecdys/shared';
 import {WorkspaceError, type WorkspaceService} from './workspace';
@@ -14,6 +15,11 @@ import type {TemporaryBrowserRuntime} from './browser-runtime';
 const id = z.uuid();
 const revision = z.number().int().positive();
 const invocation = z.discriminatedUnion('method', [
+  z.object({method: z.literal('notepad'), args: z.tuple([])}).strict(),
+  z.object({method: z.literal('saveNotepad'), args: z.tuple([SaveNotepadSchema])}).strict(),
+  z.object({method: z.literal('importNotepadFile'), args: z.tuple([])}).strict(),
+  z.object({method: z.literal('exportNotepadFile'), args: z.tuple([id])}).strict(),
+  z.object({method: z.literal('removeNotepadFile'), args: z.tuple([id])}).strict(),
   z.object({method: z.literal('researchWorkspace'), args: z.tuple([])}).strict(),
   z
     .object({method: z.literal('saveResearchWorkspace'), args: z.tuple([SaveResearchSchema])})
@@ -101,13 +107,47 @@ export function safeError(error: unknown): SafeError {
     message: 'The operation could not be completed. Your workspace was not intentionally replaced.',
   };
 }
+export interface NotepadDialogs {
+  selectImport(): Promise<string | null>;
+  selectExport(name: string): Promise<string | null>;
+}
 export async function dispatch(
   service: WorkspaceService,
   input: unknown,
   runtime?: TemporaryBrowserRuntime,
+  dialogs?: NotepadDialogs,
 ): Promise<unknown> {
   const request = parseInvocation(input);
   switch (request.method) {
+    case 'notepad':
+      return service.notepad();
+    case 'saveNotepad':
+      return service.saveNotepad(request.args[0]);
+    case 'removeNotepadFile':
+      return service.removeNotepadFile(request.args[0]);
+    case 'importNotepadFile': {
+      const ticket = await service.notepadTicket();
+      if (!dialogs)
+        throw new WorkspaceError(
+          'FILE_DIALOG_UNAVAILABLE',
+          'The native file chooser is unavailable.',
+        );
+      const path = await dialogs.selectImport();
+      return path ? service.importNotepadFile(path, ticket) : null;
+    }
+    case 'exportNotepadFile': {
+      const ticket = await service.notepadTicket();
+      const file = await service.notepadFile(request.args[0]);
+      if (!dialogs)
+        throw new WorkspaceError(
+          'FILE_DIALOG_UNAVAILABLE',
+          'The native file chooser is unavailable.',
+        );
+      const path = await dialogs.selectExport(file.name);
+      if (!path) return false;
+      await service.exportNotepadFile(file.id, path, ticket);
+      return true;
+    }
     case 'researchWorkspace':
       return service.researchWorkspace();
     case 'saveResearchWorkspace':

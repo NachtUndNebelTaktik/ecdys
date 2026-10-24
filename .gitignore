@@ -11,6 +11,9 @@ playwright-report/
 *.sqlite*
 *.db*
 *.vault
+*.enc
+vault.json
+vault.json.tmp
 .env
 .env.*
 !.env.example

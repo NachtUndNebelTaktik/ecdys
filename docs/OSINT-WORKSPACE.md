@@ -1,6 +1,6 @@
 # ecdys OSINT workspace
 
-The OSINT navigation tab contains a Mindmap and an OSINT tools shelf. Both belong to the local encrypted workspace; neither contacts a website automatically.
+The OSINT navigation tab contains a Mindmap and an OSINT tools shelf, with an encrypted notepad and saved files below. All belong to the local encrypted workspace; none contacts a website automatically. See ENCRYPTED-NOTEPAD.md for file storage and the Pro 1 GB cloud requirement.
 
 ## Mindmap
 
@@ -24,7 +24,7 @@ The full research document is stored in the SQLCipher-compatible vault database,
 
 Revision checks reject stale writes. A storage or revision error retains the local draft and offers Retry save and an explicitly confirmed Reload saved action. Manual workspace lock flushes pending writes first and remains blocked on a failed flush. Automatic inactivity lock clears the research interface along with other vault data. Edits are durable only after the saved indicator; an application or system crash during a pending write can still lose that pending edit.
 
-Schema v3 adds the research document transactionally after the earlier proxy migration. Existing profiles, credentials and checkpoints are retained. A missing research table, row or malformed document in a v3 vault is not silently recreated. Restore a backup containing the header, database and snapshots together. Research notes are protected by the encrypted database, but are not yet included in individual profile configuration checkpoints or capsule exports.
+Schema v3 adds the research document transactionally after the earlier proxy migration; v4 adds the notepad and saved files. Existing profiles, credentials and checkpoints are retained. A missing research table, row or malformed document in a research-enabled vault is not silently recreated. Restore a backup containing the header, database, snapshots and notepad-files directory together. Research notes are protected by the encrypted database, but are not yet included in individual profile configuration checkpoints or capsule exports.
 
 ## Verification
 

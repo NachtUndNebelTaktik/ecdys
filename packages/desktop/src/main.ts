@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, powerMonitor, protocol, session} from 'electron';
+import {app, BrowserWindow, ipcMain, powerMonitor, protocol, session, dialog} from 'electron';
 import {join, resolve, sep} from 'node:path';
 import {readFile} from 'node:fs/promises';
 import {mkdirSync} from 'node:fs';
@@ -6,6 +6,7 @@ import {WorkspaceService} from './workspace';
 import {dispatch, isTrustedFrame, safeError} from './ipc';
 import {shouldLockVault} from './idle';
 import {TemporaryBrowserRuntime} from './browser-runtime';
+import {WorkspaceError} from './errors';
 
 protocol.registerSchemesAsPrivileged([
   {scheme: 'ecdys', privileges: {standard: true, secure: true, supportFetchAPI: true}},
@@ -82,6 +83,21 @@ app.whenReady().then(() => {
       cancel: !details.url.startsWith('ecdys://app/') && !details.url.startsWith('devtools:'),
     });
   });
+  let dialogOpen = false;
+  async function chooseFile(
+    work: (parent: BrowserWindow) => Promise<string | null>,
+  ): Promise<string | null> {
+    if (dialogOpen)
+      throw new WorkspaceError('FILE_DIALOG_BUSY', 'Finish the open file dialog first.');
+    if (!window || window.isDestroyed())
+      throw new WorkspaceError('FILE_DIALOG_UNAVAILABLE', 'The desktop window is unavailable.');
+    dialogOpen = true;
+    try {
+      return await work(window);
+    } finally {
+      dialogOpen = false;
+    }
+  }
   ipcMain.handle('ecdys:workspace', async (event, input: unknown) => {
     if (
       !window ||
@@ -95,7 +111,30 @@ app.whenReady().then(() => {
       };
     }
     try {
-      return {ok: true, data: await dispatch(service, input, browserRuntime)};
+      return {
+        ok: true,
+        data: await dispatch(service, input, browserRuntime, {
+          selectImport: () =>
+            chooseFile(async (parent) => {
+              const result = await dialog.showOpenDialog(parent, {
+                title: 'Save a file in the encrypted notepad',
+                buttonLabel: 'Encrypt and save',
+                properties: ['openFile'],
+              });
+              return result.canceled ? null : result.filePaths[0] || null;
+            }),
+          selectExport: (name) =>
+            chooseFile(async (parent) => {
+              const result = await dialog.showSaveDialog(parent, {
+                title: 'Export a decrypted copy',
+                defaultPath: name,
+                buttonLabel: 'Export copy',
+                message: 'This saves a decrypted copy outside your encrypted vault.',
+              });
+              return result.canceled ? null : result.filePath || null;
+            }),
+        }),
+      };
     } catch (error) {
       return {ok: false, error: safeError(error)};
     }

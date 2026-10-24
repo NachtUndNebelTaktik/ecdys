@@ -1,5 +1,5 @@
 import {test, expect, _electron as electron, type ElectronApplication} from '@playwright/test';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 
@@ -13,7 +13,7 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
         '--user-data-dir=' + join(directory, 'electron'),
         resolve('packages/desktop/dist/main.cjs'),
       ],
-      env: {...process.env, ECDYS_DATA_DIR: directory},
+      env: {...process.env, ECDYS_DATA_DIR: join(directory, 'vault')},
     });
     const page = await app.firstWindow(),
       errors: string[] = [];
@@ -153,10 +153,54 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
       .toBe(true);
     await page.getByRole('heading', {name: 'Research workspace'}).scrollIntoViewIfNeeded();
     await page.screenshot({path: 'artifacts/osint-tools.png', fullPage: true});
+    const notepad = page.getByRole('region', {name: 'Encrypted notepad', exact: true});
+    await notepad.getByLabel('Notepad title', {exact: true}).fill('Operations journal');
+    await notepad.getByLabel('Notepad title', {exact: true}).press('Tab');
+    await notepad
+      .getByLabel('Encrypted notepad text', {exact: true})
+      .fill('Private working notes.\n\nReview sources and keep the evidence with this case.');
+    await expect(notepad.getByLabel('Notepad save status')).toHaveText('Saved to encrypted vault');
+    const source = join(directory, 'evidence.txt'),
+      target = join(directory, 'exported-evidence.txt');
+    await writeFile(source, 'Owned file fixture: encrypted attachment content.');
+    await app.evaluate(
+      ({dialog}, paths) => {
+        Object.assign(dialog, {
+          showOpenDialog: async () => ({canceled: false, filePaths: [paths.source]}),
+          showSaveDialog: async () => ({canceled: false, filePath: paths.target}),
+        });
+      },
+      {source, target},
+    );
+    await notepad.getByRole('button', {name: 'Save file', exact: false}).click();
+    await expect(notepad.locator('.notepad-file')).toHaveCount(1);
+    await notepad
+      .getByRole('button', {name: 'Export decrypted copy of evidence.txt', exact: true})
+      .click();
+    await expect(
+      notepad.getByRole('status').filter({hasText: 'Decrypted copy exported'}),
+    ).toBeVisible();
+    expect(await readFile(target, 'utf8')).toBe(
+      'Owned file fixture: encrypted attachment content.',
+    );
+    expect(await readFile(source, 'utf8')).toBe(
+      'Owned file fixture: encrypted attachment content.',
+    );
+    await app.evaluate(({dialog}) => {
+      Object.assign(dialog, {showOpenDialog: async () => ({canceled: true, filePaths: []})});
+    });
+    await notepad.getByRole('button', {name: 'Save file', exact: false}).click();
+    await expect(notepad.locator('.notepad-file')).toHaveCount(1);
+    await expect(notepad.getByText('CLOUD NOT CONNECTED', {exact: true})).toBeVisible();
+    expect((await page.evaluate(() => window.ecdys!.notepad())).cloud.allowanceBytes).toBe(
+      1_000_000_000,
+    );
+    await notepad.screenshot({path: 'artifacts/encrypted-notepad.png'});
     const preferences = await page.evaluate(() => JSON.stringify(window.localStorage));
     expect(preferences).not.toContain('Operator notes');
     expect(preferences).not.toContain('Infrastructure research');
     expect(preferences).not.toContain('Operator source');
+    expect(preferences).not.toContain('Private working notes');
     await page.reload();
     await nav.getByRole('button', {name: /^OSINT/}).click();
     await expect(page.getByLabel('Mindmap name', {exact: true})).toHaveValue(
@@ -171,6 +215,13 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
     await expect(page.getByLabel('Source URL', {exact: true})).toHaveValue(
       'https://example.org/source',
     );
+    await expect(notepad.getByLabel('Notepad title', {exact: true})).toHaveValue(
+      'Operations journal',
+    );
+    await expect(notepad.getByLabel('Encrypted notepad text', {exact: true})).toHaveValue(
+      'Private working notes.\n\nReview sources and keep the evidence with this case.',
+    );
+    await expect(notepad.locator('.notepad-file')).toHaveCount(1);
     const saved = await page.evaluate(async () => {
       const {revision, updatedAt: _updatedAt, ...draft} = await window.ecdys!.researchWorkspace();
       return window.ecdys!.saveResearchWorkspace({
@@ -199,6 +250,7 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
       .click();
     await expect(page.getByRole('button', {name: 'Unlock workspace'})).toBeVisible();
     await expect(page.getByLabel('Research notes', {exact: true})).toHaveCount(0);
+    await expect(page.getByLabel('Encrypted notepad text', {exact: true})).toHaveCount(0);
     await page.getByLabel('Passphrase', {exact: true}).fill('research UI integration passphrase');
     await page.getByRole('button', {name: 'Unlock workspace'}).click();
     await expect(page.getByLabel('Mindmap name', {exact: true})).toHaveValue(
@@ -210,6 +262,24 @@ test('OSINT mindmap and tool shelf remain editable, encrypted and recoverable ac
         (tool) => tool.name === 'Operator source',
       ),
     ).toBe(true);
+    await expect(notepad.getByLabel('Encrypted notepad text', {exact: true})).toHaveValue(
+      'Private working notes.\n\nReview sources and keep the evidence with this case.',
+    );
+    await expect(notepad.locator('.notepad-file')).toHaveCount(1);
+    await notepad
+      .getByRole('button', {name: 'Remove saved file evidence.txt', exact: true})
+      .click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', {name: 'Remove encrypted file', exact: true})
+      .click();
+    await expect(notepad.locator('.notepad-file')).toHaveCount(0);
+    expect(await readFile(source, 'utf8')).toBe(
+      'Owned file fixture: encrypted attachment content.',
+    );
+    expect(await readFile(target, 'utf8')).toBe(
+      'Owned file fixture: encrypted attachment content.',
+    );
     expect(errors).toEqual([]);
   } finally {
     await app?.close();

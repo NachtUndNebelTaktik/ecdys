@@ -1,11 +1,11 @@
-import type {ResearchDraft, ResearchWorkspace} from '@ecdys/shared';
+import type {ResearchDraft} from '@ecdys/shared';
 
 export type ResearchSaveState = {state: 'saved' | 'saving' | 'error'; message?: string};
 
 // Coalesce edits made during a write, and never let an older response replace
 // newer edits. A failed write holds the draft until an explicit retry/reload.
-export class ResearchSaveQueue {
-  private draft?: ResearchDraft;
+export class VaultSaveQueue<T> {
+  private draft?: T;
   private generation = 0;
   private savedGeneration = 0;
   private pending?: Promise<void>;
@@ -13,10 +13,10 @@ export class ResearchSaveQueue {
   private active = true;
   constructor(
     private revision: number,
-    private save: (input: {revision: number; draft: ResearchDraft}) => Promise<ResearchWorkspace>,
+    private save: (input: {revision: number; draft: T}) => Promise<{revision: number}>,
     private report: (state: ResearchSaveState) => void,
   ) {}
-  update(draft: ResearchDraft) {
+  update(draft: T) {
     this.draft = draft;
     this.generation++;
     if (!this.failure) void this.flush().catch(() => undefined);
@@ -65,3 +65,4 @@ export class ResearchSaveQueue {
     if (this.active) this.report(state);
   }
 }
+export class ResearchSaveQueue extends VaultSaveQueue<ResearchDraft> {}

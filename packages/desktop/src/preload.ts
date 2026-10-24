@@ -11,6 +11,11 @@ async function call<T>(method: keyof EcdysApi, ...args: unknown[]): Promise<T> {
   return response.data;
 }
 const api: EcdysApi = {
+  notepad: () => call('notepad'),
+  saveNotepad: (input) => call('saveNotepad', input),
+  importNotepadFile: () => call('importNotepadFile'),
+  exportNotepadFile: (id) => call('exportNotepadFile', id),
+  removeNotepadFile: (id) => call('removeNotepadFile', id),
   researchWorkspace: () => call('researchWorkspace'),
   saveResearchWorkspace: (input) => call('saveResearchWorkspace', input),
   browserSupport: () => call('browserSupport'),

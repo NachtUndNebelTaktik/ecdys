@@ -491,7 +491,7 @@ describe('encrypted proxy library and route operations', () => {
       db.pragma('legacy=4');
       db.key(key);
       db.exec(
-        'DROP TABLE IF EXISTS research_workspace; DROP TABLE IF EXISTS proxy_endpoints; DROP TABLE IF EXISTS proxy_pools; PRAGMA user_version=1;',
+        'DROP TABLE IF EXISTS notepad_files; DROP TABLE IF EXISTS notepad; DROP TABLE IF EXISTS research_workspace; DROP TABLE IF EXISTS proxy_endpoints; DROP TABLE IF EXISTS proxy_pools; PRAGMA user_version=1;',
       );
     } finally {
       db.close();

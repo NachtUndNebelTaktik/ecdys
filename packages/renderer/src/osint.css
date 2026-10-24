@@ -612,7 +612,233 @@
 .osint-workspace .message > span {
   flex: 1;
 }
+.encrypted-notepad {
+  margin-top: 35px;
+  border: 1px solid var(--border);
+  border-radius: max(12px, var(--ui-radius));
+  overflow: hidden;
+  background: var(--panel);
+}
+.notepad-heading {
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.notepad-heading .stamp {
+  font-size: 8px;
+}
+.notepad-heading h2 {
+  font-size: 21px;
+  margin-top: 12px;
+}
+.notepad-heading p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.notepad-encrypted {
+  gap: 7px;
+  color: var(--muted);
+  font-size: 8px;
+}
+.notepad-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  border-top: 1px solid var(--border);
+}
+.notepad-editor {
+  min-width: 0;
+  background: var(--browser-page, var(--bg));
+}
+.notepad-editor-bar {
+  padding: 17px 21px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.notepad-editor-bar input {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  border-radius: 0;
+}
+.notepad-editor-bar input:focus {
+  box-shadow: none;
+}
+.notepad-editor-bar .tiny {
+  font-size: 8px;
+  flex-shrink: 0;
+}
+.notepad-editor textarea {
+  background: transparent;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  min-height: 250px;
+  padding: 22px;
+  font-size: 12px;
+  line-height: 1.95;
+  color: var(--text);
+}
+.notepad-editor textarea:focus {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent), transparent 40%);
+}
+.notepad-editor-footer {
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font: 8px var(--mono);
+  border-top: 1px solid var(--border);
+}
+.notepad-editor-footer > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.notepad-files {
+  min-width: 0;
+  padding: 23px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.notepad-files > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.notepad-files .stamp {
+  font-size: 8px;
+}
+.notepad-files h3 {
+  font-size: 12px;
+  margin-top: 12px;
+}
+.notepad-files > header .button {
+  font-size: 10px;
+}
+.notepad-files-empty {
+  text-align: center;
+  max-width: 270px;
+  margin: auto;
+  padding: 30px 12px;
+  color: var(--muted);
+}
+.notepad-files-empty > span {
+  font-size: 29px;
+  color: var(--accent);
+}
+.notepad-files-empty p {
+  font-size: 11px;
+  line-height: 1.9;
+  margin: 17px 0 10px;
+}
+.notepad-files-empty small {
+  font-size: 9px;
+  line-height: 1.9;
+}
+.notepad-files > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font: 8px var(--mono);
+  color: var(--muted);
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.notepad-file-list {
+  max-height: 245px;
+  overflow-y: auto;
+  margin: 22px -4px 20px;
+  padding: 0 4px;
+}
+.notepad-file {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notepad-file:last-child {
+  border-bottom: 0;
+}
+.notepad-file-icon {
+  font-size: 24px;
+  color: var(--accent);
+}
+.notepad-file > div {
+  flex: 1;
+  min-width: 0;
+}
+.notepad-file strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+}
+.notepad-file small {
+  display: block;
+  font: 8px var(--mono);
+  color: var(--muted);
+  margin-top: 7px;
+}
+.notepad-cloud {
+  padding: 19px 25px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent), transparent 98%);
+}
+.notepad-cloud-icon {
+  color: var(--accent);
+  font-size: 24px;
+}
+.notepad-cloud > div {
+  flex: 1;
+}
+.notepad-cloud strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.notepad-cloud p {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 5px;
+}
+.notepad-cloud .pill {
+  font-size: 8px;
+  color: var(--muted);
+}
+.encrypted-notepad > .message {
+  margin: 0 20px 15px;
+}
+.notepad-loading {
+  padding: 20px;
+  color: var(--muted);
+  font-size: 11px;
+}
 @media (max-width: 1250px) {
+  .notepad-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .notepad-files {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
   .research-map-layout {
     grid-template-columns: minmax(0, 1fr) 230px;
   }
@@ -628,6 +854,12 @@
   }
 }
 @media (max-width: 1000px) {
+  .notepad-heading {
+    align-items: flex-start;
+  }
+  .notepad-cloud {
+    flex-wrap: wrap;
+  }
   .research-save {
     font-size: 9px;
   }

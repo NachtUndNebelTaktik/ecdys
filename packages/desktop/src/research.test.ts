@@ -173,7 +173,9 @@ describe('encrypted OSINT research', () => {
     });
     await service.lock();
     await alterDatabase(directory, (db) =>
-      db.exec('DROP TABLE research_workspace; PRAGMA user_version=2;'),
+      db.exec(
+        'DROP TABLE notepad_files; DROP TABLE notepad; DROP TABLE research_workspace; PRAGMA user_version=2;',
+      ),
     );
     await service.unlock(phrase);
     expect((await service.listProfiles())[0]?.id).toBe(profile.id);

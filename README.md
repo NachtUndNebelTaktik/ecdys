@@ -13,7 +13,7 @@ Requires Node.js 24, pnpm 11 and a desktop environment for normal interactive us
     pnpm install
     pnpm dev
 
-The vault lives under Electron's per-user application-data directory. ECDYS_DATA_DIR can select a different workspace directory. Back up the header, database and snapshots together while the vault is locked.
+The vault lives under Electron's per-user application-data directory. ECDYS_DATA_DIR can select a different workspace directory. Back up the header, database, snapshots and notepad-files directory together while the vault is locked.
 
 Electron downloads its platform binary on first use. In environments requiring an HTTP proxy, its downloader may need NODE_USE_ENV_PROXY=1. Do not disable TLS verification.
 
@@ -31,6 +31,8 @@ Electron downloads its platform binary on first use. In environments requiring a
 - OSINT workspace with a draggable mindmap, typed nodes, source notes, labeled connections, zoom/pan/fit, keyboard movement and undo.
 - Searchable OSINT tool library with categories, pins and editable custom website tools; links open through the active routed temporary session.
 - Research autosave inside the encrypted vault, revision conflict protection and recovery after reload/lock. No automatic external tool queries.
+- Encrypted notepad beneath the OSINT workspace, with autosaved text and encrypted saved files. Native dialogs import files and explicitly export decrypted copies; originals stay in place.
+- Pro cloud allowance defined as 1 GB for notes and files. Cloud transport and paid entitlements remain unconnected; the current notepad works locally and offline.
 - Encrypted proxy passwords omitted from public responses.
 - Encrypted named proxy pools, URI/JSON import previews and duplicate removal.
 - Real authenticated SOCKS5 and HTTP CONNECT tunnel tests, HTTPS certificate verification, bounded deadlines and lock cancellation.
@@ -72,6 +74,7 @@ The UI test uses Electron's headless Ozone backend without disabling renderer sa
 - [Browser appearance and workspace controls](docs/BROWSER-APPEARANCE.md)
 - [Temporary browser runtime](docs/BROWSER-RUNTIME.md)
 - [OSINT mindmap and tool library](docs/OSINT-WORKSPACE.md)
+- [Encrypted notepad, files and Pro cloud requirement](docs/ENCRYPTED-NOTEPAD.md)
 - [GitHub repository setup](docs/GITHUB.md)
 - [Build status and remaining gates](docs/BUILD-STATUS.md)
 - [Documentation revision verification](VERIFICATION-v4.0.md)

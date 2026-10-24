@@ -1,7 +1,9 @@
 import {z} from 'zod';
 import type {ResearchDraft, ResearchWorkspace} from './research';
+import type {NotepadDraft, NotepadDocument, NotepadFile, NotepadState} from './notepad';
 export {z};
 export * from './research';
+export * from './notepad';
 
 const host = z
   .string()
@@ -181,6 +183,11 @@ export function evaluateLaunch(input: {
   return {allowed: reasons.length === 0, reasons};
 }
 export interface EcdysApi {
+  notepad(): Promise<NotepadState>;
+  saveNotepad(input: {revision: number; draft: NotepadDraft}): Promise<NotepadDocument>;
+  importNotepadFile(): Promise<NotepadFile | null>;
+  exportNotepadFile(id: string): Promise<boolean>;
+  removeNotepadFile(id: string): Promise<void>;
   researchWorkspace(): Promise<ResearchWorkspace>;
   saveResearchWorkspace(input: {
     revision: number;

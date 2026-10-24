@@ -21,6 +21,7 @@ import {
   type TemporaryBrowserSession,
 } from '@ecdys/shared';
 import {Modal} from './Modal';
+import {EncryptedNotepad} from './EncryptedNotepad';
 import {ResearchSaveQueue, type ResearchSaveState} from './research-save';
 import './osint.css';
 
@@ -83,6 +84,7 @@ export function OsintWorkspace(props: {
   let saver: ResearchSaveQueue | undefined,
     disposed = false,
     fitted = false;
+  let flushNotepad: (() => Promise<void>) | undefined;
   let gesture:
     | {
         pointer: number;
@@ -146,7 +148,10 @@ export function OsintWorkspace(props: {
     }
   }
   onMount(() => {
-    props.registerFlush(() => saver?.flush() || Promise.resolve());
+    props.registerFlush(async () => {
+      await saver?.flush();
+      await flushNotepad?.();
+    });
     void load();
   });
   onCleanup(() => {
@@ -1023,6 +1028,12 @@ export function OsintWorkspace(props: {
           </div>
         </Show>
       </Show>
+      <EncryptedNotepad
+        api={props.api}
+        registerFlush={(flush) => {
+          flushNotepad = flush;
+        }}
+      />
       <Show when={toolEditor()}>
         {(tool) => (
           <Modal
