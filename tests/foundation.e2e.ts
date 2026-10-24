@@ -2,10 +2,25 @@ import {test, expect, _electron as electron, type ElectronApplication} from '@pl
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
+import {createServer, type Socket} from 'node:net';
 
 test('real desktop vault, SOCKS5 configuration, edit recovery, branch and lock/unlock', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ecdys-desktop-'));
   const phrase = 'local operator integration passphrase';
+  let proxyRequest = '';
+  const proxySockets = new Set<Socket>();
+  const proxy = createServer((socket) => {
+    proxySockets.add(socket);
+    socket.on('error', () => {});
+    socket.on('close', () => proxySockets.delete(socket));
+    socket.on('data', (chunk) => {
+      proxyRequest += chunk.toString();
+      if (proxyRequest.includes('\r\n\r\n'))
+        socket.write('HTTP/1.1 200 Connection established\r\n\r\n');
+    });
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+  const proxyPort = (proxy.address() as {port: number}).port;
   let app: ElectronApplication | undefined;
   try {
     app = await electron.launch({
@@ -87,6 +102,62 @@ test('real desktop vault, SOCKS5 configuration, edit recovery, branch and lock/u
       .click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
     expect(await page.evaluate(() => window.ecdys!.listProfiles())).toHaveLength(2);
+    await page
+      .getByRole('navigation')
+      .getByRole('button', {name: /^Routes/})
+      .click();
+    await page.getByRole('button', {name: 'Import proxy pool'}).click();
+    dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Pool name').fill('Operator exits');
+    await dialog
+      .getByLabel('Proxy entries')
+      .fill(
+        'socks5://operator:library-secret-one@first.example:1080\nsocks5://operator:library-secret-two@second.example:1080\nhttp://fixture:local-fixture-only@127.0.0.1:' +
+          proxyPort,
+      );
+    await dialog.getByRole('button', {name: 'Preview import'}).click();
+    await expect(dialog.getByText('3 endpoints ready', {exact: true})).toBeVisible();
+    await dialog.getByRole('button', {name: 'Save encrypted pool'}).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Operator exits', exact: true})).toBeVisible();
+    const localEndpoint = page
+      .locator('article.endpoint-card')
+      .filter({hasText: '127.0.0.1:' + proxyPort});
+    await localEndpoint.getByRole('button', {name: 'Test tunnel', exact: false}).click();
+    await expect(localEndpoint.getByText(/^Tunnel accepted/)).toBeVisible();
+    expect(proxyRequest).toContain(
+      'Proxy-Authorization: Basic ' + Buffer.from('fixture:local-fixture-only').toString('base64'),
+    );
+    await page.getByLabel('Select Futures execution', {exact: true}).check();
+    await page.getByRole('button', {name: 'Assign endpoint'}).click();
+    await page.getByRole('dialog').getByRole('button', {name: 'Apply route changes'}).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect(page.getByText('1 route changed', {exact: true})).toBeVisible();
+    let routed = (await page.evaluate(() => window.ecdys!.listProfiles())).find(
+      (p) => p.name === 'Futures execution',
+    )!;
+    expect(routed.route).toMatchObject({kind: 'socks5', host: 'first.example', hasPassword: true});
+    await page.getByRole('button', {name: 'Rotate from pool'}).click();
+    await page.getByRole('dialog').getByRole('button', {name: 'Apply route changes'}).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    routed = (await page.evaluate(() => window.ecdys!.listProfiles())).find(
+      (p) => p.name === 'Futures execution',
+    )!;
+    expect(routed.route).toMatchObject({host: 'second.example', hasPassword: true});
+    const pools = await page.evaluate(() => window.ecdys!.listProxyPools());
+    expect(JSON.stringify(pools)).not.toContain('library-secret');
+    await page.setViewportSize({width: 1440, height: 1080});
+    await page.getByRole('heading', {name: 'Network routes', exact: true}).scrollIntoViewIfNeeded();
+    await page.screenshot({path: 'artifacts/routes-workspace.png'});
+    await page.setViewportSize({width: 1050, height: 720});
+    await page.getByRole('button', {name: 'Delete pool', exact: true}).click();
+    await page.getByRole('dialog').getByRole('button', {name: 'Delete saved pool'}).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    expect(await page.evaluate(() => window.ecdys!.listProxyPools())).toEqual([]);
+    expect(
+      (await page.evaluate(() => window.ecdys!.listProfiles())).find((p) => p.id === routed.id)
+        ?.route,
+    ).toMatchObject({host: 'second.example', hasPassword: true});
     await page.screenshot({path: 'artifacts/profile-workspace.png'});
     await page.getByRole('button', {name: /Lock workspace/}).click();
     await expect(page.getByRole('heading', {name: 'Welcome back, operator.'})).toBeVisible();
@@ -100,13 +171,24 @@ test('real desktop vault, SOCKS5 configuration, edit recovery, branch and lock/u
     await expect(page.getByRole('alert')).toContainText('Could not unlock');
     await page.getByLabel('Passphrase', {exact: true}).fill(phrase);
     await page.getByRole('button', {name: 'Unlock workspace'}).click();
-    await expect(page.getByRole('heading', {name: 'Profile workspace'})).toBeVisible({
+    await expect(page.getByRole('heading', {name: 'Network routes'})).toBeVisible({
       timeout: 60_000,
     });
     expect(await page.evaluate(() => window.ecdys!.listProfiles())).toHaveLength(2);
+    await page
+      .getByRole('navigation')
+      .getByRole('button', {name: /^Diagnostics/})
+      .click();
+    await expect(
+      page
+        .locator('article.diagnostic')
+        .filter({has: page.getByRole('heading', {name: 'SOCKS5 / proxy switching', exact: true})}),
+    ).toContainText('PARTIAL');
     expect(errors).toEqual([]);
   } finally {
     await app?.close();
+    for (const socket of proxySockets) socket.destroy();
+    await new Promise<void>((resolve) => proxy.close(() => resolve()));
     await rm(directory, {recursive: true, force: true});
   }
 });

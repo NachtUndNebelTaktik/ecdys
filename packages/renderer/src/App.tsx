@@ -1,3 +1,5 @@
+import {Modal} from './Modal';
+import {RoutesWorkspace} from './RoutesWorkspace';
 import {createMemo, createSignal, For, onCleanup, onMount, Show, type JSX} from 'solid-js';
 import {
   evaluateLaunch,
@@ -16,7 +18,9 @@ const integrations = [
   },
   {
     name: 'SOCKS5 / proxy switching',
-    detail: 'Route configuration is saved. Live connections and switching are not implemented yet.',
+    state: 'PARTIAL',
+    detail:
+      'Encrypted pools, tunnel diagnostics and recoverable configuration switching are available. Native traffic switching is pending.',
     category: 'NETWORK',
   },
   {
@@ -64,61 +68,6 @@ function Pill(props: {children: JSX.Element; tone?: string}) {
 }
 function Stamp(props: {children: JSX.Element}) {
   return <span class="stamp">{props.children}</span>;
-}
-function Modal(props: {
-  title: string;
-  subtitle?: string;
-  close: () => void;
-  children: JSX.Element;
-}) {
-  let dialog!: HTMLDivElement;
-  onMount(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialog.querySelector<HTMLElement>('input, button')?.focus();
-    const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') props.close();
-      if (event.key === 'Tab') {
-        const elements = [
-          ...dialog.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
-          ),
-        ];
-        const first = elements[0],
-          last = elements.at(-1);
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', key);
-    onCleanup(() => {
-      document.removeEventListener('keydown', key);
-      previous?.focus();
-    });
-  });
-  return (
-    <div class="modal-backdrop">
-      <div ref={dialog} class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <header>
-          <div>
-            <Stamp>WORKSPACE OPERATION</Stamp>
-            <h2 id="modal-title">{props.title}</h2>
-            <Show when={props.subtitle}>
-              <p>{props.subtitle}</p>
-            </Show>
-          </div>
-          <button class="icon-button" aria-label="Close dialog" onClick={props.close}>
-            ×
-          </button>
-        </header>
-        {props.children}
-      </div>
-    </div>
-  );
 }
 function RouteLabel(props: {profile: Profile}) {
   const route = () => props.profile.route;
@@ -409,7 +358,7 @@ export default function App() {
                   <span class="nav-symbol">↪</span>Lock workspace
                 </button>
                 <div class="version">
-                  FOUNDATION BUILD <span>v0.1.0</span>
+                  FOUNDATION BUILD <span>v0.2.0</span>
                 </div>
               </div>
             </aside>
@@ -697,53 +646,12 @@ export default function App() {
                 </div>
               </Show>
               <Show when={view() === 'Routes'}>
-                <div class="section-caption">
-                  <Stamp>CONFIGURED ROUTES</Stamp>
-                  <span>Connections have not been tested by a native adapter.</span>
-                </div>
-                <div class="route-table">
-                  <div class="table-head">
-                    <span>PROFILE</span>
-                    <span>ROUTE</span>
-                    <span>AUTHENTICATION</span>
-                    <span>STATE</span>
-                    <span />
-                  </div>
-                  <Show
-                    when={profiles().length}
-                    fallback={
-                      <div class="small-empty">Create a profile to configure its route.</div>
-                    }
-                  >
-                    <For each={profiles()}>
-                      {(profile) => (
-                        <div class="table-row">
-                          <strong>{profile.name}</strong>
-                          <RouteLabel profile={profile} />
-                          <span>
-                            {profile.route &&
-                            'hasPassword' in profile.route &&
-                            profile.route.hasPassword
-                              ? 'Encrypted credential saved'
-                              : 'No password saved'}
-                          </span>
-                          <Pill tone="amber">NOT CONNECTED</Pill>
-                          <button class="text-button" onClick={() => setEditor(profile)}>
-                            Configure ↗
-                          </button>
-                        </div>
-                      )}
-                    </For>
-                  </Show>
-                </div>
-                <div class="note-panel">
-                  <h3>SOCKS5 is a core capability.</h3>
-                  <p>
-                    Host, port, remote DNS and encrypted authentication are saved with each profile.
-                    Live connection testing, atomic switching and fail-closed enforcement remain
-                    mandatory work before browsing is enabled.
-                  </p>
-                </div>
+                <RoutesWorkspace
+                  api={api!}
+                  profiles={profiles()}
+                  refresh={refresh}
+                  edit={setEditor}
+                />
               </Show>
               <Show when={view() === 'Snapshots'}>
                 <Show
@@ -906,7 +814,11 @@ export default function App() {
                   />
                   <For each={integrations}>
                     {(item) => (
-                      <Diagnostic title={item.name} state="NOT IMPLEMENTED" detail={item.detail} />
+                      <Diagnostic
+                        title={item.name}
+                        state={item.state || 'NOT IMPLEMENTED'}
+                        detail={item.detail}
+                      />
                     )}
                   </For>
                 </div>
@@ -1130,7 +1042,7 @@ function VaultScreen(props: {
           </span>
         </div>
         <div class="vault-build">
-          ECDYS FOUNDATION / v0.1.0 <span>CONFIGURATION OPERATIONS</span>
+          ECDYS FOUNDATION / v0.2.0 <span>CONFIGURATION OPERATIONS</span>
         </div>
       </div>
       <div class="vault-form-wrap">

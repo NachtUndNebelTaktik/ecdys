@@ -19,6 +19,12 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import {
   ProfileDraftSchema,
   VaultSetupSchema,
+  ProxyChangeSchema,
+  type ProxyChange,
+  type ProxyChangeResult,
+  type ProxyPool,
+  type ProxyDiagnostic,
+  type ProxyImportPreview,
   type Profile,
   type ProfileDraft,
   type PublicRoute,
@@ -27,15 +33,11 @@ import {
   type VaultStatus,
 } from '@ecdys/shared';
 import {deriveKeyInWorker, seal, subkey, unseal, type Sealed} from './crypto';
-
-export class WorkspaceError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+import {WorkspaceError} from './errors';
+import {ProxyLibrary, routeIdentity} from './proxy-library';
+import {previewProxyImport} from './route-import';
+import {probeProxy} from './proxy-probe';
+export {WorkspaceError} from './errors';
 interface VaultHeader {
   format: 1;
   salt: string;
@@ -84,6 +86,8 @@ export class WorkspaceService {
   private pending: Promise<unknown> = Promise.resolve();
   private createdFiles: string[] = [];
   private warnings = new Set<string>();
+  private diagnosticEpoch = 0;
+  private diagnostics = new Set<AbortController>();
   private readonly directory: string;
   private readonly limit: number;
   private readonly deriveKey: NonNullable<Options['deriveKey']>;
@@ -231,6 +235,9 @@ export class WorkspaceService {
     return this.serial(() => this.closeData());
   }
   private closeData() {
+    this.diagnosticEpoch++;
+    for (const controller of this.diagnostics) controller.abort();
+    this.diagnostics.clear();
     const db = this.db;
     this.db = null;
     db?.close();
@@ -286,7 +293,7 @@ export class WorkspaceService {
           )
           .all();
         if (
-          version !== 1 ||
+          ![1, 2].includes(Number(version)) ||
           tables.length !== 3 ||
           db.pragma('quick_check', {simple: true}) !== 'ok'
         ) {
@@ -295,7 +302,28 @@ export class WorkspaceService {
             'The database schema is unsupported or incomplete. Its contents were preserved.',
           );
         }
+        if (
+          version === 2 &&
+          db
+            .prepare(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('proxy_pools','proxy_endpoints')",
+            )
+            .all().length !== 2
+        )
+          throw new WorkspaceError(
+            'VAULT_RECOVERY_REQUIRED',
+            'The proxy library schema is incomplete. Restore your backup.',
+          );
       }
+      if (db.pragma('user_version', {simple: true}) === 1)
+        db.transaction(() =>
+          db.exec(`
+        CREATE TABLE proxy_pools (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, revision INTEGER NOT NULL, created_at INTEGER NOT NULL);
+        CREATE TABLE proxy_endpoints (id TEXT PRIMARY KEY, pool_id TEXT NOT NULL REFERENCES proxy_pools(id) ON DELETE CASCADE, ordinal INTEGER NOT NULL, route TEXT NOT NULL, credential TEXT);
+        CREATE INDEX proxy_endpoint_pool ON proxy_endpoints(pool_id, ordinal);
+        PRAGMA user_version = 2;
+      `),
+        )();
       chmodSync(join(this.directory, 'workspace.sqlite'), 0o600);
       return db;
     } catch (error) {
@@ -358,6 +386,8 @@ export class WorkspaceService {
       )
         this.cleanupFile(join(path, name));
     }
+    for (const {id} of this.database().prepare('SELECT id FROM profiles').all() as {id: string}[])
+      this.prune(id);
     this.syncDirectory(path);
   }
   private database(): Database.Database {
@@ -539,15 +569,26 @@ export class WorkspaceService {
     }
   }
   private prune(profileId: string) {
-    const obsolete = this.database()
-      .prepare(
-        'SELECT id FROM snapshots WHERE profile_id = ? AND pinned = 0 ORDER BY sequence DESC LIMIT -1 OFFSET 20',
-      )
-      .all(profileId) as {id: string}[];
-    for (const {id} of obsolete) {
-      this.database().prepare('DELETE FROM snapshots WHERE id = ?').run(id);
-      this.cleanupFile(join(this.directory, 'snapshots', id + '.enc'));
+    // Retention follows a durable commit. A cleanup failure must never turn an
+    // already-applied edit into a reported failure (or invite a second rotation).
+    let removed = 0;
+    try {
+      const obsolete = this.database()
+        .prepare(
+          'SELECT id FROM snapshots WHERE profile_id = ? AND pinned = 0 ORDER BY sequence DESC LIMIT -1 OFFSET 20',
+        )
+        .all(profileId) as {id: string}[];
+      for (const {id} of obsolete) {
+        this.database().prepare('DELETE FROM snapshots WHERE id = ?').run(id);
+        removed++;
+        this.cleanupFile(join(this.directory, 'snapshots', id + '.enc'));
+      }
+    } catch {
+      this.warnings.add(
+        'Checkpoint retention cleanup could not finish. Committed changes are saved; older checkpoints were retained. Cleanup will retry at the next unlock.',
+      );
     }
+    return removed;
   }
   listProfiles(): Promise<Profile[]> {
     return this.serial(() =>
@@ -557,6 +598,113 @@ export class WorkspaceService {
           .all() as ProfileRow[]
       ).map((row) => this.profile(row)),
     );
+  }
+  private library(): ProxyLibrary {
+    return new ProxyLibrary(this.database(), this.master!);
+  }
+  previewProxyImport(source: string): Promise<ProxyImportPreview> {
+    return this.serial(() => {
+      this.database();
+      return previewProxyImport(source);
+    });
+  }
+  listProxyPools(): Promise<ProxyPool[]> {
+    return this.serial(() => this.library().list());
+  }
+  importProxyPool(input: {name: string; source: string}): Promise<ProxyPool> {
+    return this.serial(() => this.library().import(input));
+  }
+  deleteProxyPool(id: string, revision: number): Promise<void> {
+    return this.serial(() => this.library().delete(id, revision));
+  }
+  async testProxyEndpoint(id: string): Promise<ProxyDiagnostic> {
+    const context = await this.serial(() => {
+      const library = this.library();
+      if (this.diagnostics.size >= 3)
+        throw new WorkspaceError('DIAGNOSTICS_BUSY', 'Wait for an active tunnel test to finish.');
+      const route = library.draft(id),
+        controller = new AbortController();
+      this.diagnostics.add(controller);
+      return {route, controller, epoch: this.diagnosticEpoch};
+    });
+    try {
+      const report = await probeProxy(context.route, {signal: context.controller.signal});
+      return await this.serial(() => {
+        this.database();
+        if (context.epoch !== this.diagnosticEpoch)
+          throw new WorkspaceError(
+            'VAULT_LOCKED',
+            'The workspace was locked during this diagnostic.',
+          );
+        return {endpointId: id, ...report};
+      });
+    } finally {
+      delete context.route.password;
+      this.diagnostics.delete(context.controller);
+    }
+  }
+  changeProxyRoutes(input: ProxyChange): Promise<ProxyChangeResult[]> {
+    return this.serial(() => {
+      const request = ProxyChangeSchema.parse(input);
+      const library = this.library();
+      const endpoints =
+        request.choice.mode === 'assign'
+          ? [{id: request.choice.endpointId, route: library.draft(request.choice.endpointId)}]
+          : library.pool(request.choice.poolId).endpoints;
+      return request.targets.map((target): ProxyChangeResult => {
+        try {
+          const result = this.transaction(() => {
+            const row = this.row(target.id);
+            this.checkRevision(row, target.revision);
+            const previous = JSON.parse(row.config) as Config;
+            let endpoint = endpoints[0]!;
+            if (request.choice.mode === 'rotate') {
+              const current =
+                previous.route && previous.route.kind !== 'vpn'
+                  ? routeIdentity(previous.route)
+                  : null;
+              const index = endpoints.findIndex((entry) => routeIdentity(entry.route) === current);
+              const candidate = Array.from(
+                {length: endpoints.length},
+                (_, offset) => endpoints[(index + offset + 1) % endpoints.length]!,
+              ).find((entry) => routeIdentity(entry.route) !== current);
+              if (!candidate)
+                throw new WorkspaceError(
+                  'NO_ALTERNATIVE_ROUTE',
+                  'This pool has no different endpoint for this profile.',
+                );
+              endpoint = candidate;
+            }
+            const config = this.config(row.id, {...previous, route: library.draft(endpoint.id)});
+            this.capture(row, 'auto_edit');
+            this.database()
+              .prepare(
+                'UPDATE profiles SET config = ?, revision = revision + 1, updated_at = ? WHERE id = ?',
+              )
+              .run(JSON.stringify(config), Date.now(), row.id);
+            return this.profile(this.row(row.id));
+          });
+          const removed = this.prune(result.id);
+          return {
+            profileId: result.id,
+            ok: true,
+            profile: {...result, snapshotCount: result.snapshotCount - removed},
+          };
+        } catch (error) {
+          return {
+            profileId: target.id,
+            ok: false,
+            error:
+              error instanceof WorkspaceError
+                ? {code: error.code, message: error.message}
+                : {
+                    code: 'ROUTE_CHANGE_FAILED',
+                    message: 'The route change could not be committed. Check workspace storage.',
+                  },
+          };
+        }
+      });
+    });
   }
   createProfile(input: ProfileDraft): Promise<Profile> {
     return this.serial(() =>

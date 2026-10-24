@@ -20,4 +20,19 @@ describe('privileged IPC boundary', () => {
     expect(JSON.stringify(output)).not.toContain('private');
     expect(output.code).toBe('INTERNAL_ERROR');
   });
+  it('admits bounded proxy previews and rejects duplicate bulk targets and arbitrary destinations', () => {
+    expect(
+      parseInvocation({method: 'previewProxyImport', args: ['socks5://proxy.test:1080']}),
+    ).toMatchObject({method: 'previewProxyImport'});
+    const target = {id: '19ab1b20-cc99-4a9b-8ae4-d99dc272d192', revision: 1};
+    expect(() =>
+      parseInvocation({
+        method: 'changeProxyRoutes',
+        args: [{targets: [target, target], choice: {mode: 'assign', endpointId: target.id}}],
+      }),
+    ).toThrow();
+    expect(() =>
+      parseInvocation({method: 'testProxyEndpoint', args: [target.id, 'https://arbitrary.test']}),
+    ).toThrow();
+  });
 });

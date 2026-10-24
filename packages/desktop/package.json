@@ -1,10 +1,12 @@
 {
   "name": "@ecdys/desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "dist/main.cjs",
-  "scripts": {"build": "tsup"},
+  "scripts": {
+    "build": "tsup"
+  },
   "dependencies": {
     "@ecdys/shared": "workspace:*",
     "argon2": "0.45.1",

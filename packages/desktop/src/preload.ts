@@ -29,5 +29,11 @@ const api: EcdysApi = {
   restoreSnapshot: (id, snapshotId, revision) => call('restoreSnapshot', id, snapshotId, revision),
   createSnapshot: (id) => call('createSnapshot', id),
   pinSnapshot: (id, pinned) => call('pinSnapshot', id, pinned),
+  previewProxyImport: (source) => call('previewProxyImport', source),
+  importProxyPool: (input) => call('importProxyPool', input),
+  listProxyPools: () => call('listProxyPools'),
+  deleteProxyPool: (id, revision) => call('deleteProxyPool', id, revision),
+  changeProxyRoutes: (input) => call('changeProxyRoutes', input),
+  testProxyEndpoint: (id) => call('testProxyEndpoint', id),
 };
 contextBridge.exposeInMainWorld('ecdys', Object.freeze(api));

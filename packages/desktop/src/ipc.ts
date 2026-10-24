@@ -1,4 +1,10 @@
-import {z, ProfileDraftSchema, VaultSetupSchema, type SafeError} from '@ecdys/shared';
+import {
+  z,
+  ProfileDraftSchema,
+  VaultSetupSchema,
+  ProxyChangeSchema,
+  type SafeError,
+} from '@ecdys/shared';
 import {WorkspaceError, type WorkspaceService} from './workspace';
 
 const id = z.uuid();
@@ -24,6 +30,23 @@ const invocation = z.discriminatedUnion('method', [
   z.object({method: z.literal('restoreSnapshot'), args: z.tuple([id, id, revision])}).strict(),
   z.object({method: z.literal('createSnapshot'), args: z.tuple([id])}).strict(),
   z.object({method: z.literal('pinSnapshot'), args: z.tuple([id, z.boolean()])}).strict(),
+  z
+    .object({method: z.literal('previewProxyImport'), args: z.tuple([z.string().max(131_072)])})
+    .strict(),
+  z
+    .object({
+      method: z.literal('importProxyPool'),
+      args: z.tuple([
+        z
+          .object({name: z.string().trim().min(1).max(80), source: z.string().max(131_072)})
+          .strict(),
+      ]),
+    })
+    .strict(),
+  z.object({method: z.literal('listProxyPools'), args: z.tuple([])}).strict(),
+  z.object({method: z.literal('deleteProxyPool'), args: z.tuple([id, revision])}).strict(),
+  z.object({method: z.literal('changeProxyRoutes'), args: z.tuple([ProxyChangeSchema])}).strict(),
+  z.object({method: z.literal('testProxyEndpoint'), args: z.tuple([id])}).strict(),
 ]);
 export function isTrustedFrame(url: string, isMainFrame: boolean): boolean {
   if (!isMainFrame) return false;
@@ -41,7 +64,7 @@ export function isTrustedFrame(url: string, isMainFrame: boolean): boolean {
   }
 }
 export function parseInvocation(input: unknown) {
-  if (JSON.stringify(input).length > 32_768)
+  if (JSON.stringify(input).length > 262_144)
     throw new WorkspaceError('INVALID_INPUT', 'Request too large.');
   return invocation.parse(input);
 }
@@ -89,5 +112,17 @@ export async function dispatch(service: WorkspaceService, input: unknown): Promi
       return service.createSnapshot(request.args[0]);
     case 'pinSnapshot':
       return service.pinSnapshot(...request.args);
+    case 'previewProxyImport':
+      return service.previewProxyImport(request.args[0]);
+    case 'importProxyPool':
+      return service.importProxyPool(request.args[0]);
+    case 'listProxyPools':
+      return service.listProxyPools();
+    case 'deleteProxyPool':
+      return service.deleteProxyPool(...request.args);
+    case 'changeProxyRoutes':
+      return service.changeProxyRoutes(request.args[0]);
+    case 'testProxyEndpoint':
+      return service.testProxyEndpoint(request.args[0]);
   }
 }

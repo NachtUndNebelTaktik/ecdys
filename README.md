@@ -22,6 +22,10 @@ Electron downloads its platform binary on first use. In environments requiring a
 - Explicit 1/2/4/8 GiB KDF selection, default 4 GiB; production derivation runs in a worker.
 - Local profiles, revisions, search, tags, folder labels, protected-execution policy and route configuration.
 - Encrypted proxy passwords omitted from public responses.
+- Encrypted named proxy pools, URI/JSON import previews and duplicate removal.
+- Real authenticated SOCKS5 and HTTP CONNECT tunnel tests, HTTPS certificate verification, bounded deadlines and lock cancellation.
+- Revision-checked assignment and rotation of saved proxy routes, with per-profile outcomes and pre-change checkpoints.
+- In-place migration of existing configuration vaults to the proxy-library schema.
 - Independently encrypted baseline/edit/manual/pre-restore configuration checkpoints, pins and twenty-unpinned retention.
 - Independent configuration branches with copied history, pins and re-encrypted secret references.
 - Manual lock and lock after fifteen minutes of system inactivity.
@@ -29,7 +33,7 @@ Electron downloads its platform binary on first use. In environments requiring a
 
 ## Implementation boundary
 
-Checkpoints currently cover configuration only. Full browser-state recovery, native route enforcement, live VPN/proxy connections and SOCKS5 switching, protected browser storage, managed Chromium, fingerprints/WebRTC, Selenium, Monero/payments, licensing, teams and controlled updates remain required work. The UI identifies them as unavailable; browser launch stays blocked.
+Checkpoints currently cover configuration only. Full browser-state recovery, native route enforcement, VPN integration, switching live browser traffic, protected browser storage, managed Chromium, fingerprints/WebRTC, Selenium, Monero/payments, licensing, teams and controlled updates remain required work. Proxy tunnel diagnostics and saved-route switching are implemented; a successful diagnostic does not prove public IP identity or native containment. The UI identifies them as unavailable; browser launch stays blocked.
 
 Local configuration operations work offline. Signed commercial offline entitlements are specified but not implemented. The foundation allows ten local profiles; there is no simulated activation.
 
@@ -52,6 +56,7 @@ The UI test uses Electron's headless Ozone backend without disabling renderer sa
 - [Original decisions and change ledger](CHANGE-LEDGER-v4.0.md)
 - [Data and interface contracts](specs/DATA-CONTRACTS-v4.0.md)
 - [Foundation implementation scope](docs/FOUNDATION-IMPLEMENTATION.md)
+- [Proxy pool operations and diagnostics](docs/ROUTE-MANAGEMENT.md)
 - [Build status and remaining gates](docs/BUILD-STATUS.md)
 - [Documentation revision verification](VERIFICATION-v4.0.md)
 

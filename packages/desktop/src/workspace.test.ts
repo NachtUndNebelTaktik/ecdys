@@ -5,9 +5,11 @@ import {syncBuiltinESMExports} from 'node:module';
 import {randomUUID} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createServer, type Socket} from 'node:net';
 import argon2 from 'argon2';
 import Database from 'better-sqlite3-multiple-ciphers';
 import {WorkspaceService} from './workspace';
+import {subkey, unseal} from './crypto';
 
 const directories: string[] = [];
 const workspaces: WorkspaceService[] = [];
@@ -243,5 +245,222 @@ describe('encrypted workspace lifecycle', () => {
     });
     expect((await service.listProfiles())[0]?.name).toBe('Current');
     expect(await service.listSnapshots(p.id)).toHaveLength(2);
+  });
+});
+
+describe('encrypted proxy library and route operations', () => {
+  const source =
+    'socks5://operator:private-pool-secret@first.test:1080\nsocks5://operator:second-pool-secret@second.test:1080';
+  it('reports a committed route change as successful when retention cleanup fails', async () => {
+    const {service, directory} = await fixture();
+    const p = await service.createProfile({name: 'Committed route'});
+    for (let index = 0; index < 19; index++) await service.createSnapshot(p.id);
+    const pool = await service.importProxyPool({name: 'Pool', source});
+    const header = JSON.parse(await readFile(join(directory, 'vault.json'), 'utf8'));
+    const wrapping = await fastDerive(phrase, Buffer.from(header.salt, 'base64'));
+    const master = unseal(header.master, wrapping, 'ecdys:vault:1');
+    const key = subkey(master, 'ecdys:database:1');
+    const db = new Database(join(directory, 'workspace.sqlite'));
+    try {
+      db.pragma("cipher='sqlcipher'");
+      db.pragma('legacy=4');
+      db.key(key);
+      db.exec(
+        "CREATE TRIGGER retention_failure BEFORE DELETE ON snapshots BEGIN SELECT RAISE(ABORT, 'retention unavailable'); END;",
+      );
+    } finally {
+      db.close();
+      key.fill(0);
+      master.fill(0);
+      wrapping.fill(0);
+    }
+    const result = await service.changeProxyRoutes({
+      targets: [{id: p.id, revision: 1}],
+      choice: {mode: 'assign', endpointId: pool.endpoints[0]!.id},
+    });
+    expect(result[0]).toMatchObject({
+      ok: true,
+      profile: {revision: 2, route: {host: 'first.test'}, snapshotCount: 21},
+    });
+    expect((await service.listProfiles())[0]?.route).toMatchObject({host: 'first.test'});
+    expect(await service.listSnapshots(p.id)).toHaveLength(21);
+    expect((await service.status()).storageWarnings?.join(' ')).toMatch(/retention/i);
+    const retryWrapping = await fastDerive(phrase, Buffer.from(header.salt, 'base64'));
+    const retryMaster = unseal(header.master, retryWrapping, 'ecdys:vault:1');
+    const retryKey = subkey(retryMaster, 'ecdys:database:1');
+    const retryDb = new Database(join(directory, 'workspace.sqlite'));
+    try {
+      retryDb.pragma("cipher='sqlcipher'");
+      retryDb.pragma('legacy=4');
+      retryDb.key(retryKey);
+      retryDb.exec('DROP TRIGGER retention_failure');
+    } finally {
+      retryDb.close();
+      retryKey.fill(0);
+      retryMaster.fill(0);
+      retryWrapping.fill(0);
+    }
+    await service.lock();
+    await service.unlock(phrase);
+    expect(await service.listSnapshots(p.id)).toHaveLength(20);
+    expect((await service.status()).storageWarnings?.join(' ')).not.toMatch(/retention/i);
+  });
+  it('decrypts an endpoint only in main for a real handshake and cancels it on vault lock', async () => {
+    let accepted!: () => void;
+    const connected = new Promise<void>((resolve) => {
+      accepted = resolve;
+    });
+    const sockets = new Set<Socket>();
+    const server = createServer((socket) => {
+      sockets.add(socket);
+      socket.on('error', () => {});
+      socket.on('close', () => sockets.delete(socket));
+      socket.once('data', accepted);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const {service} = await fixture();
+      const port = (server.address() as {port: number}).port;
+      const pool = await service.importProxyPool({
+        name: 'Local fixture',
+        source: 'socks5://operator:private@127.0.0.1:' + port,
+      });
+      const diagnostic = service.testProxyEndpoint(pool.endpoints[0]!.id);
+      const result = expect(diagnostic).rejects.toMatchObject({code: 'VAULT_LOCKED'});
+      await connected;
+      await service.lock();
+      await result;
+      expect((await service.status()).unlocked).toBe(false);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+  it('persists pools and returns only redacted credentials', async () => {
+    const {service, directory} = await fixture();
+    const pool = await service.importProxyPool({name: 'Research exits', source});
+    expect(pool.endpoints).toHaveLength(2);
+    expect(pool.endpoints[0]?.route).toMatchObject({kind: 'socks5', hasPassword: true});
+    expect(JSON.stringify(pool)).not.toContain('private-pool-secret');
+    await service.lock();
+    expect(
+      (await readFile(join(directory, 'workspace.sqlite'))).includes(
+        Buffer.from('private-pool-secret'),
+      ),
+    ).toBe(false);
+    await service.unlock(phrase);
+    expect(await service.listProxyPools()).toEqual([pool]);
+  });
+  it('validates a complete import before any writes and rejects duplicate names', async () => {
+    const {service} = await fixture();
+    await expect(
+      service.importProxyPool({name: 'Invalid', source: source + '\nftp://bad.test'}),
+    ).rejects.toMatchObject({code: 'INVALID_PROXY_IMPORT'});
+    expect(await service.listProxyPools()).toEqual([]);
+    await service.importProxyPool({name: 'Research', source});
+    await expect(service.importProxyPool({name: 'research', source})).rejects.toMatchObject({
+      code: 'POOL_NAME_EXISTS',
+    });
+    expect(await service.listProxyPools()).toHaveLength(1);
+  });
+  it('rotates only the route, saving the previous configuration for restore', async () => {
+    const {service} = await fixture();
+    const pool = await service.importProxyPool({name: 'Research', source});
+    const p = await service.createProfile({
+      name: 'Futures',
+      policy: 'protected_execution',
+      folder: 'Capital',
+      tags: ['live'],
+      timezone: 'America/New_York',
+    });
+    const first = await service.changeProxyRoutes({
+      targets: [{id: p.id, revision: 1}],
+      choice: {mode: 'assign', endpointId: pool.endpoints[0]!.id},
+    });
+    expect(first[0]?.ok).toBe(true);
+    await service.changeProxyRoutes({
+      targets: [{id: p.id, revision: 2}],
+      choice: {mode: 'rotate', poolId: pool.id},
+    });
+    expect((await service.listProfiles())[0]).toMatchObject({
+      name: 'Futures',
+      policy: p.policy,
+      folder: p.folder,
+      tags: p.tags,
+      timezone: p.timezone,
+      route: {host: 'second.test'},
+      revision: 3,
+    });
+    const history = await service.listSnapshots(p.id);
+    expect(history[0]?.config.route).toMatchObject({host: 'first.test', hasPassword: true});
+    await service.deleteProxyPool(pool.id, pool.revision);
+    await service.restoreSnapshot(p.id, history[0]!.id, 3);
+    expect((await service.listProfiles())[0]?.route).toMatchObject({
+      host: 'first.test',
+      hasPassword: true,
+    });
+  });
+  it('keeps successful bulk changes and reports stale or missing targets without changing them', async () => {
+    const {service} = await fixture();
+    const pool = await service.importProxyPool({name: 'Pool', source});
+    const a = await service.createProfile({name: 'A'}),
+      b = await service.createProfile({name: 'B'});
+    await service.updateProfile(b.id, 1, {name: 'B changed'});
+    const result = await service.changeProxyRoutes({
+      targets: [
+        {id: a.id, revision: 1},
+        {id: b.id, revision: 1},
+        {id: randomUUID(), revision: 1},
+      ],
+      choice: {mode: 'assign', endpointId: pool.endpoints[0]!.id},
+    });
+    expect(result.map((r) => r.ok)).toEqual([true, false, false]);
+    expect(result[1]).toMatchObject({error: {code: 'REVISION_CONFLICT'}});
+    expect((await service.listProfiles()).find((p) => p.id === b.id)?.route).toBeNull();
+    expect(await service.listSnapshots(b.id)).toHaveLength(2);
+  });
+  it('rejects a rotation without another endpoint and does not create a checkpoint', async () => {
+    const {service} = await fixture();
+    const pool = await service.importProxyPool({name: 'Single', source: 'socks5://only.test:1080'});
+    const p = await service.createProfile({
+      name: 'A',
+      route: {kind: 'socks5', host: 'only.test', port: 1080},
+    });
+    const result = await service.changeProxyRoutes({
+      targets: [{id: p.id, revision: 1}],
+      choice: {mode: 'rotate', poolId: pool.id},
+    });
+    expect(result[0]).toMatchObject({ok: false, error: {code: 'NO_ALTERNATIVE_ROUTE'}});
+    expect(await service.listSnapshots(p.id)).toHaveLength(1);
+    await service.lock();
+    await expect(service.listProxyPools()).rejects.toMatchObject({code: 'VAULT_LOCKED'});
+  });
+  it('upgrades a v1 vault without replacing profile or checkpoint data', async () => {
+    const {service, directory} = await fixture();
+    const p = await service.createProfile({name: 'Existing operator'});
+    await service.lock();
+    const header = JSON.parse(await readFile(join(directory, 'vault.json'), 'utf8'));
+    const wrapping = await fastDerive(phrase, Buffer.from(header.salt, 'base64'));
+    const master = unseal(header.master, wrapping, 'ecdys:vault:1');
+    const key = subkey(master, 'ecdys:database:1');
+    const db = new Database(join(directory, 'workspace.sqlite'));
+    try {
+      db.pragma("cipher='sqlcipher'");
+      db.pragma('legacy=4');
+      db.key(key);
+      db.exec(
+        'DROP TABLE IF EXISTS proxy_endpoints; DROP TABLE IF EXISTS proxy_pools; PRAGMA user_version=1;',
+      );
+    } finally {
+      db.close();
+      key.fill(0);
+      master.fill(0);
+      wrapping.fill(0);
+    }
+    await service.unlock(phrase);
+    expect((await service.listProfiles())[0]?.id).toBe(p.id);
+    expect(await service.listSnapshots(p.id)).toHaveLength(1);
+    expect(await service.listProxyPools()).toEqual([]);
+    expect((await service.importProxyPool({name: 'Migrated', source})).endpoints).toHaveLength(2);
   });
 });

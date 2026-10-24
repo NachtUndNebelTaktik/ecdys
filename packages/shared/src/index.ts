@@ -68,6 +68,21 @@ export const VaultSetupSchema = z
   })
   .strict();
 export type RouteDraft = z.input<typeof RouteDraftSchema>;
+export const ProxyRouteDraftSchema = z
+  .union([RouteDraftSchema.options[0], RouteDraftSchema.options[1]])
+  .superRefine((route, ctx) => {
+    const encoder = new TextEncoder();
+    if (
+      /[\x00-\x1f\x7f]/.test((route.username || '') + (route.password || '')) ||
+      (route.kind === 'socks5' &&
+        (encoder.encode(route.username || '').length > 255 ||
+          encoder.encode(route.password || '').length > 255)) ||
+      (route.kind === 'http_connect' && route.username?.includes(':')) ||
+      Boolean(route.password) !== Boolean(route.username)
+    )
+      ctx.addIssue({code: 'custom', message: 'Use valid paired proxy credentials.'});
+  });
+export type ProxyRouteDraft = z.output<typeof ProxyRouteDraftSchema>;
 export type ProfileDraft = z.input<typeof ProfileDraftSchema>;
 export type ParsedProfileDraft = z.output<typeof ProfileDraftSchema>;
 export type PublicRoute =
@@ -173,6 +188,58 @@ export interface EcdysApi {
   restoreSnapshot(profileId: string, snapshotId: string, revision: number): Promise<Profile>;
   createSnapshot(profileId: string): Promise<Snapshot[]>;
   pinSnapshot(snapshotId: string, pinned: boolean): Promise<void>;
+  previewProxyImport(source: string): Promise<ProxyImportPreview>;
+  importProxyPool(input: {name: string; source: string}): Promise<ProxyPool>;
+  listProxyPools(): Promise<ProxyPool[]>;
+  deleteProxyPool(id: string, revision: number): Promise<void>;
+  changeProxyRoutes(input: ProxyChange): Promise<ProxyChangeResult[]>;
+  testProxyEndpoint(id: string): Promise<ProxyDiagnostic>;
+}
+export type PublicProxyRoute = Exclude<PublicRoute, {kind: 'vpn'}>;
+export interface ProxyImportPreview {
+  valid: boolean;
+  count: number;
+  duplicates: number;
+  entries: {line: number; route: PublicProxyRoute}[];
+  issues: {line: number; message: string}[];
+}
+export interface ProxyEndpoint {
+  id: string;
+  route: PublicProxyRoute;
+}
+export interface ProxyPool {
+  id: string;
+  name: string;
+  revision: number;
+  createdAt: number;
+  endpoints: ProxyEndpoint[];
+}
+export const ProxyChangeSchema = z
+  .object({
+    targets: z
+      .array(z.object({id: z.uuid(), revision: z.number().int().positive()}).strict())
+      .min(1)
+      .max(99)
+      .refine((targets) => new Set(targets.map((target) => target.id)).size === targets.length),
+    choice: z.discriminatedUnion('mode', [
+      z.object({mode: z.literal('assign'), endpointId: z.uuid()}).strict(),
+      z.object({mode: z.literal('rotate'), poolId: z.uuid()}).strict(),
+    ]),
+  })
+  .strict();
+export type ProxyChange = z.infer<typeof ProxyChangeSchema>;
+export type ProxyChangeResult =
+  | {profileId: string; ok: true; profile: Profile}
+  | {profileId: string; ok: false; error: SafeError};
+export interface ProxyDiagnostic {
+  endpointId: string;
+  checkedAt: number;
+  durationMs: number;
+  scope: 'proxy_tunnel';
+  state: 'pass' | 'fail';
+  code: string;
+  message: string;
+  destination: 'example.com:443';
 }
 export interface SafeError {
   code: string;
