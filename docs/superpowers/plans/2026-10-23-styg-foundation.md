@@ -1,5 +1,7 @@
 # Styg Foundation Implementation Plan
 
+> Checked 2026-10-26 against application revision `2dffb6d`: The scoped foundation code tasks are implemented. This does not complete original milestone M0: signup, GnuPG, payments and licensing are still pending. See the [implementation audit](../../PLAN-AUDIT.md).
+
 > Implement task-by-task in this session with test-first checks. User has authorized execution.
 
 **Goal:** Deliver an executable Styg desktop foundation with encrypted profile recovery and a Linux routing proof.

@@ -1,5 +1,7 @@
 # Managed Session Core Implementation Plan
 
+> Checked 2026-10-26 against application revision `2dffb6d`: The internal Linux runtime/coordinator is implemented and fixture-tested. Product sessions remain blocked; no production route supervisor or managed browser bundle is delivered. See the [implementation audit](../../PLAN-AUDIT.md).
+
 **Goal:** Own browser lifecycle and closed-state snapshots while keeping production routing blocked.
 **Architecture:** Bounded CDP pipe + Linux process-group runtime; vault-backed exclusive browser lease; trusted-supervisor session coordinator; Electron shutdown drains sessions before locking.
 **Tech stack:** Existing TypeScript, Node streams/child_process, SQLCipher-compatible SQLite, Electron and Vitest. No extra dependencies.
@@ -32,3 +34,9 @@ Files: tests/browser-recovery.test.ts, desktop/main.ts, renderer labels/status, 
 - [x] Wire default blocked coordinator and orderly lock/quit; test IPC cannot enable launch.
 - [x] Run backend/typecheck/build/UI/desktop checks; request read-only review and fix verified findings.
 - [x] Update version/docs/progress and commit locally.
+
+## Product acceptance still pending
+
+- [ ] Supply and verify the trusted per-profile OS routing supervisor.
+- [ ] Bundle a supported managed browser and verify the production launch/close flow behind that supervisor.
+- [ ] Validate macOS/Windows process containment and recovery.

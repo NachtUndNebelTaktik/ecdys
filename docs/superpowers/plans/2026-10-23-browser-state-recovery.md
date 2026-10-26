@@ -1,5 +1,7 @@
 # Browser State Recovery Implementation Plan
 
+> Checked 2026-10-26 against application revision `2dffb6d`: The bounded Linux recovery implementation is verified, including a fresh opt-in 64 MiB restore/rebinding check. Cross-platform and real power-loss acceptance remain pending. See the [implementation audit](../../PLAN-AUDIT.md).
+
 **Goal:** Recover closed browser-directory data alongside profile configuration, with durable interrupted-restore recovery.
 **Architecture:** Worker handles bounded directory archives and authenticated encryption. SQLite atomically records snapshots/configuration/restore journal; a staged directory swap finishes or resumes from that journal. The renderer calls validated operations and never receives filesystem paths or keys.
 **Spec:** docs/superpowers/specs/2026-10-23-browser-state-recovery.md

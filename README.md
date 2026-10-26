@@ -6,6 +6,8 @@ Desktop session and profile management. This is the Ecdys 0.7.0 built-in tools p
 
 Previously named Styg. Ecdys uses the existing `styg` application data folder so current encrypted workspaces open in place. Encryption formats, recovery markers and internal `styg` protocol/test identifiers stay compatible; no data migration is required. Earlier progress notes and plans retain the name used at the time.
 
+See the [checked implementation plan](docs/PLAN-AUDIT.md) for delivered increments, partial blueprint requirements and blocked/planned work. Completed increment checkboxes do not mean the full v1 feature is available.
+
 ## What works
 
 - Electron, Solid and TypeScript with a sandboxed renderer and validated IPC.

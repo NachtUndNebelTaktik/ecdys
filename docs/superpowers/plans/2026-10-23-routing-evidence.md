@@ -1,5 +1,7 @@
 # Dual-stack Routing Evidence Implementation Plan
 
+> Checked 2026-10-26 against application revision `2dffb6d`: The laboratory/evaluator implementation is verified. The checked execution task records an observed blocked attempt, not a successful privileged isolation proof. See the [implementation audit](../../PLAN-AUDIT.md).
+
 **Goal:** Make the local route-lock lab require complete dual-stack, DNS and repeated-failure evidence.
 **Architecture:** Strict typed evidence evaluator; standard-library Python network fixtures/probes; a Node Linux namespace runner collecting real observations and firewall counters.
 **Tech Stack:** Existing TypeScript/Zod/Vitest, Node 22.18+, Python 3, iproute2 and nftables.
@@ -36,3 +38,8 @@ Files: scripts/routing-proof.mjs, scripts/routing-preflight.mjs, tests/routing-c
 - [x] Extend isolated lab topology/routes/firewall counters; collect controls and three cycles for all cases; surface cleanup failures.
 - [x] Run actual preflight/--run and record the observed block; validate typecheck/build/full tests and existing UI checks.
 - [x] Request read-only review, fix verified issues, update docs/progress and commit locally.
+
+## Acceptance still blocked
+
+- [ ] Execute and pass the real namespace/firewall proof on a host with nft, CAP_NET_ADMIN and CAP_SYS_ADMIN.
+- [ ] Verify the real provider/browser path separately; a laboratory pass alone never enables launches.

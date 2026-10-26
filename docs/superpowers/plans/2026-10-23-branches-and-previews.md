@@ -1,5 +1,7 @@
 # Branches and Preview Implementation Plan
 
+> Checked 2026-10-26 against application revision `2dffb6d`: Branches, configuration previews and closed-file/history independence are implemented for the current profile schema. Pixel/DOM comparison and full fingerprint environments remain outside this completed increment. See the [implementation audit](../../PLAN-AUDIT.md).
+
 **Goal:** Review restores and safely experiment in independent profile branches.
 **Architecture:** Pure typed diffs plus revision checks; BranchManager coordinates encrypted history cloning, hidden creation reservations, journaled activation/deletion and configuration-only merges. Electron owns all operations; renderer shows content-aware previews and confirmations.
 **Spec:** docs/superpowers/specs/2026-10-23-branches-and-previews.md

@@ -1,4 +1,7 @@
 # Styg foundation progress
+
+> Historical foundation ledger. Later increments implement browser lifecycle, additional recovery and Settings. Use the [current checked plan](PLAN-AUDIT.md) rather than treating the deferred items and test totals below as current status.
+
 Plan: docs/superpowers/plans/2026-10-23-styg-foundation.md
 
 Ruling: The first slice stores atomic configuration snapshots in encrypted SQLite BLOBs, as permitted by the blueprint schema. Browser-state snapshots are deferred until a quiesced browser capture is implemented; the UI must say configuration only.
