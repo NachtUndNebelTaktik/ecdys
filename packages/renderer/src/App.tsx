@@ -50,7 +50,7 @@ const integrations = [
     name: 'Managed Chromium',
     state: 'PARTIAL',
     detail:
-      'Temporary Linux sessions use system Chromium 154 with private control pipes. Browser provisioning, fingerprint controls and full WebRTC validation remain pending.',
+      'Temporary Linux sessions use system Chromium 156 with private control pipes. Browser provisioning, fingerprint controls and full WebRTC validation remain pending.',
     category: 'BROWSER',
   },
   {

@@ -4,7 +4,7 @@ The first working browsing mode opens real Chromium inside the existing Browser 
 
 ## Run and use
 
-The supported development environment needs Linux user/network namespaces, bubblewrap at /usr/bin/bwrap, util-linux prlimit, and Chromium 154 at /usr/lib/chromium/chromium. The application checks prerequisites; unavailable or failed isolation never falls back to launching directly. Other operating systems and Chromium versions remain unsupported by this runtime.
+The supported development environment needs Linux user/network namespaces, bubblewrap at /usr/bin/bwrap, util-linux prlimit, and Chromium 156 at /usr/lib/chromium/chromium. The application checks prerequisites; unavailable or failed isolation never falls back to launching directly. Other operating systems and Chromium versions remain unsupported by this runtime.
 
 Swap must be disabled. Browser files live in a private 512 MiB tmpfs with a private HOME/cache, and the process tree has a zero core-file limit. Application configuration stays in the existing encrypted vault. This mode does not claim an encrypted persistent browser filesystem, protection against a compromised administrator, or certification of every host crash-dump policy.
 

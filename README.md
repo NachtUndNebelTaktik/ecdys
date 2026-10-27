@@ -51,7 +51,7 @@ Local configuration operations work offline. Signed commercial offline entitleme
 
 The foundation has been exercised on Linux. Windows/macOS native verification and Windows durable directory publication remain release gates.
 
-Temporary browsing requires Linux user/network namespaces, bubblewrap, util-linux prlimit, system Chromium 154 at the supported Debian path, and disabled swap. It currently supports one Standard session, no downloads or persistent site-state recovery, and a streamed development viewport. See [browser runtime and limitations](docs/BROWSER-RUNTIME.md).
+Temporary browsing requires Linux user/network namespaces, bubblewrap, util-linux prlimit, system Chromium 156 at the supported Debian path, and disabled swap. It currently supports one Standard session, no downloads or persistent site-state recovery, and a streamed development viewport. See [browser runtime and limitations](docs/BROWSER-RUNTIME.md).
 
 ## Verify
 
