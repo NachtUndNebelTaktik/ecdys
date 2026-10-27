@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {DEFAULT_UI_PREFERENCES, loadUiPreferences, saveUiPreferences, type UiPreferences} from '../packages/renderer/src/preferences';
+import {DEFAULT_UI_PREFERENCES, loadUiPreferences, readUiPreferences, saveUiPreferences, type UiPreferences} from '../packages/renderer/src/preferences';
 
 const key = 'ecdys.ui-preferences.v1';
 const defaults: UiPreferences = {appearance: 'dark', accent: 'crimson', density: 'comfortable', reduceMotion: false, notifications: true};
@@ -26,6 +26,7 @@ describe('local UI preferences', () => {
     expect(loadUiPreferences(storage)).toEqual(defaults);
     expect(DEFAULT_UI_PREFERENCES).toEqual(defaults);
     expect(storage.length).toBe(0);
+    expect(readUiPreferences(storage)).toEqual({preferences: defaults, persistenceAvailable: true});
   });
 
   it('persists only UI fields and reloads them through a new storage reader', () => {
@@ -36,6 +37,7 @@ describe('local UI preferences', () => {
     const reloaded = new MemoryStorage();
     reloaded.setItem(key, storage.getItem(key)!);
     expect(loadUiPreferences(reloaded)).toEqual(chosen);
+    expect(readUiPreferences(reloaded)).toEqual({preferences: chosen, persistenceAvailable: true});
     expect(storage.getItem('unrelated')).toBe('preserved');
     expect(storage.length).toBe(2);
   });
@@ -61,6 +63,7 @@ describe('local UI preferences', () => {
     storage.setItem(key, value);
     expect(loadUiPreferences(storage)).toEqual(defaults);
     expect(storage.getItem(key)).toBe(value);
+    expect(readUiPreferences(storage)).toEqual({preferences: defaults, persistenceAvailable: true});
   });
 
   it.each(['account', 'email', 'credentials', 'wallet', 'privateKey', 'token'])('refuses to persist an extra %s field', field => {
@@ -95,11 +98,13 @@ describe('local UI preferences', () => {
   it('handles unavailable default storage and denied reads or writes', () => {
     vi.stubGlobal('localStorage', undefined);
     expect(loadUiPreferences()).toEqual(defaults);
+    expect(readUiPreferences()).toEqual({preferences: defaults, persistenceAvailable: false});
     expect(saveUiPreferences(chosen)).toBe(false);
     const denied = new MemoryStorage();
     denied.getItem = () => { throw new Error('Storage denied'); };
     denied.setItem = () => { throw new Error('Storage full'); };
     expect(loadUiPreferences(denied)).toEqual(defaults);
+    expect(readUiPreferences(denied)).toEqual({preferences: defaults, persistenceAvailable: false});
     expect(saveUiPreferences(chosen, denied)).toBe(false);
   });
 
@@ -107,6 +112,7 @@ describe('local UI preferences', () => {
     vi.stubGlobal('localStorage', undefined);
     Object.defineProperty(globalThis, 'localStorage', {configurable: true, get: () => { throw new Error('Storage denied'); }});
     expect(loadUiPreferences()).toEqual(defaults);
+    expect(readUiPreferences()).toEqual({preferences: defaults, persistenceAvailable: false});
     expect(saveUiPreferences(chosen)).toBe(false);
   });
 

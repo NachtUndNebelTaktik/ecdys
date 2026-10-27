@@ -1,5 +1,13 @@
 # Settings handoff
 
+## Functional correction — 2026-10-27
+
+The user clarified that “sharp” means code quality and working features. Base: `fbee7df`; local branch: `fix/settings-functionality`. The [functional checklist](FUNCTIONALITY.md) records the actual state of every Settings control. Eight named features still have no backend, and Storage is partial; their explanatory screens do not close functional acceptance.
+
+Fixed a real preference-persistence defect: startup loading now returns validated preferences plus storage availability, and App initializes its persistence state from that result. A denied/unavailable store is reported immediately, including after reload; the footer no longer claims automatic saves. Safe defaults remain usable. Malformed readable data is kept distinct from unavailable storage. The existing preference-only accessor remains compatible; no new fields or startup writes were introduced.
+
+The new browser check was observed failing before the fix, including the contradictory footer case, and now passes with the 25-check browser suite. Preference-boundary checks, typecheck/build and three actual Electron workflows also pass. Routing preflight still lacks nft, CAP_NET_ADMIN and CAP_SYS_ADMIN; no routing or launch gate was weakened. No visual redesign, new integration, push or remote merge was performed in this correction.
+
 ## Sharpened revision — 2026-10-27
 
 Base: `c255517`. Local branch: `feat/sharp-settings`. Implemented the user's supplied HTML revision in the existing Electron/Solid screen: desktop rail/search, compact chips, current state, tighter cards/rows, library icon tiles, mono values, accent markers and six colours led by true CSS Crimson. Existing Sage/Indigo preferences remain compatible. Browsing report now sits beneath Trocador under Account and stays Off. SOCKS5 shows Direct, explained as no configured proxy; Routing remains Blocked. Data controls resets only device preferences.

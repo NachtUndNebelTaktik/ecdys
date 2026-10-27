@@ -75,7 +75,7 @@ sudo node scripts/routing-proof.mjs --run
 
 Exit 2 means prerequisites are missing, not that isolation passed. The lab uses simulated tunnel interfaces and checks IPv4/IPv6 HTTP, UDP and DNS, usable fallback controls and repeated disconnect blocking. Its privileged run remains unvalidated here; real loopback tests validate the probes only. It is not a provider VPN or full browser validation. A lab pass never enables launches.
 
-See [Settings](docs/SETTINGS.md), [built-in tools](docs/TOOLS.md), [provider registration and recovery](docs/PROVISIONING.md), [VPN setup and provider corrections](docs/VPN.md), [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [recovery implementation plan](docs/superpowers/plans/2026-10-24-recovery-rehearsal.md).
+See [functional acceptance](docs/FUNCTIONALITY.md), [Settings](docs/SETTINGS.md), [built-in tools](docs/TOOLS.md), [provider registration and recovery](docs/PROVISIONING.md), [VPN setup and provider corrections](docs/VPN.md), [managed sessions and recovery limits](docs/SESSIONS.md), [branches and previews](docs/BRANCHES.md), [snapshot format and recovery](docs/SNAPSHOTS.md), [routing details](docs/ROUTING.md), [delivery status](docs/STATUS.md) and the [recovery implementation plan](docs/superpowers/plans/2026-10-24-recovery-rehearsal.md).
 
 ## Security boundaries
 

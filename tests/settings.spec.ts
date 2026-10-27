@@ -364,3 +364,29 @@ test('compact desktop windows retain search and section navigation without horiz
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await dialog.screenshot({path: 'test-results/settings-compact.png', animations: 'disabled'});
 });
+
+test('startup storage failures keep preferences usable and warn before the first change', async ({page}) => {
+  await page.addInitScript(key => {
+    const getItem = Storage.prototype.getItem;
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.getItem = function(name) {
+      if (name === key) throw new DOMException('Storage denied', 'SecurityError');
+      return getItem.call(this, name);
+    };
+    Storage.prototype.setItem = function(name, value) {
+      if (name === key) throw new DOMException('Storage denied', 'SecurityError');
+      return setItem.call(this, name, value);
+    };
+  }, preferenceKey);
+  await page.goto('/');
+  let dialog = await openSettings(page);
+  await expect(dialog.getByRole('status')).toContainText('Device storage is unavailable');
+  await expect(dialog).not.toContainText('Device preferences save automatically.');
+  await dialog.getByRole('combobox', {name: 'Appearance', exact: true}).selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light');
+  await expect(dialog.getByRole('status')).toContainText('Device storage is unavailable');
+  await page.reload();
+  dialog = await openSettings(page);
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'dark');
+  await expect(dialog.getByRole('status')).toContainText('Device storage is unavailable');
+});

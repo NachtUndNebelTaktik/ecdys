@@ -26,17 +26,33 @@ const preferencesSchema = z.object({
   notifications: z.boolean(),
 }).strict();
 
-export function loadUiPreferences(storage?: Storage): UiPreferences {
+export type UiPreferencesReadResult = {
+  preferences: UiPreferences;
+  persistenceAvailable: boolean;
+};
+
+export function readUiPreferences(storage?: Storage): UiPreferencesReadResult {
+  let preferences = {...DEFAULT_UI_PREFERENCES};
+  let persistenceAvailable = false;
   try {
-    const value = (storage ?? globalThis.localStorage)?.getItem(storageKey);
-    if (value == null || value.length > maximumStoredBytes || new TextEncoder().encode(value).byteLength > maximumStoredBytes) {
-      return {...DEFAULT_UI_PREFERENCES};
+    const target = storage ?? globalThis.localStorage;
+    if (target) {
+      const value = target.getItem(storageKey);
+      persistenceAvailable = true;
+      if (value != null && value.length <= maximumStoredBytes && new TextEncoder().encode(value).byteLength <= maximumStoredBytes) {
+        const result = preferencesSchema.safeParse(JSON.parse(value));
+        if (result.success) preferences = result.data;
+      }
     }
-    const result = preferencesSchema.safeParse(JSON.parse(value));
-    return result.success ? result.data : {...DEFAULT_UI_PREFERENCES};
   } catch {
-    return {...DEFAULT_UI_PREFERENCES};
+    // An unreadable store is distinct from readable but malformed preferences.
+    // Neither case prevents using safe defaults for the current session.
   }
+  return {preferences, persistenceAvailable};
+}
+
+export function loadUiPreferences(storage?: Storage): UiPreferences {
+  return readUiPreferences(storage).preferences;
 }
 
 export function saveUiPreferences(preferences: UiPreferences, storage?: Storage): boolean {

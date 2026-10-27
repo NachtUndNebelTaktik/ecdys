@@ -158,7 +158,7 @@ export default function SettingsPanel(props:Props) {
         <Group id="app" label="App settings" accessibleLabel="App"><Row id="general" icon="general"/><Row id="notifications" icon="bell" dot/><Row id="monero" icon="monero" dot/><Row id="security" icon="security"/><Row id="cloud" icon="cloud" dot/><Row id="storage" icon="storage"/><Row id="data" icon="lock"/></Group>
         <Group id="help" label="Get help" accessibleLabel="Help"><Row id="help" icon="help"/><Row id="shortcuts" icon="keyboard"/></Group>
         <Show when={!hasMatches()}><p class="settings-empty" role="status">No settings match</p></Show>
-        <p class="settings-device-note">Device preferences save automatically.</p>
+        <p class="settings-device-note">{props.persistenceAvailable?'Device preferences save automatically.':'Device preferences are temporary for this session.'}</p>
         </div><aside class="settings-state" aria-label="Current state">
           <div class="settings-state-panel"><h2>Current state</h2><dl>
             <div><dt>Appearance</dt><dd>{values().appearance}</dd></div><div><dt>Accent</dt><dd>{values().accent}</dd></div>

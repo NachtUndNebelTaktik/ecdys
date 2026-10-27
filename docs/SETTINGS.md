@@ -13,7 +13,7 @@ Navigation jumps to sections in one scrollable overview and follows subsequent s
 - Personalization: Comfortable/Compact profile spacing and Reduce motion.
 - Notifications: optional in-app success messages. Errors and important incomplete-snapshot warnings remain visible.
 
-These five enum/boolean preferences save automatically on this device and apply immediately. They persist across app restarts. Only these non-sensitive display/message choices use `ecdys.ui-preferences.v1` in local storage. Invalid data falls back to defaults; failed saves keep the change for the current session and display that storage is unavailable. No account, email, wallet, credential, navigation history or workspace metadata is stored there.
+These five enum/boolean preferences save automatically on this device and apply immediately. They persist across app restarts. Only these non-sensitive display/message choices use `ecdys.ui-preferences.v1` in local storage. Invalid data falls back to defaults; failed reads show session-only status immediately at startup, and failed writes keep changes for the current session with the same warning. The footer reflects actual storage availability. No account, email, wallet, credential, navigation history or workspace metadata is stored there.
 
 ## Workspace and help
 

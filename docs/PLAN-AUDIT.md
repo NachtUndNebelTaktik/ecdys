@@ -2,6 +2,8 @@
 
 Audited application revision: `2dffb6d`, version `0.7.0`. This review compares the repository's scoped plans/designs and the original v3 blueprint with source, reachable controls and fresh tests. It does not equate a completed development increment with a completed v1 product feature.
 
+The user's subsequent clarification makes code quality and functional completion the priority. Use the [per-control functional checklist](FUNCTIONALITY.md) alongside this audit: eight Settings entries still lack their underlying feature, and Storage is partial. Successful interface tests do not close those feature gates.
+
 **Result:** the scoped increment implementation tasks below are present and pass their current regression checks. The full blueprint remains partially implemented. Normal browser launch, OS tunnel/route enforcement, fingerprint overrides, accounts, billing and cloud services are not delivered.
 
 Statuses: **Implemented** means the stated bounded scope exists with executable evidence; **Partial** means only part of the full requirement exists; **Blocked** means an additional prerequisite prevents execution/acceptance; **Planned** means no working implementation of that feature was found. Historical test-first/review steps remain supported by their progress ledgers; passing tests today do not independently prove the order of historical development.
@@ -100,7 +102,7 @@ The blueprint contains **30** numbered stories, despite its “25 Total” headi
 
 ## Settings follow-up verification — 2026-10-27
 
-`pnpm test`: **260 passed / 3 skipped** across 23 files. `pnpm test:ui`: **24 passed**, including search/empty results/Escape, current-value filtering, navigation/scroll tracking, compact heading visibility, old-colour compatibility and preference reset. `pnpm test:desktop`: **3 passed**, including real workspace lock and restart persistence. Typecheck/build passed. The skip conditions are unchanged; the opt-in maximum-size recovery check was last run separately on 2026-10-26. This UI change makes no new privileged-routing or offline-archive verification claim.
+`pnpm test`: **260 passed / 3 skipped** across 23 files. `pnpm test:ui`: **25 passed**, including search/empty results/Escape, current-value filtering, navigation/scroll tracking, compact heading visibility, old-colour compatibility, preference reset and the later startup-storage failure fix. `pnpm test:desktop`: **3 passed**, including real workspace lock and restart persistence. Typecheck/build passed. The skip conditions are unchanged; the opt-in maximum-size recovery check was last run separately on 2026-10-26. This UI change makes no new privileged-routing or offline-archive verification claim.
 
 ## Earlier verification — 2026-10-26
 

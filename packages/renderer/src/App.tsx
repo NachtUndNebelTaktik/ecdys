@@ -6,14 +6,15 @@ import BranchDialog,{type BranchDialogState} from './BranchDialog';
 import VpnDialog from './VpnDialog';
 import SettingsPanel from './SettingsPanel';
 import SettingsIcon from './SettingsIcon';
-import {loadUiPreferences,saveUiPreferences,type UiPreferences} from './preferences';
+import {readUiPreferences,saveUiPreferences,type UiPreferences} from './preferences';
 import type {CredentialPresence,RelayCatalog,VpnSettingsType} from '../../shared/src/vpn';
 
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 export default function App() {
   const [settingsOpen,setSettingsOpen]=createSignal(false);
-  const [preferences,setPreferences]=createSignal(loadUiPreferences());
-  const [preferencesSaved,setPreferencesSaved]=createSignal(true);
+  const initialPreferences=readUiPreferences();
+  const [preferences,setPreferences]=createSignal(initialPreferences.preferences);
+  const [preferencesSaved,setPreferencesSaved]=createSignal(initialPreferences.persistenceAvailable);
   const [status,setStatus]=createSignal<WorkspaceStatus>();
   const [profiles,setProfiles]=createSignal<Profile[]>([]);
   const [selected,setSelected]=createSignal<string>();

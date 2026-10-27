@@ -32,7 +32,7 @@ No remaining actionable P0/P1/P2 issue was found within this settings revision.
 
 ## Interaction evidence
 
-**24 browser checks passed**, including every detail row, appearance/system/accent persistence, search/current-value filtering/empty state, Escape and slash typing, filtered navigation, scroll tracking, compact heading visibility, legacy accents, preference reset, mandatory cleanup warnings, native focus containment and focus restoration.
+**25 browser checks passed**, including every detail row, appearance/system/accent persistence, search/current-value filtering/empty state, Escape and slash typing, filtered navigation, scroll tracking, compact heading visibility, legacy accents, preference reset, startup storage failure handling, mandatory cleanup warnings, native focus containment and focus restoration. The later functional correction changes the unavailable-storage warning/footer state; default visual captures remain representative.
 
 **3 Electron workflows passed**, including preference persistence after restart and locking a real encrypted workspace with Ctrl/Cmd+Shift+L. The settings workflow captured no console or page errors. Typecheck and production build passed. The full default unit/integration suite passed **260 tests with 3 existing skips**; the maximum-size opt-in recovery, privileged routing and offline MHTML-opening conditions are documented in the plan audit rather than counted as passes.
 
