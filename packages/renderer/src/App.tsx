@@ -7,6 +7,8 @@ import VpnDialog from './VpnDialog';
 import SettingsPanel from './SettingsPanel';
 import SettingsIcon from './SettingsIcon';
 import {readUiPreferences,saveUiPreferences,type UiPreferences} from './preferences';
+import {workspaceState as getWorkspaceState,type SnapshotHistoryState} from './workspace-status';
+import './workspace-status.css';
 import type {CredentialPresence,RelayCatalog,VpnSettingsType} from '../../shared/src/vpn';
 
 const time=(value:number)=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -19,6 +21,9 @@ export default function App() {
   const [profiles,setProfiles]=createSignal<Profile[]>([]);
   const [selected,setSelected]=createSignal<string>();
   const [snapshots,setSnapshots]=createSignal<Snapshot[]>([]);
+  const [profilesLoaded,setProfilesLoaded]=createSignal(false);
+  const [historyState,setHistoryState]=createSignal<SnapshotHistoryState>('unknown');
+  let workspaceEpoch=0,historyEpoch=0;
   const [search,setSearch]=createSignal('');
   const [error,setError]=createSignal(''); const [notice,setNotice]=createSignal('');
   const [importantNotice,setImportantNotice]=createSignal(false);
@@ -39,6 +44,9 @@ export default function App() {
   const current=createMemo(()=>profiles().find(p=>p.id===selected()));
   const filtered=createMemo(()=>profiles().filter(p=>`${p.name} ${p.tags.join(' ')}`.toLowerCase().includes(search().toLowerCase())));
   const bridge=!!window.styg;
+  const state=()=>getWorkspaceState(status(),bridge);
+  const profileCount=()=>profilesLoaded()&&state()==='unlocked'?profiles().length:null;
+  const snapshotCount=()=>historyState()==='ready'&&state()==='unlocked'?snapshots().length:null;
   async function invoke<T>(request:RequestType):Promise<T> {
     if(!window.styg) throw new Error('Open Ecdys in Electron to use the encrypted workspace.');
     const result=await window.styg.invoke<T>(request);
@@ -50,12 +58,40 @@ export default function App() {
     try {await action();} catch(error) {setError(error instanceof Error?error.message:'Operation failed');}
     finally {setBusy(false);}
   }
+  function clearHistory(next:SnapshotHistoryState='unknown') {
+    historyEpoch++;setSnapshots([]);setHistoryState(next);setRecoveryEpoch(value=>value+1);
+  }
+  async function loadHistory(id:string) {
+    clearHistory('loading');
+    setSelected(id);
+    const request=historyEpoch,owner=workspaceEpoch;
+    const isCurrent=()=>request===historyEpoch&&owner===workspaceEpoch&&selected()===id&&state()==='unlocked';
+    try {
+      const history=await invoke<Snapshot[]>({action:'snapshots',id});
+      if(!isCurrent())return;
+      if(!Array.isArray(history)||history.some(snapshot=>snapshot.profileId!==id))throw new Error('Snapshot history belongs to another profile');
+      setSnapshots(history);setHistoryState('ready');
+    }catch {
+      if(isCurrent()){setSnapshots([]);setHistoryState('error');}
+    }
+  }
+  function selectProfile(id:string) {
+    if(busy()||state()!=='unlocked')return;
+    void loadHistory(id);
+  }
   async function refresh(id?:string) {
-    setStatus(await invoke<WorkspaceStatus>({action:'status'}));
-    if(!status()?.unlocked) {changeVpnProfile();setCredentials({mullvad:false,ivpn:false});setProfiles([]);setSnapshots([]);setSelected(undefined);setRestoreTarget(undefined);setBranchDialog(undefined);setEditing(undefined);setName('');setTags('');return;}
-    const list=await invoke<Profile[]>({action:'profiles'}); setProfiles(list);
-    const next=[id,selected(),list[0]?.id].find(candidate=>list.some(profile=>profile.id===candidate)); setSelected(next);
-    setSnapshots(next?await invoke<Snapshot[]>({action:'snapshots',id:next}):[]);
+    const request=++workspaceEpoch,previous=selected();
+    clearHistory();setProfilesLoaded(false);setProfiles([]);setSelected(undefined);setStatus(undefined);
+    const observed=await invoke<WorkspaceStatus>({action:'status'});
+    if(request!==workspaceEpoch)return;
+    setStatus(observed);
+    if(!observed.unlocked) {changeVpnProfile();setCredentials({mullvad:false,ivpn:false});setRestoreTarget(undefined);setBranchDialog(undefined);setEditing(undefined);setName('');setTags('');return;}
+    const list=await invoke<Profile[]>({action:'profiles'});
+    if(request!==workspaceEpoch)return;
+    setProfiles(list);setProfilesLoaded(true);
+    const next=[id,previous,list[0]?.id].find(candidate=>list.some(profile=>profile.id===candidate));setSelected(next);
+    // Read-only history must not keep Lock or profile selection busy.
+    if(next)void loadHistory(next);
   }
   onMount(()=>{if(bridge) void run(()=>refresh());});
   createEffect(()=>{
@@ -68,6 +104,7 @@ export default function App() {
     if(busy()||!status()?.unlocked)return;
     setRecoveryEpoch(value=>value+1);setSettingsOpen(false);
     void run(async()=>{
+      workspaceEpoch++;clearHistory();setProfilesLoaded(false);setProfiles([]);setSelected(undefined);setStatus(undefined);
       const result=await invoke<{incompleteSnapshots:number}>({action:'lock'});
       setEditor(false);setRestoreTarget(undefined);setSearch('');await refresh();
       if(result.incompleteSnapshots){setImportantNotice(true);setNotice('Workspace locked. Some session snapshots were incomplete; working files are preserved.');}
@@ -129,18 +166,21 @@ export default function App() {
       <a class="brand" href="#" onClick={e=>e.preventDefault()} aria-label="Ecdys home"><span class="brand-mark">e</span>ecdys<span class="brand-dot">.</span></a>
       <div class="workspace-label"><span class="workspace-avatar">P</span><div>Personal workspace<small>Local · single operator</small></div><span class="muted">⌄</span></div>
       <div class="nav-label">WORKSPACE</div>
-      <button class="nav-item active"><span>▦</span> Profiles <span class="count">{profiles().length}</span></button>
-      <div class="nav-label tools-label">FOUNDATION</div>
-      <div class="nav-note"><span class="tiny-dot"/> Encrypted workspace</div>
-      <div class="nav-note"><span class="tiny-dot"/> Encrypted snapshots</div>
-      <div class="nav-note muted"><span class="tiny-dot amber"/> Routing verification pending</div>
+      <button class="nav-item active"><span>▦</span> Profiles <span class="count">{profileCount()??'Unknown'}</span></button>
+      <div class="nav-label tools-label">STORAGE BOUNDARY</div>
+      <Show when={state()==='unlocked'} fallback={<div class="nav-note">Vault contents unavailable while {state()==='locked'?'locked':state()==='preview'?'in browser preview':'status is unknown'}.</div>}>
+        <div class="nav-note">Database and saved snapshots: encrypted at rest</div>
+      </Show>
+      <div class="nav-note">Browser working files: plaintext on this device</div>
+      <div class="nav-note muted">Routing: unverified · launches blocked</div>
       <div class="sidebar-bottom"><div class="version">ECDYS <span>0.7.0 · built-in tools</span></div><div class="local-note">Your workspace stays on this device.</div></div>
     </aside>
     <div class="main-shell">
-      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><button class="settings-open-button" aria-label="Open settings" title="Settings · Ctrl/⌘+," onClick={()=>setSettingsOpen(true)}><SettingsIcon name="general"/><span>Settings</span></button><span class="local-pill"><span class="tiny-dot"/> Local workspace</span><Show when={status()?.unlocked}><button class="text-button" disabled={busy()} onClick={lockWorkspace}>Lock workspace ↗</button></Show></div></header>
+      <header class="topbar"><div><span class="muted">Workspace</span><span class="breadcrumb">/</span>Profiles</div><div class="topbar-right"><button class="settings-open-button" aria-label="Open settings" title="Settings · Ctrl/⌘+," onClick={()=>setSettingsOpen(true)}><SettingsIcon name="general"/><span>Settings</span></button><span class="local-pill" role="group" aria-label="Vault state"><span aria-hidden="true" class={`settings-state-dot ${state()==='unlocked'?'is-on':''}`}/>Local · Vault {state()==='preview'?'unavailable — browser preview':state()==='unknown'?'unknown':state()==='locked'?'locked':'unlocked'}</span><Show when={state()==='unlocked'}><button class="text-button" disabled={busy()} onClick={lockWorkspace}>Lock workspace ↗</button></Show></div></header>
       <main>
         <Show when={error()}><div class="message error" role="alert">{error()}<button aria-label="Dismiss error" onClick={()=>setError('')}>×</button></div></Show>
         <Show when={notice()&&(preferences().notifications||importantNotice())}><div class={importantNotice()?'message important':'message success'} role="status">{notice()}</div></Show>
+        <Show when={state()!=='unknown'} fallback={<section class="onboarding" aria-label="Workspace status"><h1>Workspace status unknown</h1><p class="intro">{busy()?'Checking the local workspace.':'The local workspace status could not be read. Retry the check before changing workspace data.'}</p><button class="secondary" disabled={busy()} onClick={()=>void run(()=>refresh())}>Retry workspace check</button></section>}>
         <Show when={status()?.unlocked} fallback={<div class="onboarding">
           <div class="eyebrow">A QUIETER CORNER OF THE INTERNET</div>
           <h1>Your workspace.<br/>Your control.</h1>
@@ -154,19 +194,20 @@ export default function App() {
               <label>Confirm passphrase<input type="password" autocomplete="new-password" minLength={12} required value={confirmation()} onInput={e=>setConfirmation(e.currentTarget.value)}/></label>
               <details><summary>Key derivation settings</summary><label>Argon2id memory<select value={memory()} onChange={e=>setMemory(Number(e.currentTarget.value))}><option value="64">64 MiB · minimum</option><option value="256">256 MiB · balanced</option><option value="1024">1 GiB · high memory</option><option value="4096">4 GiB · requires ample free RAM</option></select></label></details>
             </Show>
-            <button class="primary wide" disabled={!bridge||busy()} type="submit">{busy()?'Deriving encryption key…':status()?.exists?'Unlock workspace':'Create encrypted workspace'} <span>↗</span></button>
+            <button class="primary wide" disabled={!bridge||busy()} type="submit">{busy()?'Opening workspace…':status()?.exists?'Unlock workspace':'Create encrypted workspace'} <span>↗</span></button>
             <Show when={!bridge}><div class="preview-notice"><strong>Desktop bridge unavailable</strong><br/>This browser preview shows the interface. Open the Electron app to create or unlock a real workspace.</div></Show>
           </form>
           <div class="onboarding-foot"><span>◈ Encrypted at rest</span><span>↶ Recoverable changes</span><span>⌁ Local by default</span></div>
         </div>}>
-          <section class="page-heading"><div><div class="eyebrow">PERSONAL WORKSPACE</div><h1>Profiles<span class="heading-dot">.</span></h1><p class="muted">A separate space for every context.</p></div><button class="primary" disabled={busy()||profiles().length>=99} onClick={()=>openEditor()}>＋ New profile</button></section>
-          <section class="stats"><div><span class="stat-label">TOTAL PROFILES</span><strong>{profiles().length}<small>/ 99</small></strong><span>Separate local profile folders</span></div><div><span class="stat-label">WORKSPACE</span><strong class="stat-word">Unlocked <span class="tiny-dot"/></strong><span>Settings and snapshots encrypted</span></div><div><span class="stat-label">RECOVERY</span><strong class="stat-word">Automatic</strong><span>Configuration snapshots before edits</span></div></section>
+          <section class="page-heading"><div><div class="eyebrow">PERSONAL WORKSPACE</div><h1>Profiles<span class="heading-dot">.</span></h1><p class="muted">A separate space for every context.</p></div><button class="primary" disabled={busy()||!profilesLoaded()||profiles().length>=99} onClick={()=>openEditor()}>＋ New profile</button></section>
+          <section class="stats"><div><span class="stat-label">TOTAL PROFILES</span><strong>{profileCount()??'Unknown'}<small>/ 99</small></strong><span>{profilesLoaded()?'Separate local profile folders':'Profile list has not been read'}</span></div><div><span class="stat-label">WORKSPACE</span><strong class="stat-word">Unlocked</strong><span>Database and snapshots encrypted at rest</span></div><div><span class="stat-label">RECOVERY</span><strong class="stat-word">Automatic</strong><span>Configuration snapshots before edits</span></div></section>
           <div class="routing-banner"><span class="route-icon">⌁</span><div><strong>Route verification required</strong><p>Networked launches stay blocked until OS-level isolation and disconnect blocking are verified.</p></div><span class="status-tag warning">BLOCKED</span></div>
-          <div class="profiles-toolbar"><div class="tabs"><span class="selected-tab">All profiles <b>{profiles().length}</b></span></div><label class="search"><span>⌕</span><input aria-label="Search profiles" placeholder="Search name or tag…" value={search()} onInput={e=>setSearch(e.currentTarget.value)}/></label></div>
+          <div class="profiles-toolbar"><div class="tabs"><span class="selected-tab">All profiles <b>{profileCount()??'Unknown'}</b></span></div><label class="search"><span>⌕</span><input aria-label="Search profiles" placeholder="Search name or tag…" value={search()} onInput={e=>setSearch(e.currentTarget.value)}/></label></div>
           <div class="workspace-content"><section class="profile-grid" aria-label="Profiles">
-            <Show when={filtered().length===0}><div class="empty"><div class="empty-icon">▦</div><h2>{profiles().length?'No matching profiles':'A clean slate'}</h2><p>{profiles().length?'Try another name or tag.':'Create your first profile. Ecdys will save its baseline automatically.'}</p><Show when={!profiles().length}><button class="secondary" onClick={()=>openEditor()}>Create first profile ↗</button></Show></div></Show>
+            <Show when={!profilesLoaded()}><div class="empty" role="status"><p>{busy()?'Loading the local profile list.':'Profile list unavailable. Retry to read the local profiles again.'}</p><button class="secondary" disabled={busy()} onClick={()=>void run(()=>refresh())}>Retry profile list</button></div></Show>
+            <Show when={profilesLoaded()&&filtered().length===0}><div class="empty"><div class="empty-icon">▦</div><h2>{profiles().length?'No matching profiles':'A clean slate'}</h2><p>{profiles().length?'Try another name or tag.':'Create your first profile. Ecdys will save its baseline automatically.'}</p><Show when={!profiles().length}><button class="secondary" onClick={()=>openEditor()}>Create first profile ↗</button></Show></div></Show>
             <For each={filtered()}>{profile=><article class={`profile-card ${selected()===profile.id?'is-selected':''}`}>
-              <button class="profile-main" disabled={busy()} onClick={()=>void run(async()=>{setSelected(profile.id);setSnapshots(await invoke<Snapshot[]>({action:'snapshots',id:profile.id}));})}>
+              <button class="profile-main" disabled={busy()} onClick={()=>selectProfile(profile.id)}>
                 <div class="card-top"><span class="profile-avatar">{profile.name.slice(0,2).toUpperCase()}</span><Show when={profile.parentProfileId} fallback={<span class="card-menu">↗</span>}><span class="branch-badge">BRANCH</span></Show></div>
                 <h2>{profile.name}</h2><div class="profile-id">{profile.id.slice(0,8)} · LOCAL PROFILE</div>
                 <div class="tag-row"><For each={profile.tags}>{tag=><span class="tag">{tag}</span>}</For><Show when={!profile.tags.length}><span class="muted">No tags</span></Show></div>
@@ -176,7 +217,8 @@ export default function App() {
             </article>}</For>
           </section>
           <Show when={current()}>{profile=><SnapshotPanel
-            profile={profile()} snapshots={snapshots()} busy={busy()} recoveryEpoch={recoveryEpoch()}
+            profile={profile()} snapshots={snapshots()} historyState={historyState()} busy={busy()} recoveryEpoch={recoveryEpoch()}
+            onRetryHistory={()=>void loadHistory(profile().id)}
             onRehearse={snapshot=>invoke<RecoveryRehearsalReport>({action:'rehearseSnapshot',id:snapshot.profileId,snapshotId:snapshot.id})}
             onSave={()=>void run(async()=>{
               const saved=await invoke<Snapshot>({action:'saveStateSnapshot',id:profile().id});
@@ -190,11 +232,12 @@ export default function App() {
             onPromote={()=>openBranch('promote',profile())} onDiscard={()=>openBranch('discard',profile())}
             onRestore={snapshot=>void run(async()=>{setRestoreTarget(await invoke<SnapshotPreview>({action:'previewSnapshot',id:profile().id,snapshotId:snapshot.id}));})}
           />}</Show></div>
-          <footer class="workspace-footer"><span><span class="tiny-dot"/> Stored locally · encrypted at rest</span><span>Ecdys built-in tools preview / 0.7.0</span></footer>
+          <footer class="workspace-footer"><span>Local storage · database and snapshots encrypted at rest · browser working files plaintext</span><span>Ecdys built-in tools preview / 0.7.0</span></footer>
+        </Show>
         </Show>
       </main>
     </div>
-    <Show when={settingsOpen()}><SettingsPanel preferences={preferences()} onPreferencesChange={changePreferences} persistenceAvailable={preferencesSaved()} onClose={()=>setSettingsOpen(false)} onLock={lockWorkspace} unlocked={!!status()?.unlocked} busy={busy()} profileCount={profiles().length} snapshotCount={snapshots().length} platform={status()?.platform??'Browser preview'} version="0.7.0"/></Show>
+    <Show when={settingsOpen()}><SettingsPanel preferences={preferences()} onPreferencesChange={changePreferences} persistenceAvailable={preferencesSaved()} onClose={()=>setSettingsOpen(false)} onLock={lockWorkspace} workspaceState={state()} unlocked={state()==='unlocked'} busy={busy()} profileCount={profileCount()} snapshotCount={snapshotCount()} platform={status()?.platform??(bridge?'Unknown':'Browser preview')} version="0.7.0"/></Show>
     <Show when={editor()}><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-top"><span class="eyebrow">PROFILE CONFIGURATION</span><button class="close-button" aria-label="Close editor" disabled={busy()} onClick={()=>setEditor(false)}>×</button></div><h2 id="editor-title">{editing()?'Edit profile':'A new context'}</h2><p class="muted">{editing()?'Ecdys saves a snapshot before applying your changes.':'Start with a name. A baseline snapshot is saved automatically.'}</p><form onSubmit={save}><label>Profile name<input autofocus required maxLength={100} value={name()} onInput={e=>setName(e.currentTarget.value)} placeholder="e.g. Research — Europe"/></label><label>Tags <span class="muted">· comma separated</span><input value={tags()} onInput={e=>setTags(e.currentTarget.value)} placeholder="research, client-work"/></label><label>Timezone<input required list="timezones" value={timezone()} onInput={e=>setTimezone(e.currentTarget.value)}/><datalist id="timezones"><option>UTC</option><option>America/New_York</option><option>Europe/Berlin</option><option>Europe/London</option><option>Asia/Tokyo</option></datalist></label><div class="form-row"><label>Language<select value={language()} onChange={e=>setLanguage(e.currentTarget.value)}><option>en-US</option><option>en-GB</option><option>de-DE</option><option>fr-FR</option></select></label><label>Screen size<select value={screen()} onChange={e=>setScreen(e.currentTarget.value)}><option>1920 × 1080</option><option>1440 × 900</option><option>1366 × 768</option></select></label></div><Show when={error()}><p class="amber-text" role="status">{error()}</p></Show><div class="modal-actions"><button type="button" class="secondary" disabled={busy()} onClick={()=>setEditor(false)}>Cancel</button><button class="primary" disabled={busy()} type="submit">{busy()?'Saving…':editing()?'Save changes':'Create profile'} ↗</button></div></form></section></div></Show>
     <Show when={restoreTarget()}>{snapshot=><div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="restore-title">
       <span class="eyebrow">RECOVERY</span>

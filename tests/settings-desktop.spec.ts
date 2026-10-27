@@ -37,6 +37,7 @@ test('Electron settings persist across restart and the lock shortcut closes the 
     await expect(page.locator('html')).toHaveAttribute('data-reduce-motion','true');
     await page.getByRole('button',{name:'Open settings',exact:true}).click();
     settings=page.getByRole('dialog',{name:'Settings',exact:true});
+    await settings.screenshot({path:'test-results/settings-light.png'});
     await settings.getByRole('combobox',{name:'Appearance',exact:true}).selectOption('dark');
     await settings.getByRole('combobox',{name:'Accent colour',exact:true}).selectOption('crimson');
     await settings.screenshot({path:'test-results/settings-electron.png'});

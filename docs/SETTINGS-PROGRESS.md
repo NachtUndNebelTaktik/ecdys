@@ -1,5 +1,11 @@
 # Settings handoff
 
+## Doctrine checkpoint — 2026-10-27
+
+The later [doctrine](DESIGN-DOCTRINE.md) governs this screen. Settings now distinguishes unavailable/unknown/locked/unlocked vault state, uses unknown counts while reads are pending or failed, and offers session-scoped reset Undo that expires after a newer preference choice. Flat cards replace inset shadows; brand glow and modal blur were removed. No new account, wallet, cloud or proxy integration is implied.
+
+Fresh checks: 260 backend tests passed / 3 existing skips; 42 browser checks and 3 actual Electron workflows passed; typecheck/build passed. The actual Electron flow still verifies persisted preferences and workspace locking. The user authorized a work-in-progress GitHub checkpoint; the separate `main` browser/notepad workstream is not merged. [Full checkpoint handoff](DOCTRINE-PROGRESS.md).
+
 ## Functional correction — 2026-10-27
 
 The user clarified that “sharp” means code quality and working features. Base: `fbee7df`; local branch: `fix/settings-functionality`. The [functional checklist](FUNCTIONALITY.md) records the actual state of every Settings control. Eight named features still have no backend, and Storage is partial; their explanatory screens do not close functional acceptance.

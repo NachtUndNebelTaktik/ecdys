@@ -1,0 +1,6 @@
+/* Keep the observed trust boundary visible while the workspace scrolls. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}

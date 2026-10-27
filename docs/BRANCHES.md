@@ -22,17 +22,19 @@ Branches count toward the 99-profile limit. They use the same 64 MiB / 4096-entr
 |---|---|
 | Review merge | Compare the branch's timezone, language, screen and VPN settings against its parent. Confirmation checks both revisions, saves a **pre_merge** configuration rollback point, then replaces those settings atomically. |
 | Promote to standalone | Clear ancestry while keeping the profile ID, configuration, browser files and snapshot history. |
-| Discard branch | Permanently remove that branch's configuration, history and browser directory after confirmation. Resolve its child branches first. Standalone profiles cannot be discarded through this action. |
+| Discard branch | Remove that branch's configuration, history and browser directory from this workspace after confirmation. There is no in-app Undo; external backups remain. This is logical deletion, not secure erasure. Resolve its child branches first. Standalone profiles cannot be discarded through this action. |
 
 Merge preserves the parent's name, tags and browser files and keeps the branch. There is no cookie, file or session-state merge. The environment fields are saved settings in this build; provider authentication, tunnels and fingerprint injection remain pending. Since 0.5, VPN configuration is copied/restored/merged with other environment settings; provider credentials stay workspace-level and outside profile history. See [VPN setup](VPN.md). A nested branch merges into its immediate parent. Promoting a branch does not detach that profile's own children.
 
 Promotion and discard also check the revision shown in their confirmation. Browser lock markers prevent copying/discarding closed-directory state; arbitrary external programs are not managed by Ecdys yet.
 
+Branch operations use a native modal dialog with contained keyboard navigation. Merge, promotion and discard initially focus **Cancel**; creating a branch focuses its name field. Discard identifies the profile by name and full ID and explains exactly what is removed. Escape cancels before an operation starts; it cannot dismiss an operation already running.
+
 ## Interrupted operations and migration
 
 Fork creation reserves a hidden profile and a durable creation journal before copying. Incomplete reservations are removed on reopening. Activation commits the copied history, fork point and restore journal together, then installs the staged files through the normal recoverable directory swap. Newly created directory entries are synced before publication. An activated but interrupted fork finishes on reopen.
 
-Discard records its journal before renaming the branch directory into an operation-specific trash directory. Reopening resumes deletion whether the rename or file removal had already completed. Recovery derives paths from validated IDs. Missing journals and conflicting paths stop unlock and preserve files for review rather than guessing.
+Discard records its journal before renaming the branch directory into an operation-specific trash directory. Reopening resumes deletion whether the rename or file removal had already completed. This journal makes deletion interruption-safe; it does not provide operator Undo. Recovery derives paths from validated IDs. Missing journals and conflicting paths stop unlock and preserve files for review rather than guessing.
 
 Schema v3 adds ancestry, revisions, hidden operation status and fork/discard journals. Unlock migrates schemas v1/v2 transactionally while retaining existing encrypted history. `workspace.json` remains format v1. Close Ecdys and back up the entire workspace before upgrading; older 0.1/0.2 builds need the matching pre-migration backup to roll back.
 

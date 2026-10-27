@@ -1,0 +1,8 @@
+dialog.branch-dialog {
+  margin: auto;
+  max-width: calc(100vw - 48px);
+  color: var(--settings-text);
+}
+dialog.branch-dialog::backdrop { background: var(--settings-backdrop); }
+.branch-action-target { margin: 16px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.branch-action-target code { font: 12px/1.6 var(--settings-mono); color: var(--settings-muted); }

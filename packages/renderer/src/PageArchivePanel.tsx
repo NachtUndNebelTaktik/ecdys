@@ -42,7 +42,8 @@ export default function PageArchivePanel(props:{profileId:string;disabled:boolea
     finally{if(version===epoch)setWorking(false);}
   }
   return <section class="page-archive-tool" aria-label="Page archive tool">
-    <button class="secondary wide" disabled={props.disabled||working()} onClick={()=>void load()}>{working()?'Preparing archive…':'Page archive (.mhtml)'}</button>
+    <button class="secondary wide" aria-describedby="page-archive-boundary" disabled={props.disabled||working()} onClick={()=>void load()}>{working()?'Preparing archive…':'Page archive (.mhtml)'}</button>
+    <p id="page-archive-boundary" class="fine-print">Host operation · local plaintext export. Saving writes page content and source URLs to a file you choose. This action does not upload the archive.</p>
     <Show when={expanded()}>
       <p class="fine-print">Save a loaded page and its available resources as one MHTML file. This is Chromium archiving; scripts, live media and unsaved form state may not be preserved.</p>
       <p class="fine-print amber-text">Exports contain unencrypted page content and source URLs. Review before sharing. Maximum archive: 4 MiB.</p>

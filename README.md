@@ -4,6 +4,10 @@ Kloakbrowser
 
 Desktop session and profile management. This is the Ecdys 0.7.0 built-in tools preview, not the full v1.0 blueprint.
 
+The [EcDys Design Doctrine](docs/DESIGN-DOCTRINE.md) governs implementation and product claims: observed state, visible trust boundaries, reversible local changes and optional accounts/premium services. See [adoption and remaining gaps](docs/DOCTRINE-ADOPTION.md) and the [preserved user-supplied reference package](design/README.md). Physical key segregation and verified browser routing are not implemented.
+
+This branch is a work-in-progress checkpoint of the encrypted-workspace implementation. The repository's `main` branch contains a separate browser/notepad workstream; the two implementations have not been integrated. See the [checkpoint handoff](docs/DOCTRINE-PROGRESS.md) before combining them. A GitHub source ZIP is project code, not an app installer or finished release.
+
 Previously named Styg. Ecdys uses the existing `styg` application data folder so current encrypted workspaces open in place. Encryption formats, recovery markers and internal `styg` protocol/test identifiers stay compatible; no data migration is required. Earlier progress notes and plans retain the name used at the time.
 
 See the [checked implementation plan](docs/PLAN-AUDIT.md) for delivered increments, partial blueprint requirements and blocked/planned work. Completed increment checkboxes do not mean the full v1 feature is available.
@@ -15,14 +19,15 @@ See the [checked implementation plan](docs/PLAN-AUDIT.md) for delivered incremen
 - Create/edit up to 99 profiles with separate local browser folders; search by name or tag.
 - Automatic baseline/pre-edit configuration snapshots, plus manual encrypted backups of closed browser-directory data. Content-aware restore with rollback and interrupted-restore recovery.
 - Configuration diffs before restore, revision-checked confirmations, and independent branches with copied files/history and a pinned fork point.
-- Environment-setting merges with parent rollback, promotion to standalone, and recoverable branch discard.
+- Environment-setting merges with parent rollback, promotion to standalone, and interruption-safe branch deletion.
 - Random AES-256-GCM snapshot keys wrapped by a master-derived key, authenticated snapshot/profile identity, gzip level 9, pinning and retention of 20 unpinned snapshots.
 - Internal managed Chromium lifecycle with private DevTools pipes, exclusive profile ownership, automatic closed-state snapshots and crash cleanup; exercised by local fixture tests.
 - A backend/UI block on unverified networked launches and a Linux routing laboratory.
 - Recoverable Mullvad/IVPN settings, encrypted workspace account storage, public WireGuard relay catalogs and saved rotation policies with explicit unverified-route diagnostics.
 - Explicit Mullvad/IVPN account checks and WireGuard registration, encrypted retained keys/tokens, restart recovery, controlled removal and a non-secret tunnel preparation preview. Provider protocols are fixture-tested; live account acceptance remains unverified.
 - Recheck-only requests cannot create registrations. Failed/canceled rechecks or removals clear preparation approval while retaining recovery material; reopened dialogs track pending operations and require fresh slot consent after removal.
-- Searchable desktop Settings with a navigation rail, current-state panel, six accent colours, local appearance/density/motion preferences, optional status messages, device-preference reset, security controls and keyboard shortcuts. Unconnected services display their actual availability.
+- Searchable desktop Settings with a navigation rail, current-state panel, six accent colours, local appearance/density/motion preferences, optional status messages, device-preference reset with Undo, security controls and keyboard shortcuts. Unconnected services display their actual availability.
+- Persistent observed vault boundaries, unknown counts for unread data, profile-owned snapshot history with late-result rejection, and native branch confirmations with safe initial focus and explicit deletion consequences.
 - **Recovery Rehearsal:** authenticate and decode a saved configuration/browser archive without changing current files. Reports identify coverage, counts and check time; Lock can interrupt the check.
 - **Page archive:** native Chromium MHTML capture with a 4 MiB limit, SHA-256 digest and explicit native Save dialog. The engine is tested against a local Chromium fixture; normal app capture remains unavailable while browser launches are blocked. No extension is required. MHTML differs from SingleFile's HTML format.
 

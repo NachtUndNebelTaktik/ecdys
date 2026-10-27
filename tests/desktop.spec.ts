@@ -158,6 +158,9 @@ test('real Electron workspace creates, edits, restores, locks and reopens persis
     await dialog.getByLabel('Branch name').fill('discard-me');await dialog.getByRole('button',{name:'Create branch',exact:true}).click();
     await expect(page.locator('.profile-card h2')).toHaveCount(3);
     await page.getByRole('button',{name:'Discard branch',exact:true}).click();
+    await expect(dialog).toContainText('discard-me');
+    await expect(dialog.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();
+    await dialog.screenshot({path:'test-results/ecdys-branch-discard.png'});
     await dialog.getByRole('button',{name:'Discard branch',exact:true}).click();
     await expect(page.locator('.profile-card h2')).toHaveCount(2);expect(await readdir(join(userData,'workspace','profiles'))).toHaveLength(2);
     await page.evaluate(()=>window.scrollTo(0,0));

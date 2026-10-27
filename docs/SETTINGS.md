@@ -2,7 +2,7 @@
 
 Open **Settings** in the top bar, or press **Ctrl/Cmd + ,**. Settings is available while the encrypted workspace is locked. **Escape** returns from a detail view, then closes the dialog. **Ctrl/Cmd + Shift + L** locks an unlocked desktop workspace when no mutation is in progress.
 
-The screen follows the supplied 2026-10-27 HTML revision: a 266px desktop navigation rail, searchable grouped rows, a current-state panel in wide windows, tighter 14px cards, 23px outline-icon tiles and monospaced values. Section ticks, active navigation, focus rings and connected indicators derive from the selected accent. Compact desktop windows retain search and section chips. Icons and Inter typography are bundled locally.
+The screen retains the supplied settings structure: a 266px desktop navigation rail, searchable grouped rows, a current-state panel in wide windows, 23px outline-icon tiles and monospaced values. The later [Design Doctrine](DESIGN-DOCTRINE.md) takes precedence: cards and state panels now use flat 4px corners without shadows, brand glow or backdrop blur. Section ticks, active navigation, focus rings and active indicators derive from the selected accent. Compact desktop windows retain search and section chips. Icons and Inter typography are bundled locally. Application-wide visual normalization remains unfinished.
 
 Navigation jumps to sections in one scrollable overview and follows subsequent scrolling. Search filters row names and their current displayed values, hides empty groups and shows “No settings match” when appropriate. Press **/** inside Settings to focus search; typing in a field is left alone. **Escape** clears a nonempty query before returning from a detail or closing the dialog. Search text is not saved.
 
@@ -17,9 +17,9 @@ These five enum/boolean preferences save automatically on this device and apply 
 
 ## Workspace and help
 
-Security can lock the real workspace and explains the existing 15-minute timeout, which measures workspace operations rather than mouse/keyboard activity. Storage shows unlocked workspace profile counts and the selected profile's snapshot count, with complete-backup guidance. General identifies the app, platform and lock state. Help centre and Keyboard shortcuts explain existing capabilities.
+Security can lock the real workspace and explains the existing 15-minute timeout, which measures workspace operations rather than mouse/keyboard activity. Storage shows unlocked workspace profile counts and the selected profile's snapshot count, with complete-backup guidance. Pending or failed reads show **Unknown**, rather than zero. General identifies the app, platform, observed vault state and the boundary between the sandboxed renderer and host operations. A browser-only preview reports the vault as unavailable. Help centre and Keyboard shortcuts explain existing capabilities.
 
-**Data controls → Reset device preferences** restores the five display/message defaults. It preserves the encrypted workspace, profiles, snapshots and unrelated device storage.
+**Data controls → Reset device preferences** restores the five display/message defaults. **Undo reset** restores the previous five values and attempts to persist them through the same storage path. Undo is available while Settings stays open, until another preference change; reset is disabled when values already equal defaults. Workspace, profiles, snapshots and unrelated device storage are preserved.
 
 ## Services awaiting integration
 

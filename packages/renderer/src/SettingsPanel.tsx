@@ -1,6 +1,7 @@
 import {createEffect,createSignal,For,onCleanup,onMount,Show,Switch,Match,type JSX} from 'solid-js';
 import {DEFAULT_UI_PREFERENCES,type UiPreferences} from './preferences';
 import SettingsIcon,{type SettingsIconName} from './SettingsIcon';
+import type {WorkspaceState} from './workspace-status';
 import './settings.css';
 
 type Detail='personalization'|'mindmap'|'socks5'|'email'|'subscription'|'trocador'|'report'|'general'|'notifications'|'monero'|'security'|'cloud'|'storage'|'data'|'help'|'shortcuts';
@@ -16,13 +17,23 @@ const sections:{id:Section;label:string;railLabel:string;rows:Setting[]}[]=[
 const titles:Record<Setting,string>={personalization:'Personalization',mindmap:'Mindmap',socks5:'SOCKS5',email:'Email',subscription:'Subscription',trocador:'Trocador',report:'Browsing report',appearance:'Appearance',accent:'Accent colour',general:'General',notifications:'Notifications',monero:'Monero',security:'Security',cloud:'Secure cloud storage',storage:'Storage',data:'Data controls',help:'Help centre',shortcuts:'Keyboard shortcuts'};
 const accents:{value:UiPreferences['accent'];label:string}[]=[{value:'crimson',label:'Crimson'},{value:'rose',label:'Rose'},{value:'amber',label:'Amber'},{value:'teal',label:'Teal'},{value:'blue',label:'Blue'},{value:'violet',label:'Violet'}];
 const label=(value:string)=>value.charAt(0).toUpperCase()+value.slice(1);
-type Props={preferences:UiPreferences;onPreferencesChange:(patch:Partial<UiPreferences>)=>void;persistenceAvailable:boolean;onClose:()=>void;onLock:()=>void;unlocked:boolean;busy:boolean;profileCount:number;snapshotCount:number;platform:string;version:string};
+type Props={preferences:UiPreferences;onPreferencesChange:(patch:Partial<UiPreferences>)=>void;persistenceAvailable:boolean;onClose:()=>void;onLock:()=>void;unlocked:boolean;workspaceState:WorkspaceState;busy:boolean;profileCount:number|null;snapshotCount:number|null;platform:string;version:string};
 
 export default function SettingsPanel(props:Props) {
   let dialog!:HTMLDialogElement,scroll!:HTMLDivElement,back!:HTMLButtonElement;
   const [detail,setDetail]=createSignal<Detail>();
   const [active,setActive]=createSignal<Section>('environment');
   const [query,setQuery]=createSignal('');
+  const [resetUndo,setResetUndo]=createSignal<UiPreferences>();
+  const vaultLabel=()=>props.workspaceState==='preview'?'Unavailable':label(props.workspaceState);
+  const isDefaultPreferences=()=>Object.entries(DEFAULT_UI_PREFERENCES).every(([key,value])=>props.preferences[key as keyof UiPreferences]===value);
+  function resetPreferences(){
+    if(isDefaultPreferences())return;
+    const previous={...props.preferences};
+    props.onPreferencesChange({...DEFAULT_UI_PREFERENCES});setResetUndo(previous);
+  }
+  function undoReset(){const previous=resetUndo();if(previous){props.onPreferencesChange(previous);setResetUndo(undefined);}}
+  createEffect(()=>{if(resetUndo()&&!isDefaultPreferences())setResetUndo(undefined);});
   let previousRow:Detail|undefined;
   let navigationAnchor:{id:Section;top:number}|undefined;
   const values=():Partial<Record<Setting,string>>=>({mindmap:'Not available',socks5:'Direct',email:'No email connected',subscription:'Local preview',trocador:'Not connected',report:'Off',appearance:label(props.preferences.appearance),accent:label(props.preferences.accent),notifications:props.preferences.notifications?'On':'Off',monero:'Not connected',cloud:'Off',shortcuts:'?'});
@@ -96,7 +107,7 @@ export default function SettingsPanel(props:Props) {
       <aside class="settings-rail">
         <div class="settings-brand"><span class="settings-brand-mark">e</span><span>EcDys<small>Settings</small></span></div>
         <Search/><Navigation/>
-        <div class="settings-rail-foot"><span><Dot on={props.unlocked}/>{props.unlocked?'Vault unlocked':'Vault locked'}</span><span>v{props.version}</span></div>
+        <div class="settings-rail-foot"><span><Dot on={props.unlocked}/>Vault {vaultLabel().toLowerCase()}</span><span>v{props.version}</span></div>
       </aside>
     <div ref={scroll} class="settings-scroll" onScroll={syncActiveSection}>
       <header class="settings-header"><div><p class="settings-kicker">YOUR ENVIRONMENT, YOUR CONTROL</p><h1 id="settings-title">Settings</h1><p class="settings-intro">Device preferences and workspace configuration. Settings stay on this device. Cloud sync is off.</p></div><button class="settings-close" aria-label="Close settings" autofocus onClick={props.onClose}><SettingsIcon name="close"/></button></header>
@@ -116,7 +127,7 @@ export default function SettingsPanel(props:Props) {
           <Match when={detail()==='subscription'}><Note title="Local preview"><p>No paid plan is activated in this build. Billing and license activation are not connected.</p></Note></Match>
           <Match when={detail()==='trocador'}><Note title="Not connected"><p>Trocador exchange integration is not available in this preview. No exchange is connected to this workspace.</p></Note></Match>
           <Match when={detail()==='report'}><Note title="Browsing reports are off"><p>Automatic browsing reports are not available in this build. Opening Settings does not collect navigation history.</p></Note></Match>
-          <Match when={detail()==='general'}><dl class="settings-facts"><div><dt>Application</dt><dd>Ecdys {props.version}</dd></div><div><dt>Platform</dt><dd>{props.platform}</dd></div><div><dt>Workspace</dt><dd>{props.unlocked?'Unlocked':'Locked'}</dd></div><div><dt>Data location</dt><dd>On this device</dd></div></dl></Match>
+          <Match when={detail()==='general'}><dl class="settings-facts"><div><dt>Application</dt><dd>Ecdys {props.version}</dd></div><div><dt>Platform</dt><dd>{props.platform}</dd></div><div><dt>Workspace</dt><dd>{vaultLabel()}</dd></div><div><dt>Data location</dt><dd>On this device</dd></div><div><dt>Execution</dt><dd>Sandboxed renderer; workspace operations on host</dd></div></dl></Match>
           <Match when={detail()==='notifications'}>
             <p>Choose whether to show optional in-app success messages. Errors and important cleanup warnings stay visible.</p>
             <label class="settings-toggle"><span>Show status messages<small id="settings-notifications-help">For saved changes and completed actions.</small></span><input aria-label="Show status messages" aria-describedby="settings-notifications-help" type="checkbox" checked={props.preferences.notifications} onChange={e=>props.onPreferencesChange({notifications:e.currentTarget.checked})}/></label>
@@ -133,10 +144,11 @@ export default function SettingsPanel(props:Props) {
           <Match when={detail()==='data'}>
             <Note title="Device preferences only"><p>This device stores appearance, accent, spacing, motion and optional status-message preferences. Search text is not saved. No navigation history, account details or credentials are stored with these preferences.</p></Note>
             <p>Reset these five preferences to their defaults. Your encrypted workspace, profiles and snapshots are preserved.</p>
-            <button class="settings-action" onClick={()=>props.onPreferencesChange({...DEFAULT_UI_PREFERENCES})}>Reset device preferences</button>
+            <button class="settings-action" disabled={isDefaultPreferences()} onClick={resetPreferences}>Reset device preferences</button>
+            <Show when={resetUndo()}><p class="settings-detail-caption" role="status">Preferences reset. Undo is available until you change another preference or close Settings.</p><button class="settings-action" onClick={undoReset}>Undo reset</button></Show>
           </Match>
           <Match when={detail()==='storage'}>
-            <Show when={props.unlocked} fallback={<p>Unlock your workspace to see its profile and snapshot counts.</p>}><dl class="settings-facts"><div><dt>Profiles in workspace</dt><dd>{props.profileCount} / 99</dd></div><div><dt>Snapshots in selected profile</dt><dd>{props.snapshotCount}</dd></div></dl></Show>
+            <Show when={props.unlocked} fallback={<p>Workspace: {vaultLabel()}. Unlock an available workspace to read its profile and snapshot counts.</p>}><dl class="settings-facts"><div><dt>Profiles in workspace</dt><dd>{props.profileCount===null?'Unknown':`${props.profileCount} / 99`}</dd></div><div><dt>Snapshots in selected profile</dt><dd>{props.snapshotCount===null?'Unknown':props.snapshotCount}</dd></div></dl></Show>
             <Note title="Keep a complete backup"><p>Close Ecdys and back up the whole workspace folder, including workspace.json, workspace.db and profiles. Passphrases cannot be recovered.</p></Note>
           </Match>
           <Match when={detail()==='help'}>
@@ -162,7 +174,7 @@ export default function SettingsPanel(props:Props) {
         </div><aside class="settings-state" aria-label="Current state">
           <div class="settings-state-panel"><h2>Current state</h2><dl>
             <div><dt>Appearance</dt><dd>{values().appearance}</dd></div><div><dt>Accent</dt><dd>{values().accent}</dd></div>
-            <div><dt>Vault</dt><dd><Dot on={props.unlocked}/>{props.unlocked?'Unlocked':'Locked'}</dd></div>
+            <div><dt>Vault</dt><dd><Dot on={props.unlocked}/>{vaultLabel()}</dd></div>
             <div><dt>SOCKS5</dt><dd><Dot/>Direct</dd></div><div><dt>Routing</dt><dd>Blocked</dd></div>
             <div><dt>Monero</dt><dd><Dot/>Not connected</dd></div><div><dt>Cloud storage</dt><dd><Dot/>Off</dd></div><div><dt>Build</dt><dd>{props.version}</dd></div>
           </dl></div>

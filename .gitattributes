@@ -1,0 +1,3 @@
+# Preserve the supplied reference bytes and their provenance hashes on every OS.
+design/reference/doctrine/** -text
+docs/DESIGN-DOCTRINE.md -text

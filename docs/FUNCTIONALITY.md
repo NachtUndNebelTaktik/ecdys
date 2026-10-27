@@ -2,6 +2,8 @@
 
 The user's “sharp” requirement means maintainable code and working features. Completion is judged by the action a feature performs, its persisted result, its failure handling and executable acceptance checks. Interface coverage is tracked separately from underlying feature delivery.
 
+The [Design Doctrine](DESIGN-DOCTRINE.md) now governs this acceptance: unknown is distinct from zero, profile/history ownership must survive asynchronous work, irreversible actions name their target/consequences, and cheap changes offer Undo. Local core capability must remain usable without an account or premium installation. Historical tier/activation assumptions are superseded; missing implementations remain missing.
+
 ## Settings controls
 
 | Control | Current functional state | Required action / remaining acceptance |
@@ -21,7 +23,7 @@ The user's “sharp” requirement means maintainable code and working features.
 | Security | Working local lock | Close the real encrypted workspace and enforce the existing operation-based timeout. OS route protection and the complete blueprint threat model remain pending. |
 | Secure cloud storage | Missing | Configure a real sync target, transfer authenticated encrypted data and verify restore/conflicts. |
 | Storage | Partial | Profile/selected-snapshot counts and backup guidance work; capacity accounting and storage-management actions are not implemented. |
-| Data controls | Working device reset | Reset the five device preferences while preserving the workspace and unrelated storage. |
+| Data controls | Working device reset with Undo | Reset the five device preferences while preserving the workspace and unrelated storage. Undo is scoped to the open Settings session and expires after another preference change. |
 | Help centre | Working local guidance | Explain the available profile, recovery and routing workflows. |
 | Keyboard shortcuts | Working | Settings, search, Escape/back and desktop workspace lock operate through their actual controls. |
 
@@ -33,9 +35,11 @@ Encrypted workspace creation/unlock/lock, profile creation/editing, snapshots/re
 
 The product cannot yet launch a browsing profile: the trusted production supervisor is intentionally blocked because actual OS-enforced provider routing is not implemented/verified. Consequently the normal in-app page archive workflow is also blocked. Fingerprint controls/validation, Selenium, team accounts, billing and cloud services are unfinished.
 
-## Correction completed in this pass
+## Delivered corrections
 
 Startup preference loading used to discard the reason for falling back to defaults; the app then initialized its persistence indicator to success. A denied store therefore displayed an automatic-save claim until a write was attempted. Loading now returns validated preferences together with storage availability. Settings immediately reports session-only changes when reads fail, including after reload; its footer uses the same state. Malformed readable preference data still falls back safely without being misclassified as denied storage. No new preference fields or storage writes were added.
+
+The doctrine increment keeps vault state visible, preserves unknown counts during pending/failed reads, and rejects snapshot results belonging to an old selection or locked workspace. Initial history loading no longer keeps Lock and profile switching busy. Branch deletion has a named target, a safe initial focus and explicit consequences. Device reset has session-scoped Undo that cannot overwrite a later preference choice. Provider actions and plaintext page exports disclose their destinations and storage boundaries. These corrections do not implement the missing services above.
 
 ## Next functional dependency
 

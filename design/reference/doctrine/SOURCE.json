@@ -1,0 +1,20 @@
+{
+  "source": "EcDys-doctrine-design.zip",
+  "archiveSha256": "97bdcb2c3e5cb9de4728019858630e42671ed6b8420b4d5dece304fbc84e6f62",
+  "purpose": "Unmodified user-supplied reference. Not imported by the Electron application.",
+  "files": {
+    "EcDys-Design-Doctrine.md": "7950bd7e93abaea70d8f142fdfab9d79cf5b0dbb9b4da3da982de03367d64e1a",
+    "EcDys-dark.jpg": "95ab65bbfe5210957f4bb8f6d9d72cd00d502135027e38e7075029f3b786655e",
+    "EcDys-light.jpg": "45b3d4eee63b0c36ff32fd38d813e5c553caa6b9d3794dba7090218935c87099",
+    "README.md": "d5e567443d71e75ca9bccb82c5c9071f5e6ae69936692e95a75b1cf01fe7c03b",
+    "IMPLEMENTATION-NOTES.md": "10b2d6c1fc9a628402ab759bf1e8b9e3684a7fb0fee381dd125de0a59ecd5ea8",
+    "src/components/generated/ECDYSBrowserObsidianViolet.tsx": "40848abea9b031eb9ac51ce15a08f284bd7e65b44942f5fcc2cda1c8fd04a2a8",
+    "src/components/generated/ECDYSBrowserObsidianViolet.css": "4e1de1863e39b111962af02bd29ca4f3a9aa783a936f5f66cf30ab5e49f1ae62",
+    "src/components/generated/EcDysDoctrineLight.tsx": "e38ebf1ed6a4fecd4ca817d376bb0db38273c8bdc000e8bd0f0dd0f7c4823ad7",
+    "src/components/generated/EcDysBoundaryModel.ts": "2aa38611d2996f8dcdd21ea308de3b99014ff3b9543790de4bda4615508cb8fd",
+    "src/components/generated/EcDysWorkspaceModel.ts": "36b9526c15ff22037803326d9fc037eca748434d69b513f88a569ce67dbcc14c",
+    "tests/boundary-model.test.ts": "d1bc7d7af3e988f5a4f148ff4d10d542444285b28eee8d91e126c2d385e11955",
+    "tests/workspace-model.test.ts": "18af57ccecfb073cc2d29f87322d0593c22c782205f37bd5e6b37888ecf96e70",
+    "src/EcDys.tsx": "dac39a5a41dee230450850465a95f29b6c8401779097333ff9d3e598c6349fd5"
+  }
+}

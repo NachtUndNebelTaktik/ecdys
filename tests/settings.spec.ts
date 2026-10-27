@@ -390,3 +390,39 @@ test('startup storage failures keep preferences usable and warn before the first
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'dark');
   await expect(dialog.getByRole('status')).toContainText('Device storage is unavailable');
 });
+
+test('device preference reset can be undone without losing its persisted values', async ({page}) => {
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  await dialog.getByRole('combobox', {name: 'Appearance', exact: true}).selectOption('light');
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption('blue');
+  await detail(dialog, 'Personalization');
+  await dialog.getByLabel('Density', {exact: true}).selectOption('compact');
+  await dialog.getByLabel('Reduce motion', {exact: true}).check();
+  await dialog.getByRole('button', {name: 'Back to settings', exact: true}).click();
+  await detail(dialog, 'Notifications');
+  await dialog.getByLabel('Show status messages', {exact: true}).uncheck();
+  await dialog.getByRole('button', {name: 'Back to settings', exact: true}).click();
+  await detail(dialog, 'Data controls');
+  await dialog.getByRole('button', {name: 'Reset device preferences', exact: true}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'crimson');
+  await dialog.getByRole('button', {name: 'Undo reset', exact: true}).click();
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), preferenceKey)).toEqual({appearance: 'light', accent: 'blue', density: 'compact', reduceMotion: true, notifications: false});
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'blue');
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light');
+});
+
+test('a new preference choice invalidates reset Undo so it cannot overwrite newer choices', async ({page}) => {
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption('teal');
+  await detail(dialog, 'Data controls');
+  await dialog.getByRole('button', {name: 'Reset device preferences', exact: true}).click();
+  await expect(dialog.getByRole('button', {name: 'Undo reset', exact: true})).toBeVisible();
+  await dialog.getByRole('button', {name: 'Back to settings', exact: true}).click();
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption('violet');
+  await detail(dialog, 'Data controls');
+  await expect(dialog.getByRole('button', {name: 'Undo reset', exact: true})).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'violet');
+});

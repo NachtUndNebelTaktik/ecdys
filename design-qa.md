@@ -1,43 +1,34 @@
-# Ecdys sharpened settings visual QA — 2026-10-27
+# EcDys doctrine checkpoint review — 2026-10-27
 
-Source truth: the user's selected 2026-10-27 EcDys Settings HTML/CSS and sharpening notes, superseding the earlier portrait screenshot crops. This review compares the supplied visual specification with fresh rendered captures; it does not claim a pixel-identical reproduction of a full-page reference inside an Electron modal.
+The [Design Doctrine](docs/DESIGN-DOCTRINE.md) governs this review. The earlier settings HTML still informs navigation and grouping. The supplied dark/light React reference is preserved in `design/reference/doctrine`; it is not the desktop runtime or evidence that its tools have been implemented there.
 
-## Rendered evidence
+## Current rendered evidence
 
-- `docs/images/settings-overview.png`, `settings-app.png`, `settings-help.png`: dark/Crimson, 1440 × 1000 browser viewport; 1392 × 952 dialog including its border.
-- `docs/images/settings-light.png`: Light/Violet at the same viewport.
-- `docs/images/settings-compact.png`: dark/Crimson, 860 × 800 compact desktop viewport; search and section chips replace the rail.
-- `docs/images/settings-electron.png`: actual Linux Electron window, captured after restart persistence and real workspace locking; the headless display constrains window height.
+- `docs/images/settings-overview.png`, `settings-app.png`, `settings-help.png`: fresh dark/Crimson browser captures at a 1440 × 1000 viewport.
+- `docs/images/settings-compact.png`: fresh compact desktop capture at an 860 × 800 viewport, with search and section chips.
+- `docs/images/settings-light.png`, `settings-electron.png`: fresh actual Linux Electron captures, including persisted Light/Violet preferences after restart and subsequent Dark/Crimson selection. The headless display constrains window height.
+- `docs/images/branch-discard.png`: actual Electron confirmation identifying the branch and explaining local deletion, retained external backups and the absence of Undo/secure erasure.
+- Workspace, branch, merge, VPN setup and recovery-check images were refreshed from the actual Electron workflow.
 
-Browser geometry inspection measured a **266px rail, 14px card radius, 52px minimum row height, 23px icon tiles and `#dc143c` base accent**. No horizontal dialog overflow occurred. The final capture run recorded no JavaScript/console errors or failed HTTP responses.
+The settings overview, compact view, light view and branch confirmation were visually inspected. Labels and values remain legible, controls align, long branch IDs wrap, and the branch target/consequences are visible. Compact navigation does not cover its selected heading; this is also checked by the browser suite. At the bottom of a scrollable overview, adjacent groups can remain visible because the content bounds further scrolling.
 
-## Fidelity and deliberate adjustments
+## Changes and practical limits
 
-- The rail, compact chips, search, wide current-state panel, hairline card treatment, section ticks, active navigation rail, icon tiles, mono values and six-colour palette follow the supplied revision. Crimson leads the palette; all accent treatments derive from the selected theme token. Small accent text/button ink uses a readable derived or contrasting colour.
-- Fonts and Tabler outline icons are bundled locally. Cloud, route, graph and swap controls use library glyphs. Their MIT and Inter's OFL notices remain included in the build. The favicon is an unmodified bundled Tabler fingerprint asset.
-- Every supplied control is represented, including Data controls. Browsing report now sits under Account immediately after Trocador. There is no filler Age row.
-- The example email, Pro entitlement, unlocked vault, old build number and Weekly cadence are replaced with actual availability/version/lock state. Browsing report stays Off. SOCKS5 Direct means no configured proxy; Routing explicitly remains Blocked. Unavailable Mindmap/payment/cloud services remain unavailable.
-- Inert dots are hollow grey; active dots use the selected accent. Colour is accompanied by a state label. The close control remains accessible while scrolling.
-- Existing saved Sage/Indigo values remain compatible; they do not silently reset the other preferences. New selection offers the six supplied colours in order.
+- Settings cards/state panels have flat 4px corners without shadows. Brand glow and modal backdrop blur were removed. Search/navigation, locally bundled outline icons, monospaced values and Crimson remain.
+- A persistent vault indicator reports observed state. Browser preview is unavailable, pending/failed status is unknown, and unread counts are unknown rather than zero. Encrypted database/snapshots and plaintext browser working files are labelled separately.
+- Snapshot history clears before selection changes. Late, wrong-profile and post-lock results cannot attach themselves to the current profile. Initial history reads leave Lock and profile selection available.
+- Branch operations use native modal dialogs. Merge/promotion/discard start on Cancel; create starts on the name field. Keyboard navigation stays contained. A running discard cannot be dismissed mid-operation.
+- Device reset offers Undo until another preference change or Settings closes. Provider requests identify the recipient/host-network boundary; unregistered-key removal is distinguished from provider registration removal. Page archives disclose plaintext content and local file output.
+- Unavailable services remain unavailable on this branch. Fake email, entitlement, unlocked-vault and report-cadence values are not used. Normal profile launches remain blocked.
 
-## Findings resolved
+Application-wide radius/icon/spacing normalization, systematic error wording, provenance/staleness for every value, operator-controlled panels and Undo for other cheap edits remain unfinished. This bounded review is not a claim that every screen passes the doctrine. The separate browser/notepad workstream on GitHub `main` is not covered by these captures or tests.
 
-- At the end of a long viewport, multiple sections can be visible together. Scroll tracking initially overwrote an explicit navigation choice. It now preserves that choice until the content actually moves, then resumes tracking.
-- Compact sticky search initially covered an Account heading after navigation. Jumps now use the scroll container's actual padding; a browser check verifies the heading is not occluded.
-- A manual browser capture exposed the preview's missing favicon request. A local library asset fixes that request; no console errors remain in the final capture.
+## Executable evidence
 
-At the end of the page, adjacent groups can remain visible because scrolling is naturally bounded by the content height. Explicit section navigation remains selected. This is not presented as a separate tab view.
+**42 browser checks passed**, including unknown/failing/late history paths, lock and selection during initial reads, reset Undo and invalidation, safe branch focus/keyboard/cancellation, all settings details, persistence, search/navigation and unavailable storage handling.
 
-No remaining actionable P0/P1/P2 issue was found within this settings revision.
+**3 actual Linux Electron workflows passed**, including encrypted workspace recovery/branches, synthetic provider requests, restart preference persistence and workspace locking. The branch workflow additionally checked safe initial discard focus against the actual desktop runtime. The Settings Electron workflow reported no console/page errors. Typecheck and production build passed; the default backend suite passed **260 tests with 3 existing skips**.
 
-## Interaction evidence
+The supplied reference models passed **19 separate Node checks**. They establish properties of that prototype only. All 13 reference file hashes and the canonical doctrine match the preserved source. Privileged route proof, offline MHTML reopening and cross-platform acceptance remain unverified as described in the [checkpoint handoff](docs/DOCTRINE-PROGRESS.md).
 
-**25 browser checks passed**, including every detail row, appearance/system/accent persistence, search/current-value filtering/empty state, Escape and slash typing, filtered navigation, scroll tracking, compact heading visibility, legacy accents, preference reset, startup storage failure handling, mandatory cleanup warnings, native focus containment and focus restoration. The later functional correction changes the unavailable-storage warning/footer state; default visual captures remain representative.
-
-**3 Electron workflows passed**, including preference persistence after restart and locking a real encrypted workspace with Ctrl/Cmd+Shift+L. The settings workflow captured no console or page errors. Typecheck and production build passed. The full default unit/integration suite passed **260 tests with 3 existing skips**; the maximum-size opt-in recovery, privileged routing and offline MHTML-opening conditions are documented in the plan audit rather than counted as passes.
-
-## Scope and handoff
-
-This is a local renderer/preferences increment. It adds no account, payment, wallet, proxy, map, report or cloud backend. Browser routing/launch gates stay intact. Native macOS/Windows acceptance is not covered by these Linux checks. Changes remain local; no push or remote merge.
-
-final result: passed
+This is a work-in-progress source checkpoint, not a release. Parallel implementations have not been integrated.

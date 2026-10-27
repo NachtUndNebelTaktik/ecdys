@@ -273,7 +273,8 @@ label, .eyebrow, .nav-label, .nav-note, .version, .version span, .local-note,
   border-color: var(--settings-info-line);
 }
 .branch-ancestry { color: var(--settings-info); }
-.modal-backdrop { background: var(--settings-backdrop); }
+.modal-backdrop { background: var(--settings-backdrop); backdrop-filter: none; }
+.modal { box-shadow: none; }
 
 html[data-reduce-motion='true'],
 html[data-reduce-motion='true'] *,
