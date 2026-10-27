@@ -51,16 +51,16 @@ This specification does not add a custodial wallet, transaction signer, exchange
 
 ### 1.3 Principles translated into behavior
 
-| Principle | Required engineering behavior |
-| --- | --- |
-| Data autonomy | Operational state stays local by default; sharing and export are explicit; teams host their own collaboration service. |
-| Silent operation | No application telemetry, advertising SDKs, engagement analytics, or unsolicited background scans. Document every application-controlled outbound destination. |
-| Functional austerity | Features load when needed; background work has budgets; interfaces prioritize operation, diagnosis, and recovery. |
-| Compartmentalization | Separate profile storage, permission decisions, extension policy, and enforceable network bindings. Shared resources are explicit. |
-| Recovery by design | Durable snapshots, restoration journals, independent branches, and verifiable transfer formats. |
-| Operational continuity | No automatic suspension, route rotation, restart, update, or disruptive bulk change of a protected live session. |
-| Diagnostic transparency | Show evidence, status age, limitations, and concrete remedies. Never substitute an anonymity percentage for measurements. |
-| User control | Deliberate updates, export availability, documented local APIs, and offline access under the selected license policy. |
+| Principle               | Required engineering behavior                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data autonomy           | Operational state stays local by default; sharing and export are explicit; teams host their own collaboration service.                                         |
+| Silent operation        | No application telemetry, advertising SDKs, engagement analytics, or unsolicited background scans. Document every application-controlled outbound destination. |
+| Functional austerity    | Features load when needed; background work has budgets; interfaces prioritize operation, diagnosis, and recovery.                                              |
+| Compartmentalization    | Separate profile storage, permission decisions, extension policy, and enforceable network bindings. Shared resources are explicit.                             |
+| Recovery by design      | Durable snapshots, restoration journals, independent branches, and verifiable transfer formats.                                                                |
+| Operational continuity  | No automatic suspension, route rotation, restart, update, or disruptive bulk change of a protected live session.                                               |
+| Diagnostic transparency | Show evidence, status age, limitations, and concrete remedies. Never substitute an anonymity percentage for measurements.                                      |
+| User control            | Deliberate updates, export availability, documented local APIs, and offline access under the selected license policy.                                          |
 
 ### 1.4 Guarantees and boundaries
 
@@ -134,26 +134,26 @@ Expose only the authenticated WebDriver gateway to authorized local clients. Int
 
 ### 3.1 Stack
 
-| Layer | Selection and constraints |
-| --- | --- |
-| UI | Solid.js + TypeScript; Solid stores as the default state layer. Avoid a duplicate global store unless a measured need justifies it. |
-| Styling | Tailwind CSS + DaisyUI; accessible focus, keyboard operation, compact and high-contrast themes. |
-| Desktop | A currently supported Electron release pinned per application build. |
-| Managed browser | Supported Chromium/Chrome-for-Testing-compatible artifacts, pinned per release and matched to ChromeDriver. Security response covers both Electron and managed browser engines. |
-| Browser control | CDP with Puppeteer where appropriate; ChromeDriver for W3C WebDriver. Playwright for application testing. |
-| Native helper | Rust with narrowly scoped OS bindings; external dependencies and driver licenses reviewed before selection. |
-| Local database | SQLCipher through a maintained native binding, built and tested against the pinned Electron ABI. |
-| Team/commercial services | Separate Node.js LTS + TypeScript services, PostgreSQL, and S3-compatible object storage for encrypted team objects. Commercial and team databases/credentials remain separate. |
-| Crypto | Maintained Argon2id implementation off the UI thread; OS-backed/native crypto and Node crypto for AES-GCM/HKDF; system GnuPG with OpenPGP.js for compatible fallback operations. |
-| VPN | Capability-based Mullvad and IVPN adapters, actual tunnel management, and custom SOCKS5 through a local authenticated-upstream gateway. |
-| Compression | Streaming gzip level 9 in bounded background workers; compression is not a security mechanism. |
-| Maps and graphs | D3.js, lazy loaded; saved positions in encrypted workspace data, not sensitive localStorage. |
-| Diffs | Structured configuration diff, text diff, pixelmatch, and CDP accessibility/DOM snapshots with explicit limitations. |
-| Resource monitoring | Native process-tree accounting, with pidusage where reliable; include browser descendants and helper overhead. |
-| Playground | Monaco, isolated worker runtime, message-only capability bridge; no Node integration. |
-| Validation | Zod for payloads and persisted versioned documents. |
-| Tests/build | Vitest, Playwright, pnpm workspaces, Turborepo, electron-builder, native OS CI. |
-| Distribution | Signed application artifacts and signed update manifests; owner-controlled CDN with GitHub Releases fallback. |
+| Layer                    | Selection and constraints                                                                                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI                       | Solid.js + TypeScript; Solid stores as the default state layer. Avoid a duplicate global store unless a measured need justifies it.                                              |
+| Styling                  | Tailwind CSS + DaisyUI; accessible focus, keyboard operation, compact and high-contrast themes.                                                                                  |
+| Desktop                  | A currently supported Electron release pinned per application build.                                                                                                             |
+| Managed browser          | Supported Chromium/Chrome-for-Testing-compatible artifacts, pinned per release and matched to ChromeDriver. Security response covers both Electron and managed browser engines.  |
+| Browser control          | CDP with Puppeteer where appropriate; ChromeDriver for W3C WebDriver. Playwright for application testing.                                                                        |
+| Native helper            | Rust with narrowly scoped OS bindings; external dependencies and driver licenses reviewed before selection.                                                                      |
+| Local database           | SQLCipher through a maintained native binding, built and tested against the pinned Electron ABI.                                                                                 |
+| Team/commercial services | Separate Node.js LTS + TypeScript services, PostgreSQL, and S3-compatible object storage for encrypted team objects. Commercial and team databases/credentials remain separate.  |
+| Crypto                   | Maintained Argon2id implementation off the UI thread; OS-backed/native crypto and Node crypto for AES-GCM/HKDF; system GnuPG with OpenPGP.js for compatible fallback operations. |
+| VPN                      | Capability-based Mullvad and IVPN adapters, actual tunnel management, and custom SOCKS5 through a local authenticated-upstream gateway.                                          |
+| Compression              | Streaming gzip level 9 in bounded background workers; compression is not a security mechanism.                                                                                   |
+| Maps and graphs          | D3.js, lazy loaded; saved positions in encrypted workspace data, not sensitive localStorage.                                                                                     |
+| Diffs                    | Structured configuration diff, text diff, pixelmatch, and CDP accessibility/DOM snapshots with explicit limitations.                                                             |
+| Resource monitoring      | Native process-tree accounting, with pidusage where reliable; include browser descendants and helper overhead.                                                                   |
+| Playground               | Monaco, isolated worker runtime, message-only capability bridge; no Node integration.                                                                                            |
+| Validation               | Zod for payloads and persisted versioned documents.                                                                                                                              |
+| Tests/build              | Vitest, Playwright, pnpm workspaces, Turborepo, electron-builder, native OS CI.                                                                                                  |
+| Distribution             | Signed application artifacts and signed update manifests; owner-controlled CDN with GitHub Releases fallback.                                                                    |
 
 Versions are recorded in a checked-in release manifest with hashes, ABI, architecture, driver pairing, schema versions, and security advisory references. Build tools download exact verified artifacts; Puppeteer is not a security patch backport service.
 
@@ -216,11 +216,11 @@ Save & Close first attempts graceful state capture and browser shutdown. A timeo
 
 Policies change lifecycle behavior, not profile identity or security claims. Operators can select and review policy per profile.
 
-| Policy | Default behavior |
-| --- | --- |
-| Standard | Idle suspension after 30 minutes with pre-suspend capture; due route rotations apply before launch; deliberate changes may restart after confirmation. |
+| Policy              | Default behavior                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard            | Idle suspension after 30 minutes with pre-suspend capture; due route rotations apply before launch; deliberate changes may restart after confirmation.                       |
 | Protected execution | No idle suspension or automatic rotation/restart/update; respect explicit user changes; warn and queue disruptive work. Existing sessions retain their resource reservation. |
-| Disposable | Separate storage, parent settings copied, one-hour default expiry, quarantined downloads, explicit promotion. |
+| Disposable          | Separate storage, parent settings copied, one-hour default expiry, quarantined downloads, explicit promotion.                                                                |
 
 Protected execution is intended for live trading, long-running research, and sensitive automation. It does not override route loss, a shared lease expiry, OS failure, or an emergency policy already explicitly selected. Route failure always blocks prohibited egress. Never use CPU or RAM priority changes as a promise of zero jitter.
 
@@ -751,12 +751,12 @@ The normative entity inventory, states, invariants, and versioned JSON shapes ar
 
 ### 6.1 Ownership and storage domains
 
-| Domain | Authority and data |
-| --- | --- |
-| Local vault | Workspace, local identities, profiles, revisions, folders/tags, recipes, snapshots, secret envelopes, sessions, inspections, comparisons, jobs, release checkpoints. SQLCipher and encrypted object files. |
-| Team service | Teams, memberships, device public keys, grants, invite hashes, encrypted objects/envelopes, revisions, leases, audit stream. PostgreSQL plus encrypted object storage. |
-| Commercial service | Accounts, verified recovery bindings, product catalog, invoices, output allocations, subscriptions, entitlement/license families, signing metadata, transfers, webhook receipts. PostgreSQL. |
-| Ephemeral runtime | Unwrapped working keys, gateway tokens, live driver handles, route sessions, scoped playground channels. Do not persist reusable gateway Bearer tokens in the session table. |
+| Domain             | Authority and data                                                                                                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local vault        | Workspace, local identities, profiles, revisions, folders/tags, recipes, snapshots, secret envelopes, sessions, inspections, comparisons, jobs, release checkpoints. SQLCipher and encrypted object files. |
+| Team service       | Teams, memberships, device public keys, grants, invite hashes, encrypted objects/envelopes, revisions, leases, audit stream. PostgreSQL plus encrypted object storage.                                     |
+| Commercial service | Accounts, verified recovery bindings, product catalog, invoices, output allocations, subscriptions, entitlement/license families, signing metadata, transfers, webhook receipts. PostgreSQL.               |
+| Ephemeral runtime  | Unwrapped working keys, gateway tokens, live driver handles, route sessions, scoped playground channels. Do not persist reusable gateway Bearer tokens in the session table.                               |
 
 Use UUIDs, UTC integer milliseconds, explicit schema versions, foreign keys, and parameterized queries. Account IDs and amounts are strings where numeric precision or leading zeros matter. Monetary amounts use integer minor/atomic units plus currency and quote metadata, never floating point.
 
@@ -865,31 +865,31 @@ Each milestone ships a reviewable capability plus tests and documentation. Secur
 
 ### 8.2 Delivery sequence
 
-| Milestone | Baseline window | Required deliverable and exit evidence |
-| --- | --- | --- |
-| M0 Foundation and feasibility | Weeks 1–2 | Monorepo, Electron boundaries, vault header/SQLCipher, local signup, native route/storage prototypes on all target OSes, private driver transport, commerce account/XMR testnet path, team topology. Exit: demonstrate feasibility or record a blocking platform constraint with preserved requirement. |
-| M1 Profiles and encrypted snapshots | Weeks 3–4 | CRUD/revisions/limits, consistent baseline/edit/close snapshots, keys/envelopes, protected storage paths, crash journal/pruning. Exit: recover a known fixture after a forced application crash. |
-| M2 Restore and branching | Week 5 | Timeline, structured config diffs, independent branches, config merge, reversible restore. Pixel/DOM comparison engines are integrated in M11, not falsely completed here. |
-| M3 VPNs, proxies, SOCKS5 switching, WebRTC | Weeks 6–7 | Actual Mullvad/IVPN routes, mandatory authenticated SOCKS5 and HTTP CONNECT, imports/pools, atomic route changes, fail-closed boundary, verified WebRTC controls. Exit: packet-capture failure matrix on every advertised platform and provider-capacity evidence. |
-| M4 Health and diagnostics | Week 8 | Five health dimensions, stale evidence, proxy diagnostics, sanitized exports, background-contact controls. Exit: actionable results for deterministic failed dependencies. |
-| M5 Fingerprints and validation | Weeks 9–10 | Supported controls/presets/custom import, deterministic local harness, four external adapters, policy modes/history. Exit: actual managed build/route tested, unsupported controls visible, no fabricated scores. |
-| M6 Session management and Selenium | Weeks 11–12 | Real authenticated W3C gateway, private driver/CDP, process ownership, lifecycle/error cleanup, Python/Node examples. Exit: transport auth, no token sent to target site, rates enforced, owned-tree cleanup. |
-| M7 Resources and continuity | Week 13 | Process-tree metrics, launch reservations, suspension/resume, protected execution, chart/WebSocket fixtures. Exit: saturation cannot evict or restart protected work silently. |
-| M8 Flight recorder | Week 14 | Encrypted bounded segments, redaction, URL consent, retention, safe CSV. Exit: planted test secrets never appear in default records/exports. |
-| M9 Organization and workspace | Weeks 15–16 | Folders, tags, filters, map, command palette, layout export, keyboard paths. Exit: 99-profile workspace remains navigable without data leakage in UI prefs. |
-| M10 Recipes | Week 17 | Versioned templates, approved extension provisioning, updates/diffs, safe JSON import/export. Exit: no silent credential or identity cloning. |
-| M11 Environment lab | Week 18 | Two-to-five private live panes, shared URL, sync scrolling/actions, pixel/structural diff, exclusions, saved comparisons. Exit: bounded-resource fixture comparisons and no privileged remote-content embedding. |
-| M12 Website inspection | Week 19 | Self-hostable endpoint, measurement provenance, origin limits, drift history, JSON export. Exit: JS timezone/IP geolocation and unavailable observations remain distinct. |
-| M13 Connection map | Week 20 | Full underlying graph, grouped rendering, VPN/proxy/extension/path/ancestry/domain edges, previewed actions, JSON export. Exit: distinguish domain overlap from actual shared identity. |
-| M14 Capsules | Week 21 | Encrypted metadata, signatures, safe extraction, conflict handling, key rewrap, cross-machine fixtures. Exit: tampered, hostile, incompatible, and untrusted imports handled correctly. |
-| M15 Disposables | Week 22 | Separate storage/routes, brokered downloads, per-child quarantine, promotion, expiry/cleanup. Exit: one child's discard cannot affect another or its parent. |
-| M16 Bulk operations | Week 23 | Journaled bounded queue, atomic per-profile change, cancel/retry, protected-session handling. Exit: partial failures leave each profile in a documented state. |
-| M17 Payments and subscriptions | Weeks 24–25 | All six payment choices, catalog, Monero confirmed settlement/reconciliation, webhook replay/order handling, signed offline entitlements, cancellation/grace. Exit: testnet/sandbox payment end-to-end with no merchant secret in desktop. |
-| M18 Transfers and support | Week 26 | Proof-based request, license-family transfer cap, offline revocation disclosure, receipts. Exit: new JWT cannot reset the one-transfer limit. |
-| M19 Updates and rollback | Week 27 | Signed release sets, offline bundles, compatibility, checkpointing, protected deferral, external recovery bootstrapper. Exit: failed update and forward-only migration recover without in-place downgrade. |
-| M20 Automation playground | Week 28 | Isolated JS runtime, external Python/Node examples, quotas, fixture errors, cancellation, trial portability. Exit: isolation probes cannot gain network/filesystem/token access. |
-| M21 Integrated hardening | Weeks 29–30 | Cross-platform fault injection, full recovery/sync/payment/security matrix, measured performance, independent review. Team implementation from M0 onward must satisfy US-24/25 and sharing/lease/key contracts by this gate. |
-| M22 Documentation and release | Weeks 31–32 | Complete guides/examples, signed/notarized builds, published manifests/checksums, user-reviewed commercial catalog, support process. Exit: every requirement has release evidence and supported-platform scope is truthful. |
+| Milestone                                  | Baseline window | Required deliverable and exit evidence                                                                                                                                                                                                                                                                  |
+| ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 Foundation and feasibility              | Weeks 1–2       | Monorepo, Electron boundaries, vault header/SQLCipher, local signup, native route/storage prototypes on all target OSes, private driver transport, commerce account/XMR testnet path, team topology. Exit: demonstrate feasibility or record a blocking platform constraint with preserved requirement. |
+| M1 Profiles and encrypted snapshots        | Weeks 3–4       | CRUD/revisions/limits, consistent baseline/edit/close snapshots, keys/envelopes, protected storage paths, crash journal/pruning. Exit: recover a known fixture after a forced application crash.                                                                                                        |
+| M2 Restore and branching                   | Week 5          | Timeline, structured config diffs, independent branches, config merge, reversible restore. Pixel/DOM comparison engines are integrated in M11, not falsely completed here.                                                                                                                              |
+| M3 VPNs, proxies, SOCKS5 switching, WebRTC | Weeks 6–7       | Actual Mullvad/IVPN routes, mandatory authenticated SOCKS5 and HTTP CONNECT, imports/pools, atomic route changes, fail-closed boundary, verified WebRTC controls. Exit: packet-capture failure matrix on every advertised platform and provider-capacity evidence.                                      |
+| M4 Health and diagnostics                  | Week 8          | Five health dimensions, stale evidence, proxy diagnostics, sanitized exports, background-contact controls. Exit: actionable results for deterministic failed dependencies.                                                                                                                              |
+| M5 Fingerprints and validation             | Weeks 9–10      | Supported controls/presets/custom import, deterministic local harness, four external adapters, policy modes/history. Exit: actual managed build/route tested, unsupported controls visible, no fabricated scores.                                                                                       |
+| M6 Session management and Selenium         | Weeks 11–12     | Real authenticated W3C gateway, private driver/CDP, process ownership, lifecycle/error cleanup, Python/Node examples. Exit: transport auth, no token sent to target site, rates enforced, owned-tree cleanup.                                                                                           |
+| M7 Resources and continuity                | Week 13         | Process-tree metrics, launch reservations, suspension/resume, protected execution, chart/WebSocket fixtures. Exit: saturation cannot evict or restart protected work silently.                                                                                                                          |
+| M8 Flight recorder                         | Week 14         | Encrypted bounded segments, redaction, URL consent, retention, safe CSV. Exit: planted test secrets never appear in default records/exports.                                                                                                                                                            |
+| M9 Organization and workspace              | Weeks 15–16     | Folders, tags, filters, map, command palette, layout export, keyboard paths. Exit: 99-profile workspace remains navigable without data leakage in UI prefs.                                                                                                                                             |
+| M10 Recipes                                | Week 17         | Versioned templates, approved extension provisioning, updates/diffs, safe JSON import/export. Exit: no silent credential or identity cloning.                                                                                                                                                           |
+| M11 Environment lab                        | Week 18         | Two-to-five private live panes, shared URL, sync scrolling/actions, pixel/structural diff, exclusions, saved comparisons. Exit: bounded-resource fixture comparisons and no privileged remote-content embedding.                                                                                        |
+| M12 Website inspection                     | Week 19         | Self-hostable endpoint, measurement provenance, origin limits, drift history, JSON export. Exit: JS timezone/IP geolocation and unavailable observations remain distinct.                                                                                                                               |
+| M13 Connection map                         | Week 20         | Full underlying graph, grouped rendering, VPN/proxy/extension/path/ancestry/domain edges, previewed actions, JSON export. Exit: distinguish domain overlap from actual shared identity.                                                                                                                 |
+| M14 Capsules                               | Week 21         | Encrypted metadata, signatures, safe extraction, conflict handling, key rewrap, cross-machine fixtures. Exit: tampered, hostile, incompatible, and untrusted imports handled correctly.                                                                                                                 |
+| M15 Disposables                            | Week 22         | Separate storage/routes, brokered downloads, per-child quarantine, promotion, expiry/cleanup. Exit: one child's discard cannot affect another or its parent.                                                                                                                                            |
+| M16 Bulk operations                        | Week 23         | Journaled bounded queue, atomic per-profile change, cancel/retry, protected-session handling. Exit: partial failures leave each profile in a documented state.                                                                                                                                          |
+| M17 Payments and subscriptions             | Weeks 24–25     | All six payment choices, catalog, Monero confirmed settlement/reconciliation, webhook replay/order handling, signed offline entitlements, cancellation/grace. Exit: testnet/sandbox payment end-to-end with no merchant secret in desktop.                                                              |
+| M18 Transfers and support                  | Week 26         | Proof-based request, license-family transfer cap, offline revocation disclosure, receipts. Exit: new JWT cannot reset the one-transfer limit.                                                                                                                                                           |
+| M19 Updates and rollback                   | Week 27         | Signed release sets, offline bundles, compatibility, checkpointing, protected deferral, external recovery bootstrapper. Exit: failed update and forward-only migration recover without in-place downgrade.                                                                                              |
+| M20 Automation playground                  | Week 28         | Isolated JS runtime, external Python/Node examples, quotas, fixture errors, cancellation, trial portability. Exit: isolation probes cannot gain network/filesystem/token access.                                                                                                                        |
+| M21 Integrated hardening                   | Weeks 29–30     | Cross-platform fault injection, full recovery/sync/payment/security matrix, measured performance, independent review. Team implementation from M0 onward must satisfy US-24/25 and sharing/lease/key contracts by this gate.                                                                            |
+| M22 Documentation and release              | Weeks 31–32     | Complete guides/examples, signed/notarized builds, published manifests/checksums, user-reviewed commercial catalog, support process. Exit: every requirement has release evidence and supported-platform scope is truthful.                                                                             |
 
 ### 8.3 Team capability workstream
 
@@ -908,28 +908,28 @@ A failed gate blocks the affected advertised capability/platform. It does not au
 
 ## 9. Risk register
 
-| Risk | Consequence | Treatment and release evidence |
-| --- | --- | --- |
-| Native routing differs across OSes | A profile can escape its route or independence cannot be delivered | G1 early prototypes, platform packet capture and helper failure tests; no protected launch on unsupported adapters. |
-| Provider APIs/device limits change | Many profiles cannot obtain unique simultaneous routes | Capability adapters, permitted configuration import, explicit shared-route labeling, additional operator-owned accounts/pools within provider terms. Never equate 99 profiles with 99 permitted provider tunnels. |
-| SOCKS5 authentication/DNS gaps | Failed routing or local resolution leaks | Local gateway, remote-DNS tests, authenticated proxy fixtures, fail-closed switching. |
-| Browser/driver security drift | Vulnerable renderer or broken automation | Current supported baselines, advisory response, pinned compatible release sets and reproducible patch maintenance. |
-| Fingerprint overclaims | Operators trust coverage that does not exist | Per-property measured evidence, engine limitations, local/external adapters, no anonymity scores. |
-| Browser working data remains exposed | Snapshot encryption creates a false full-vault claim | Protected storage adapter, path inventory, full-lock versus UI-lock disclosure, platform-specific tests. |
-| Inconsistent browser snapshot | Corrupt cookies/storage or failed recovery | Consistent capture, closure when needed, journals, restoration fixtures for each browser format. |
-| KDF/validation/compression exhaust RAM | Live charts or sessions stutter/crash | Worker limits, admission, allocation checks, protected-session scheduling, measured high-load workloads. |
-| Unsafe or misleading quarantine | Download fails or user opens a risky file | Writable staging, broker ownership, per-file permissions, explicit release, no malware-containment claim. |
-| Capsule parser/format abuse | File overwrite, resource exhaustion, leaked metadata | Encrypted manifest, authenticated extraction, size/count limits, hostile archive fixtures and fuzzing. |
-| Team split-brain or revoked-device cache | Shared identities race or old data remains accessible | Leases/fencing, future key rotation, explicit offline/private copies, documented cache limits. |
-| Audit completeness overstated | Missing offline actions appear accounted for | Signed envelopes, service ordering, last-sync/gap display, limited completeness claims. |
-| Static XMR address/payment replay | Old transfer activates another purchase | Output-level unique allocations, one open invoice, partial/late-payment reconciliation, idempotent signer jobs. |
-| Signing key compromise | Forged licenses or updates | Restricted offline/managed signer, distinct update trust keys, key IDs and emergency rotation procedure. |
-| Offline revocation contradiction | Transferred installations continue offline | Accepted product tradeoff disclosed at transfer; authoritative service enforcement for connected commerce, no forced phone-home. |
-| Third-party tests unavailable | Strict launches blocked or diagnostics incomplete | Local harness baseline, explicit external policy, accurate unavailable status, operator-selectable modes. |
-| Update migration/rollback mismatch | User state lost after downgrade | Preflight compatibility, checkpoint copies, preserve newer state, external bootstrapper recovery. |
-| Disruptive automation during trading | Lost market connectivity or unintended synchronized input | Protected execution, explicit disruptive approvals, lab/input scoping, deterministic continuity tests. |
-| Real sites overwhelm fixed performance assumptions | 50 sessions exceed advertised hardware | Publish workload/hardware percentiles; governor bounds admission; no arbitrary-site guarantees. |
-| Feature dependency/staffing underestimated | Original schedule slips | Keep all capabilities, evidence gates, staffing-based re-estimation after M0; track dependencies rather than reduce scope. |
+| Risk                                               | Consequence                                                        | Treatment and release evidence                                                                                                                                                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native routing differs across OSes                 | A profile can escape its route or independence cannot be delivered | G1 early prototypes, platform packet capture and helper failure tests; no protected launch on unsupported adapters.                                                                                               |
+| Provider APIs/device limits change                 | Many profiles cannot obtain unique simultaneous routes             | Capability adapters, permitted configuration import, explicit shared-route labeling, additional operator-owned accounts/pools within provider terms. Never equate 99 profiles with 99 permitted provider tunnels. |
+| SOCKS5 authentication/DNS gaps                     | Failed routing or local resolution leaks                           | Local gateway, remote-DNS tests, authenticated proxy fixtures, fail-closed switching.                                                                                                                             |
+| Browser/driver security drift                      | Vulnerable renderer or broken automation                           | Current supported baselines, advisory response, pinned compatible release sets and reproducible patch maintenance.                                                                                                |
+| Fingerprint overclaims                             | Operators trust coverage that does not exist                       | Per-property measured evidence, engine limitations, local/external adapters, no anonymity scores.                                                                                                                 |
+| Browser working data remains exposed               | Snapshot encryption creates a false full-vault claim               | Protected storage adapter, path inventory, full-lock versus UI-lock disclosure, platform-specific tests.                                                                                                          |
+| Inconsistent browser snapshot                      | Corrupt cookies/storage or failed recovery                         | Consistent capture, closure when needed, journals, restoration fixtures for each browser format.                                                                                                                  |
+| KDF/validation/compression exhaust RAM             | Live charts or sessions stutter/crash                              | Worker limits, admission, allocation checks, protected-session scheduling, measured high-load workloads.                                                                                                          |
+| Unsafe or misleading quarantine                    | Download fails or user opens a risky file                          | Writable staging, broker ownership, per-file permissions, explicit release, no malware-containment claim.                                                                                                         |
+| Capsule parser/format abuse                        | File overwrite, resource exhaustion, leaked metadata               | Encrypted manifest, authenticated extraction, size/count limits, hostile archive fixtures and fuzzing.                                                                                                            |
+| Team split-brain or revoked-device cache           | Shared identities race or old data remains accessible              | Leases/fencing, future key rotation, explicit offline/private copies, documented cache limits.                                                                                                                    |
+| Audit completeness overstated                      | Missing offline actions appear accounted for                       | Signed envelopes, service ordering, last-sync/gap display, limited completeness claims.                                                                                                                           |
+| Static XMR address/payment replay                  | Old transfer activates another purchase                            | Output-level unique allocations, one open invoice, partial/late-payment reconciliation, idempotent signer jobs.                                                                                                   |
+| Signing key compromise                             | Forged licenses or updates                                         | Restricted offline/managed signer, distinct update trust keys, key IDs and emergency rotation procedure.                                                                                                          |
+| Offline revocation contradiction                   | Transferred installations continue offline                         | Accepted product tradeoff disclosed at transfer; authoritative service enforcement for connected commerce, no forced phone-home.                                                                                  |
+| Third-party tests unavailable                      | Strict launches blocked or diagnostics incomplete                  | Local harness baseline, explicit external policy, accurate unavailable status, operator-selectable modes.                                                                                                         |
+| Update migration/rollback mismatch                 | User state lost after downgrade                                    | Preflight compatibility, checkpoint copies, preserve newer state, external bootstrapper recovery.                                                                                                                 |
+| Disruptive automation during trading               | Lost market connectivity or unintended synchronized input          | Protected execution, explicit disruptive approvals, lab/input scoping, deterministic continuity tests.                                                                                                            |
+| Real sites overwhelm fixed performance assumptions | 50 sessions exceed advertised hardware                             | Publish workload/hardware percentiles; governor bounds admission; no arbitrary-site guarantees.                                                                                                                   |
+| Feature dependency/staffing underestimated         | Original schedule slips                                            | Keep all capabilities, evidence gates, staffing-based re-estimation after M0; track dependencies rather than reduce scope.                                                                                        |
 
 ## 10. Verification, performance, and release gates
 
@@ -970,15 +970,15 @@ Track coverage as an engineering signal. The original 92% target may guide core 
 
 ### 10.3 Performance measurements
 
-| Workload | Target and measurement rule |
-| --- | --- |
-| 99-profile workspace | UI interactions and command palette p95 below 200 ms on the reference host; no active browsers needed. |
-| Standard browser concurrency | Measure 10/20/50 controlled sessions with recorded page mix, tab counts, versions, RAM, CPU, and route count. The original 50-session/12.8 GiB/80% CPU figures remain experiment targets, not universal requirements. |
-| Protected trading layout | Benchmark one and multiple protected sessions across two and four monitors using deterministic chart/DOM/WebSocket replay; record frame-time p95/p99, input-to-render latency, message lag, gaps, and disconnects. |
-| Snapshots | Benchmark 50 MiB of compressible JSON and representative mixed browser data; report capture, compression, encryption, commit times, peak RAM, and ratio separately. Two-second compression is a target on declared hardware, not a minimum compression ratio. |
-| Route switching | Record blocking interval, reconnection time, dropped sockets, DNS path, and whether restart was required for each adapter. No invisible or zero-latency switch claim. |
-| Lab/map | Record two-to-five-pane rendering/diff load and complete dense 99-node graph aggregation; bounded workers must protect active-session budgets. |
-| Offline operation | Verify normal local operations create no hidden account, telemetry, or test-service calls. Explicit browsing and configured routes retain their expected network traffic. |
+| Workload                     | Target and measurement rule                                                                                                                                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 99-profile workspace         | UI interactions and command palette p95 below 200 ms on the reference host; no active browsers needed.                                                                                                                                                        |
+| Standard browser concurrency | Measure 10/20/50 controlled sessions with recorded page mix, tab counts, versions, RAM, CPU, and route count. The original 50-session/12.8 GiB/80% CPU figures remain experiment targets, not universal requirements.                                         |
+| Protected trading layout     | Benchmark one and multiple protected sessions across two and four monitors using deterministic chart/DOM/WebSocket replay; record frame-time p95/p99, input-to-render latency, message lag, gaps, and disconnects.                                            |
+| Snapshots                    | Benchmark 50 MiB of compressible JSON and representative mixed browser data; report capture, compression, encryption, commit times, peak RAM, and ratio separately. Two-second compression is a target on declared hardware, not a minimum compression ratio. |
+| Route switching              | Record blocking interval, reconnection time, dropped sockets, DNS path, and whether restart was required for each adapter. No invisible or zero-latency switch claim.                                                                                         |
+| Lab/map                      | Record two-to-five-pane rendering/diff load and complete dense 99-node graph aggregation; bounded workers must protect active-session budgets.                                                                                                                |
+| Offline operation            | Verify normal local operations create no hidden account, telemetry, or test-service calls. Explicit browsing and configured routes retain their expected network traffic.                                                                                     |
 
 Reference hosts, OS versions, power modes, GPU, CPU, physical RAM, display resolution, and benchmark fixture versions are published with results. Minimum RAM/disk and concurrent-session recommendations are determined from these measurements; retain the original 8 GiB baseline/16 GiB recommendation only if the KDF and selected workloads fit.
 
@@ -1068,22 +1068,22 @@ Support exports are prepared locally and sent only by an explicit operator actio
 
 Documentation consulted for this revision supports API/trust-boundary corrections. It does not establish that the product has passed its release gates.
 
-| Reference | Relevance |
-| --- | --- |
-| [Electron security](https://www.electronjs.org/docs/latest/tutorial/security) | Context isolation, sandboxing, current versions, IPC sender validation. |
-| [Electron support timelines](https://www.electronjs.org/docs/latest/tutorial/electron-timelines) | Latest three stable major releases supported; exact release selection must be verified at implementation. |
-| [ChromeDriver remote debugging limitations](https://developer.chrome.com/docs/chromedriver/help/operation-not-supported-when-using-remote-debugging) | debuggerAddress attaches through ChromeDriver and has command limitations. |
-| [Selenium Python ClientConfig](https://www.selenium.dev/selenium/docs/api/py/selenium_webdriver_remote/selenium.webdriver.remote.client_config.html) | Bearer transport authentication and per-client configuration. |
-| [Selenium JavaScript HTTP client source](https://www.selenium.dev/selenium/docs/api/javascript/http_index.js.html) | Request header map, custom HttpClient, and Executor exports. |
-| [Selenium JavaScript WebDriver](https://www.selenium.dev/selenium/docs/api/javascript/WebDriver.html) | createSession with an executor. |
-| [MDN WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) | Workers have network APIs; a worker is not a Python/Node runtime or sufficient network confinement. |
-| [Stripe API key guidance](https://docs.stripe.com/keys) | Only publishable keys belong in distributed clients. |
-| [Monero wallet RPC](https://docs.getmonero.org/rpc-library/wallet-rpc/) | RPC shapes, subaddresses, transfer evidence, integer atomic units. Validate against the pinned daemon; older official pages are explicitly dated. |
-| [SQLite backup API](https://www.sqlite.org/backup.html) | Consistent database backup requires supported procedures rather than raw open-file copying. |
-| [SQLCipher API](https://www.zetetic.net/sqlcipher/sqlcipher-api/) | Encrypted database configuration and format compatibility. |
-| [GnuPG agent options](https://www.gnupg.org/documentation/manuals/gnupg/Agent-Options.html) | Key-agent/caching behavior is independent of the application UI lock. |
-| [IVPN device policy](https://www.ivpn.net/knowledgebase/general/how-many-devices-or-simultaneous-connections-can-i-have-to-ivpn/) | Provider limits vary by plan; recheck at integration, do not hardcode a historical count. |
-| [Mullvad WireGuard](https://mullvad.net/en/help/wireguard-and-mullvad-vpn) | Actual VPN setup is distinct from endpoint discovery; integration permissions/capacity require verification. |
-| [Apple Network Extension entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.networkextension) | Native macOS support depends on specific signed capabilities and distribution constraints. |
+| Reference                                                                                                                                                     | Relevance                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Electron security](https://www.electronjs.org/docs/latest/tutorial/security)                                                                                 | Context isolation, sandboxing, current versions, IPC sender validation.                                                                           |
+| [Electron support timelines](https://www.electronjs.org/docs/latest/tutorial/electron-timelines)                                                              | Latest three stable major releases supported; exact release selection must be verified at implementation.                                         |
+| [ChromeDriver remote debugging limitations](https://developer.chrome.com/docs/chromedriver/help/operation-not-supported-when-using-remote-debugging)          | debuggerAddress attaches through ChromeDriver and has command limitations.                                                                        |
+| [Selenium Python ClientConfig](https://www.selenium.dev/selenium/docs/api/py/selenium_webdriver_remote/selenium.webdriver.remote.client_config.html)          | Bearer transport authentication and per-client configuration.                                                                                     |
+| [Selenium JavaScript HTTP client source](https://www.selenium.dev/selenium/docs/api/javascript/http_index.js.html)                                            | Request header map, custom HttpClient, and Executor exports.                                                                                      |
+| [Selenium JavaScript WebDriver](https://www.selenium.dev/selenium/docs/api/javascript/WebDriver.html)                                                         | createSession with an executor.                                                                                                                   |
+| [MDN WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)                                                          | Workers have network APIs; a worker is not a Python/Node runtime or sufficient network confinement.                                               |
+| [Stripe API key guidance](https://docs.stripe.com/keys)                                                                                                       | Only publishable keys belong in distributed clients.                                                                                              |
+| [Monero wallet RPC](https://docs.getmonero.org/rpc-library/wallet-rpc/)                                                                                       | RPC shapes, subaddresses, transfer evidence, integer atomic units. Validate against the pinned daemon; older official pages are explicitly dated. |
+| [SQLite backup API](https://www.sqlite.org/backup.html)                                                                                                       | Consistent database backup requires supported procedures rather than raw open-file copying.                                                       |
+| [SQLCipher API](https://www.zetetic.net/sqlcipher/sqlcipher-api/)                                                                                             | Encrypted database configuration and format compatibility.                                                                                        |
+| [GnuPG agent options](https://www.gnupg.org/documentation/manuals/gnupg/Agent-Options.html)                                                                   | Key-agent/caching behavior is independent of the application UI lock.                                                                             |
+| [IVPN device policy](https://www.ivpn.net/knowledgebase/general/how-many-devices-or-simultaneous-connections-can-i-have-to-ivpn/)                             | Provider limits vary by plan; recheck at integration, do not hardcode a historical count.                                                         |
+| [Mullvad WireGuard](https://mullvad.net/en/help/wireguard-and-mullvad-vpn)                                                                                    | Actual VPN setup is distinct from endpoint discovery; integration permissions/capacity require verification.                                      |
+| [Apple Network Extension entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.networkextension) | Native macOS support depends on specific signed capabilities and distribution constraints.                                                        |
 
 **End of replacement blueprint.** This document preserves product scope while identifying implementation obligations, accepted tradeoffs, and evidence needed before release.
