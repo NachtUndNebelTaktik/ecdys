@@ -50,7 +50,7 @@ describe('local UI preferences', () => {
   it.each([
     '{', 'null', '[]', 'true', '"dark"', '{}',
     JSON.stringify({...chosen, appearance: 'sepia'}),
-    JSON.stringify({...chosen, accent: 'blue'}),
+    JSON.stringify({...chosen, accent: 'chartreuse'}),
     JSON.stringify({...chosen, density: 'dense'}),
     JSON.stringify({...chosen, reduceMotion: 'true'}),
     JSON.stringify({...chosen, notifications: 1}),
@@ -74,7 +74,7 @@ describe('local UI preferences', () => {
   });
 
   it.each([
-    null, {}, {...chosen, appearance: 'sepia'}, {...chosen, accent: 'blue'},
+    null, {}, {...chosen, appearance: 'sepia'}, {...chosen, accent: 'chartreuse'},
     {...chosen, density: 'dense'}, {...chosen, reduceMotion: 0}, {...chosen, notifications: 'false'},
   ])('refuses invalid writes without replacing existing data (%#)', value => {
     const storage = new MemoryStorage();
@@ -116,5 +116,12 @@ describe('local UI preferences', () => {
     expect(saveUiPreferences(chosen)).toBe(true);
     expect(loadUiPreferences()).toEqual(chosen);
     expect(storage.length).toBe(1);
+  });
+
+  it.each(['crimson', 'rose', 'amber', 'teal', 'blue', 'violet', 'sage', 'indigo'] as const)('round-trips the %s accent without losing other preferences', accent => {
+    const storage = new MemoryStorage();
+    const value = {...chosen, accent};
+    expect(saveUiPreferences(value as UiPreferences, storage)).toBe(true);
+    expect(loadUiPreferences(storage)).toEqual(value);
   });
 });

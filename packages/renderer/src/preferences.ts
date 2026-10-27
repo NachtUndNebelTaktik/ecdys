@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 export type UiPreferences = {
   appearance: 'dark' | 'light' | 'system';
-  accent: 'crimson' | 'sage' | 'indigo';
+  accent: 'crimson' | 'rose' | 'amber' | 'teal' | 'blue' | 'violet' | 'sage' | 'indigo';
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
   notifications: boolean;
@@ -20,7 +20,7 @@ const storageKey = 'ecdys.ui-preferences.v1';
 const maximumStoredBytes = 2048;
 const preferencesSchema = z.object({
   appearance: z.enum(['dark', 'light', 'system']),
-  accent: z.enum(['crimson', 'sage', 'indigo']),
+  accent: z.enum(['crimson', 'rose', 'amber', 'teal', 'blue', 'violet', 'sage', 'indigo']),
   density: z.enum(['comfortable', 'compact']),
   reduceMotion: z.boolean(),
   notifications: z.boolean(),

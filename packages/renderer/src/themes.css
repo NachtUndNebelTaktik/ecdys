@@ -4,14 +4,18 @@
   color-scheme: dark;
   color: var(--settings-text);
   background: var(--settings-bg);
-  --settings-bg: #09090c;
+  --settings-bg: #07070a;
   --settings-card: #141418;
-  --settings-line: #28282d;
-  --settings-text: #f0f0f2;
-  --settings-muted: #909098;
-  --settings-accent: #c72b47;
+  --settings-line: rgba(255,255,255,.065);
+  --settings-line-strong: rgba(255,255,255,.13);
+  --settings-text: #f3f3f5;
+  --settings-muted: #8f8f9a;
+  --settings-accent: #dc143c;
   --settings-accent-text: color-mix(in srgb, var(--settings-accent) 72%, var(--settings-text));
   --settings-accent-contrast: #fff;
+  --settings-mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
+  --settings-hover: color-mix(in srgb, var(--settings-text) 4%, transparent);
+  --settings-active: color-mix(in srgb, var(--settings-text) 7%, transparent);
   --settings-raised: #1b1b21;
   --settings-input: #0d0d11;
   --settings-warning: #d8b575;
@@ -51,14 +55,16 @@ html[data-accent='indigo'] {
 
 html[data-appearance='light'] {
   color-scheme: light;
-  --settings-bg: #f4f4f7;
+  --settings-bg: #f1f1f4;
   --settings-card: #fff;
-  --settings-line: #dcdce3;
-  --settings-text: #202026;
-  --settings-muted: #666671;
-  --settings-accent: #b52340;
+  --settings-line: rgba(0,0,0,.075);
+  --settings-line-strong: rgba(0,0,0,.15);
+  --settings-text: #101014;
+  --settings-muted: #66666f;
+  --settings-accent: #dc143c;
+  --settings-accent-text: color-mix(in srgb, var(--settings-accent) 55%, var(--settings-text));
   --settings-accent-contrast: #fff;
-  --settings-raised: #ebebf0;
+  --settings-raised: #f6f6f9;
   --settings-input: #fafafd;
   --settings-warning: #805b19;
   --settings-warning-bg: #fff7e6;
@@ -86,14 +92,16 @@ html[data-appearance='light'][data-accent='indigo'] {
 @media (prefers-color-scheme: light) {
   html[data-appearance='system'] {
     color-scheme: light;
-    --settings-bg: #f4f4f7;
+    --settings-bg: #f1f1f4;
     --settings-card: #fff;
-    --settings-line: #dcdce3;
-    --settings-text: #202026;
-    --settings-muted: #666671;
-    --settings-accent: #b52340;
+    --settings-line: rgba(0,0,0,.075);
+    --settings-line-strong: rgba(0,0,0,.15);
+    --settings-text: #101014;
+    --settings-muted: #66666f;
+    --settings-accent: #dc143c;
+    --settings-accent-text: color-mix(in srgb, var(--settings-accent) 55%, var(--settings-text));
     --settings-accent-contrast: #fff;
-    --settings-raised: #ebebf0;
+    --settings-raised: #f6f6f9;
     --settings-input: #fafafd;
     --settings-warning: #805b19;
     --settings-warning-bg: #fff7e6;
@@ -118,6 +126,12 @@ html[data-appearance='light'][data-accent='indigo'] {
     --settings-accent: #4b5cb5;
   }
 }
+
+html[data-accent='rose'] { --settings-accent: #ff3d6e; --settings-accent-contrast: #171017; }
+html[data-accent='amber'] { --settings-accent: #ff9f0a; --settings-accent-contrast: #211400; }
+html[data-accent='teal'] { --settings-accent: #2dd4bf; --settings-accent-contrast: #08211c; }
+html[data-accent='blue'] { --settings-accent: #5b8dff; --settings-accent-contrast: #0c1530; }
+html[data-accent='violet'] { --settings-accent: #a78bfa; --settings-accent-contrast: #1b1233; }
 
 html[data-density='compact'] {
   --settings-profile-padding: 14px;

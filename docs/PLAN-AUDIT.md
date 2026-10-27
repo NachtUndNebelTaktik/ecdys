@@ -24,10 +24,15 @@ Statuses: **Implemented** means the stated bounded scope exists with executable 
 
 ## Settings checklist
 
+Follow-up checked 2026-10-27 after base `c255517`: the [sharpening plan](superpowers/plans/2026-10-27-settings-sharpening.md) applies the user's supplied desktop HTML to the working settings screen. This UI revision does not change the original milestone/service acceptance gates below.
+
 - [x] Environment, Account, Appearance, App and Help navigation and grouped reference layout.
 - [x] Appearance/accent, density, reduced motion and optional status messages apply and persist.
 - [x] Lock, platform/version/lock state, storage counts, help and implemented shortcuts.
 - [x] Critical cleanup warnings remain visible with optional messages off; no account/secret data in UI preference storage.
+- [x] Search, desktop rail, compact section chips, current state and the tighter visual treatments.
+- [x] Six-colour palette with true Crimson first and saved Sage/Indigo compatibility.
+- [x] Data controls resets only the five device preferences; search text is never persisted.
 - [ ] Mindmap / visual workspace map.
 - [ ] SOCKS5 configuration and enforced per-profile routing.
 - [ ] Linked email/account service and subscription/license entitlements.
@@ -93,7 +98,11 @@ The blueprint contains **30** numbered stories, despite its “25 Total” headi
 - No frozen Chromium 120 managed-browser distribution was supplied. The Electron renderer's Chromium version is not proof that a supported isolated profile browser has been bundled.
 - The built-in archive engine uses MHTML, with a documented 4 MiB bound. It is not the exact SingleFile HTML format or a session/capsule export.
 
-## Fresh verification — 2026-10-26
+## Settings follow-up verification — 2026-10-27
+
+`pnpm test`: **260 passed / 3 skipped** across 23 files. `pnpm test:ui`: **24 passed**, including search/empty results/Escape, current-value filtering, navigation/scroll tracking, compact heading visibility, old-colour compatibility and preference reset. `pnpm test:desktop`: **3 passed**, including real workspace lock and restart persistence. Typecheck/build passed. The skip conditions are unchanged; the opt-in maximum-size recovery check was last run separately on 2026-10-26. This UI change makes no new privileged-routing or offline-archive verification claim.
+
+## Earlier verification — 2026-10-26
 
 | Check | Observed result |
 | --- | --- |

@@ -13,7 +13,7 @@ test('Electron settings persist across restart and the lock shortcut closes the 
     await page.getByRole('button',{name:'Open settings',exact:true}).click();
     let settings=page.getByRole('dialog',{name:'Settings',exact:true});
     await settings.getByRole('combobox',{name:'Appearance',exact:true}).selectOption('light');
-    await settings.getByRole('combobox',{name:'Accent colour',exact:true}).selectOption('indigo');
+    await settings.getByRole('combobox',{name:'Accent colour',exact:true}).selectOption('violet');
     await settings.getByRole('button',{name:'Personalization',exact:true}).click();
     await settings.getByRole('combobox',{name:'Density',exact:true}).selectOption('compact');
     await settings.getByRole('checkbox',{name:'Reduce motion',exact:true}).check();
@@ -32,7 +32,7 @@ test('Electron settings persist across restart and the lock shortcut closes the 
     application=await launch();page=await application.firstWindow();
     page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
     await expect(page.locator('html')).toHaveAttribute('data-appearance','light');
-    await expect(page.locator('html')).toHaveAttribute('data-accent','indigo');
+    await expect(page.locator('html')).toHaveAttribute('data-accent','violet');
     await expect(page.locator('html')).toHaveAttribute('data-density','compact');
     await expect(page.locator('html')).toHaveAttribute('data-reduce-motion','true');
     await page.getByRole('button',{name:'Open settings',exact:true}).click();

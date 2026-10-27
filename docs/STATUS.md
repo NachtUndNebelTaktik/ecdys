@@ -1,10 +1,10 @@
-# Ecdys 0.7.0 built-in tools preview — reviewed 2026-10-26
+# Ecdys 0.7.0 built-in tools preview — reviewed 2026-10-27
 
-**Checked implementation status:** [plan audit and pending checklist](PLAN-AUDIT.md). Scoped increment tasks are implemented; the full v1 blueprint is not complete. Fresh verification passed 252 default backend tests, 18 browser UI checks, 3 Electron workflows, typecheck/build and the separate opt-in 64 MiB recovery test. Privileged routing and offline MHTML reopening remain blocked here. Normal browser launches remain disabled.
+**Checked implementation status:** [plan audit and pending checklist](PLAN-AUDIT.md). Scoped increment tasks are implemented; the full v1 blueprint is not complete. Fresh verification passed 260 default backend tests, 24 browser UI checks, 3 Electron workflows and typecheck/build. The separate opt-in 64 MiB recovery test last passed on 2026-10-26. Privileged routing and offline MHTML reopening remain blocked here. Normal browser launches remain disabled.
 
-Local Settings increment: screenshot-based Environment/Account/Appearance/App/Help navigation and grouped rows; local dark/light/system, accent, density, motion and optional-status preferences; working workspace lock/shortcut; truthful pending-service details. No account, wallet or cloud backend was added. Only non-sensitive UI enum/boolean preferences use local storage. See [Settings](SETTINGS.md).
+Local Settings increment: the sharpened HTML-based desktop rail, search, compact section chips, live current-state panel and grouped rows; six colours led by true CSS Crimson, with legacy preference compatibility; local appearance/density/motion/status preferences, device reset and working workspace lock/shortcut. Pending-service details remain truthful. No account, wallet or cloud backend was added. Only five non-sensitive UI enum/boolean preferences use local storage; search does not. See [Settings](SETTINGS.md).
 
-Settings validation: **252 backend tests passed, 3 skipped; 18 browser UI checks and 3 actual Electron workflows passed.** Typecheck/build passed. Electron verifies preference persistence after restart and Ctrl/Cmd+Shift+L against a real encrypted workspace. No push or remote merge was performed.
+Settings validation: **260 backend tests passed, 3 skipped; 24 browser UI checks and 3 actual Electron workflows passed.** Typecheck/build passed. Electron verifies preference persistence after restart and Ctrl/Cmd+Shift+L against a real encrypted workspace. No push or remote merge was performed.
 
 Renamed from Styg to Ecdys. The app keeps the legacy `styg` data folder, encrypted formats and recovery identifiers so existing workspaces open in place. Historical progress notes and plans retain their original name.
 

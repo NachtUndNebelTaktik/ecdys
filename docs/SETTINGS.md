@@ -2,12 +2,14 @@
 
 Open **Settings** in the top bar, or press **Ctrl/Cmd + ,**. Settings is available while the encrypted workspace is locked. **Escape** returns from a detail view, then closes the dialog. **Ctrl/Cmd + Shift + L** locks an unlocked desktop workspace when no mutation is in progress.
 
-The screen follows the supplied reference: Environment, Account, Appearance, App and Help section navigation; grouped charcoal rows; crimson accents; bundled outline icons and locally bundled Inter typography. Navigation jumps to sections in one scrollable overview. Each row opens a detail view.
+The screen follows the supplied 2026-10-27 HTML revision: a 266px desktop navigation rail, searchable grouped rows, a current-state panel in wide windows, tighter 14px cards, 23px outline-icon tiles and monospaced values. Section ticks, active navigation, focus rings and connected indicators derive from the selected accent. Compact desktop windows retain search and section chips. Icons and Inter typography are bundled locally.
+
+Navigation jumps to sections in one scrollable overview and follows subsequent scrolling. Search filters row names and their current displayed values, hides empty groups and shows “No settings match” when appropriate. Press **/** inside Settings to focus search; typing in a field is left alone. **Escape** clears a nonempty query before returning from a detail or closing the dialog. Search text is not saved.
 
 ## Working device preferences
 
 - Appearance: Dark, Light, or System; System follows device colour-scheme changes.
-- Accent colour: Crimson, Sage or Indigo.
+- Accent colour: Crimson (`#dc143c`), Rose, Amber, Teal, Blue or Violet, in that order. Existing Sage/Indigo preferences remain readable and show a saved-colour option until you choose another colour.
 - Personalization: Comfortable/Compact profile spacing and Reduce motion.
 - Notifications: optional in-app success messages. Errors and important incomplete-snapshot warnings remain visible.
 
@@ -17,12 +19,20 @@ These five enum/boolean preferences save automatically on this device and apply 
 
 Security can lock the real workspace and explains the existing 15-minute timeout, which measures workspace operations rather than mouse/keyboard activity. Storage shows unlocked workspace profile counts and the selected profile's snapshot count, with complete-backup guidance. General identifies the app, platform and lock state. Help centre and Keyboard shortcuts explain existing capabilities.
 
+**Data controls → Reset device preferences** restores the five display/message defaults. It preserves the encrypted workspace, profiles, snapshots and unrelated device storage.
+
 ## Services awaiting integration
 
-Mindmap is unavailable; SOCKS5 is not configured; Email is unlinked; Subscription shows Local preview; Trocador and Monero are not connected; Browsing reports and Secure cloud storage are off. Their detail views explain current limits. Opening Settings makes no integration/network request, does not connect a proxy/wallet, and does not enable profile launches. The reference's example email and Pro entitlement are not used as account data.
+Mindmap is unavailable; Email is unlinked; Subscription shows Local preview; Trocador and Monero are not connected; Browsing report and Secure cloud storage are off. SOCKS5 shows **Direct**, meaning no proxy is configured; routing still shows **Blocked** and browser launches remain disabled. Trocador stays under Account, alongside Browsing report. “Weekly” is not shown because there is no report scheduler.
+
+Their detail views explain current limits. Opening Settings makes no integration/network request and does not connect a proxy/wallet. The reference's email, Pro entitlement, unlocked vault and old build number are not copied as application state. The state panel and rail use the actual preference, lock and current version values; filled accent dots indicate active state, and hollow grey dots indicate inactive state.
 
 ![Settings overview](images/settings-overview.png)
 
 ![App settings](images/settings-app.png)
 
 ![Help settings](images/settings-help.png)
+
+![Light appearance with Violet accent](images/settings-light.png)
+
+![Compact desktop settings](images/settings-compact.png)

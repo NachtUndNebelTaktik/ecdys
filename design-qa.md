@@ -1,44 +1,43 @@
-# Ecdys settings visual QA
+# Ecdys sharpened settings visual QA — 2026-10-27
 
-Source visual truth: the three settings screenshots attached by the user in this conversation (overview, theme/app settings, help). The source images are not committed; the example email is not retained as application data or a fixture.
+Source truth: the user's selected 2026-10-27 EcDys Settings HTML/CSS and sharpening notes, superseding the earlier portrait screenshot crops. This review compares the supplied visual specification with fresh rendered captures; it does not claim a pixel-identical reproduction of a full-page reference inside an Electron modal.
 
-Implementation evidence: `docs/images/settings-overview.png`, `settings-app.png`, `settings-help.png`, and the actual Electron capture `settings-electron.png`.
+## Rendered evidence
 
-Comparison state: dark appearance, crimson accent, default overview and section-jump states. Browser viewport 1440 × 1000 CSS px, deviceScaleFactor 1; dialog captures 940 × 952 pixels. The reference consists of portrait crops at differing presentation sizes. This is an adaptation within the existing desktop app, not a claim of pixel-identical mobile-screen reproduction. Comparison uses corresponding content groups at a consistent readable scale, rather than comparing crop heights as layout errors.
+- `docs/images/settings-overview.png`, `settings-app.png`, `settings-help.png`: dark/Crimson, 1440 × 1000 browser viewport; 1392 × 952 dialog including its border.
+- `docs/images/settings-light.png`: Light/Violet at the same viewport.
+- `docs/images/settings-compact.png`: dark/Crimson, 860 × 800 compact desktop viewport; search and section chips replace the rail.
+- `docs/images/settings-electron.png`: actual Linux Electron window, captured after restart persistence and real workspace locking; the headless display constrains window height.
 
-## Findings and comparison history
+Browser geometry inspection measured a **266px rail, 14px card radius, 52px minimum row height, 23px icon tiles and `#dc143c` base accent**. No horizontal dialog overflow occurred. The final capture run recorded no JavaScript/console errors or failed HTTP responses.
 
-- Initial overview anchor scrolled the Settings heading out of view. Environment now returns to the top, and the final overview capture includes the heading, introduction, pills and Customize/Account groups.
-- Sticky navigation initially left clipped preceding text above it. The sticky offset and section scroll margin were corrected; final App/Help captures keep the navigation against the dialog edge. At the bottom, earlier sections remain visible because the desktop viewport is taller than the Help section; all Help controls remain in view.
-- Typography initially used a platform fallback. Inter Variable is now bundled locally, with monospaced navigation and metadata; no external font requests are needed.
-- The Monero icon uses the library's circled coin mark to match the reference's treatment.
-- Small accent text uses a lighter theme-derived crimson on dark surfaces so the kicker and existing snapshot actions remain readable; filled action buttons retain the crimson base.
+## Fidelity and deliberate adjustments
 
-No remaining actionable P0/P1/P2 issue was found in the desktop adaptation.
+- The rail, compact chips, search, wide current-state panel, hairline card treatment, section ticks, active navigation rail, icon tiles, mono values and six-colour palette follow the supplied revision. Crimson leads the palette; all accent treatments derive from the selected theme token. Small accent text/button ink uses a readable derived or contrasting colour.
+- Fonts and Tabler outline icons are bundled locally. Cloud, route, graph and swap controls use library glyphs. Their MIT and Inter's OFL notices remain included in the build. The favicon is an unmodified bundled Tabler fingerprint asset.
+- Every supplied control is represented, including Data controls. Browsing report now sits under Account immediately after Trocador. There is no filler Age row.
+- The example email, Pro entitlement, unlocked vault, old build number and Weekly cadence are replaced with actual availability/version/lock state. Browsing report stays Off. SOCKS5 Direct means no configured proxy; Routing explicitly remains Blocked. Unavailable Mindmap/payment/cloud services remain unavailable.
+- Inert dots are hollow grey; active dots use the selected accent. Colour is accompanied by a state label. The close control remains accessible while scrolling.
+- Existing saved Sage/Indigo values remain compatible; they do not silently reset the other preferences. New selection offers the six supplied colours in order.
 
-## Required fidelity surfaces
+## Findings resolved
 
-- **Fonts/typography:** locally bundled variable sans serif, strong Settings heading, smaller muted introduction, medium-weight row labels and spaced monospaced section/metadata text. Density is intentionally adapted for desktop.
-- **Spacing/layout:** rounded grouped cards, consistent row dividers starting after the icon column, right-aligned values/chevrons, section markers, pill navigation and persistent close control. Every supplied row is represented.
-- **Colours/tokens:** black base, charcoal cards, subdued dividers, light text, muted metadata and crimson highlights. Light/system appearances also render and persist correctly.
-- **Assets:** bundled MIT Tabler outline icons; no rasterized interface, remote icon service or generated substitute. Bundled Inter font uses OFL licensing.
-- **Copy/content:** section/row names follow the reference. Device-only persistence text and pending service values are deliberate correctness adjustments. The example email, Pro entitlement, working proxy, wallet and cloud connection are not fabricated.
+- At the end of a long viewport, multiple sections can be visible together. Scroll tracking initially overwrote an explicit navigation choice. It now preserves that choice until the content actually moves, then resumes tracking.
+- Compact sticky search initially covered an Account heading after navigation. Jumps now use the scroll container's actual padding; a browser check verifies the heading is not occluded.
+- A manual browser capture exposed the preview's missing favicon request. A local library asset fixes that request; no console errors remain in the final capture.
 
-Full-view evidence is the overview/app/help capture set. Focused review covered card dividers, icon/label/value columns, accent selector, close button and Help card rows in those rendered captures; text/icons are readable at their native dimensions.
+At the end of the page, adjacent groups can remain visible because scrolling is naturally bounded by the content height. Explicit section navigation remains selected. This is not presented as a separate tab view.
 
-## Interaction and accessibility evidence
+No remaining actionable P0/P1/P2 issue was found within this settings revision.
 
-18 browser checks pass, including every row/detail, section navigation, appearance/accent/system changes, persistence, density/motion, optional messages with mandatory cleanup warnings, native modal containment, Escape/back and focus restoration. Three Electron workflows pass, including real workspace lock by shortcut and preference persistence after restart. Electron settings produced no console/page errors. Typecheck and production build pass; the complete backend suite passes 252 tests with three documented environment/opt-in skips.
+## Interaction evidence
 
-## Implementation checklist
+**24 browser checks passed**, including every detail row, appearance/system/accent persistence, search/current-value filtering/empty state, Escape and slash typing, filtered navigation, scroll tracking, compact heading visibility, legacy accents, preference reset, mandatory cleanup warnings, native focus containment and focus restoration.
 
-- [x] All supplied settings groups and rows included.
-- [x] Local presentation preferences apply immediately and persist.
-- [x] Pending integrations remain accurate and make no new connection.
-- [x] Native dialog controls and keyboard paths verified.
-- [x] Updated rendered evidence inspected after the visual fixes.
-- [x] Changes remain local; no push or remote merge.
+**3 Electron workflows passed**, including preference persistence after restart and locking a real encrypted workspace with Ctrl/Cmd+Shift+L. The settings workflow captured no console or page errors. Typecheck and production build passed. The full default unit/integration suite passed **260 tests with 3 existing skips**; the maximum-size opt-in recovery, privileged routing and offline MHTML-opening conditions are documented in the plan audit rather than counted as passes.
 
-Follow-up polish: align future connected-account/service states when those backends exist. Responsive styling is present; native macOS/Windows and a mobile product are not covered by this Linux desktop verification.
+## Scope and handoff
+
+This is a local renderer/preferences increment. It adds no account, payment, wallet, proxy, map, report or cloud backend. Browser routing/launch gates stay intact. Native macOS/Windows acceptance is not covered by these Linux checks. Changes remain local; no push or remote merge.
 
 final result: passed

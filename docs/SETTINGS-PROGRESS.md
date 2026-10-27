@@ -1,5 +1,15 @@
 # Settings handoff
 
+## Sharpened revision — 2026-10-27
+
+Base: `c255517`. Local branch: `feat/sharp-settings`. Implemented the user's supplied HTML revision in the existing Electron/Solid screen: desktop rail/search, compact chips, current state, tighter cards/rows, library icon tiles, mono values, accent markers and six colours led by true CSS Crimson. Existing Sage/Indigo preferences remain compatible. Browsing report now sits beneath Trocador under Account and stays Off. SOCKS5 shows Direct, explained as no configured proxy; Routing remains Blocked. Data controls resets only device preferences.
+
+Fresh checks: 260 backend tests passed / 3 existing skips; 24 browser checks and 3 Electron workflows passed; typecheck/build passed. Browser regressions caught and fixed final-viewport scroll tracking and compact sticky-search overlap. Actual Electron still verifies preference persistence after restart and real workspace locking. No backend/schema/provider/routing change or new dependency was introduced. A bundled Tabler favicon removes the browser preview's missing-icon request; the existing MIT notice covers it.
+
+The checked [implementation plan](superpowers/plans/2026-10-27-settings-sharpening.md), [current guide](SETTINGS.md), [audit](PLAN-AUDIT.md) and refreshed images describe this revision. Everything remains local; no push or remote merge.
+
+## Earlier screenshot-based increment
+
 Base: `7125ca7`. Local branch: `feat/reference-settings`. The user requested the provided grouped dark/crimson settings reference. All work remains local; do not push from this workstream.
 
 Implementation lives in renderer `SettingsPanel.tsx`, `settings.css`, `SettingsIcon.tsx`, `preferences.ts`, `themes.css`, and App entry/keyboard wiring. Tabler outline assets (MIT) and Inter Variable font assets (OFL) are bundled; no external asset host is used. No backend, vault schema, routing or provider setup change is included.

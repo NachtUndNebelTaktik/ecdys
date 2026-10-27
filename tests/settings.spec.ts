@@ -5,7 +5,7 @@ const sections = ['Environment', 'Account', 'Appearance', 'App', 'Help'] as cons
 const rows = [
   'Personalization', 'Mindmap', 'SOCKS5', 'Email', 'Subscription', 'Trocador',
   'Browsing report', 'General', 'Notifications', 'Monero', 'Security',
-  'Secure cloud storage', 'Storage', 'Help centre', 'Keyboard shortcuts',
+  'Secure cloud storage', 'Storage', 'Data controls', 'Help centre', 'Keyboard shortcuts',
 ] as const;
 
 test.use({viewport: {width: 1440, height: 1000}});
@@ -100,19 +100,19 @@ test('appearance and accent apply immediately and persist through reload', async
   await page.goto('/');
   let dialog = await openSettings(page);
   await dialog.getByRole('combobox', {name: 'Appearance', exact: true}).selectOption({label: 'Light'});
-  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption({label: 'Sage'});
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption({label: 'Teal'});
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'sage');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'sage');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   dialog = await openSettings(page);
   await expect(dialog.getByRole('combobox', {name: 'Appearance', exact: true})).toHaveValue('light');
-  await expect(dialog.getByRole('combobox', {name: 'Accent colour', exact: true})).toHaveValue('sage');
+  await expect(dialog.getByRole('combobox', {name: 'Accent colour', exact: true})).toHaveValue('teal');
   await dialog.getByRole('combobox', {name: 'Appearance', exact: true}).selectOption({label: 'Dark'});
-  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption({label: 'Indigo'});
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption({label: 'Violet'});
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'dark');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'indigo');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'violet');
   const stored = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
   expect(Object.keys(stored)).toEqual([preferenceKey]);
   expect(Object.keys(JSON.parse(stored[preferenceKey])).sort()).toEqual(['accent', 'appearance', 'density', 'notifications', 'reduceMotion']);
@@ -160,7 +160,7 @@ test('unconnected services state their limits without copied identity or subscri
   await expect(row(dialog, 'Email')).toContainText('No email connected');
   await expect(row(dialog, 'Subscription')).toContainText('Local preview');
   await expect(row(dialog, 'Trocador')).toContainText('Not connected');
-  await expect(row(dialog, 'SOCKS5')).toContainText('Not configured');
+  await expect(row(dialog, 'SOCKS5')).toContainText('Direct');
   expect(await dialog.innerText()).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   expect(await dialog.innerText()).not.toMatch(/\bPro\b|\bPremium\b/);
   for (const [name, limitation] of [
@@ -265,4 +265,102 @@ test('captures the default overview, app and help sections for visual review', a
     await page.mouse.move(0, 0);
     await dialog.screenshot({path: `test-results/${path}.png`, animations: 'disabled'});
   }
+});
+
+test('settings search filters rows, handles empty results and clears before Escape closes the dialog', async ({page}) => {
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  await page.keyboard.press('/');
+  const search = dialog.getByRole('searchbox', {name: 'Search settings', exact: true});
+  await expect(search).toBeFocused();
+  await search.fill('  monero  ');
+  await expect(row(dialog, 'Monero')).toBeVisible();
+  await expect(row(dialog, 'Personalization')).toHaveCount(0);
+  await search.fill('no matching setting');
+  await expect(dialog.getByRole('status')).toHaveText('No settings match');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(search).toHaveValue('');
+  await expect(row(dialog, 'Personalization')).toBeVisible();
+  await search.fill('weekly');
+  await expect(dialog.getByRole('status')).toHaveText('No settings match');
+  await search.fill('Light');
+  await expect(dialog.getByRole('status')).toHaveText('No settings match');
+  await search.fill('Monero/');
+  await search.press('/');
+  await expect(search).toHaveValue('Monero//');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await page.getByRole('button', {name: 'Open settings', exact: true}).click();
+  await expect(search).toHaveValue('');
+});
+
+test('section navigation clears a conflicting search and scrollspy follows visible content', async ({page}) => {
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  const search = dialog.getByRole('searchbox', {name: 'Search settings', exact: true});
+  const navigation = dialog.getByRole('navigation', {name: 'Settings sections'});
+  await search.fill('Monero');
+  await navigation.getByRole('button', {name: 'Appearance', exact: true}).click();
+  await expect(search).toHaveValue('');
+  await expect(dialog.getByRole('heading', {name: 'Appearance', exact: true})).toBeInViewport();
+  await expect(navigation.getByRole('button', {name: 'Appearance', exact: true})).toHaveAttribute('aria-current', 'location');
+  await dialog.getByRole('heading', {name: 'Environment', exact: true}).scrollIntoViewIfNeeded();
+  await dialog.getByRole('heading', {name: 'Help', exact: true}).scrollIntoViewIfNeeded();
+  await expect(navigation.getByRole('button', {name: 'Help', exact: true})).toHaveAttribute('aria-current', 'location');
+});
+
+for (const accent of ['sage', 'indigo'] as const) {
+  test(`saved ${accent} preferences survive the new palette until another colour is selected`, async ({page}) => {
+    await page.addInitScript(({key, accent}) => localStorage.setItem(key, JSON.stringify({appearance: 'light', accent, density: 'compact', reduceMotion: true, notifications: false})), {key: preferenceKey, accent});
+    await page.goto('/');
+    const dialog = await openSettings(page);
+    const colour = dialog.getByRole('combobox', {name: 'Accent colour', exact: true});
+    await expect(colour).toHaveValue(accent);
+    await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
+    await colour.selectOption('rose');
+    await expect(page.locator('html')).toHaveAttribute('data-accent', 'rose');
+    expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), preferenceKey)).toEqual({appearance: 'light', accent: 'rose', density: 'compact', reduceMotion: true, notifications: false});
+  });
+}
+
+test('data controls reset only device preferences and leave an unlocked workspace available', async ({page}) => {
+  await installWorkspaceFixture(page);
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  await dialog.getByRole('combobox', {name: 'Appearance', exact: true}).selectOption('light');
+  await dialog.getByRole('combobox', {name: 'Accent colour', exact: true}).selectOption('blue');
+  await detail(dialog, 'Personalization');
+  await dialog.getByLabel('Density', {exact: true}).selectOption('compact');
+  await dialog.getByLabel('Reduce motion', {exact: true}).check();
+  await dialog.getByRole('button', {name: 'Back to settings', exact: true}).click();
+  await detail(dialog, 'Notifications');
+  await dialog.getByLabel('Show status messages', {exact: true}).uncheck();
+  await dialog.getByRole('button', {name: 'Back to settings', exact: true}).click();
+  await detail(dialog, 'Data controls');
+  await dialog.getByRole('button', {name: 'Reset device preferences', exact: true}).click();
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), preferenceKey)).toEqual({appearance: 'dark', accent: 'crimson', density: 'comfortable', reduceMotion: false, notifications: true});
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'crimson');
+  await dialog.getByRole('button', {name: 'Close settings', exact: true}).click();
+  await expect(page.getByRole('heading', {name: 'Profiles.', exact: true})).toBeVisible();
+});
+
+test('compact desktop windows retain search and section navigation without horizontal overflow', async ({page}) => {
+  await page.setViewportSize({width: 860, height: 800});
+  await page.goto('/');
+  const dialog = await openSettings(page);
+  await expect(dialog.getByRole('searchbox', {name: 'Search settings', exact: true})).toBeVisible();
+  const navigation = dialog.getByRole('navigation', {name: 'Settings sections'});
+  await navigation.getByRole('button', {name: 'Account', exact: true}).click();
+  const accountHeading = dialog.getByRole('heading', {name: 'Account', exact: true});
+  await expect.poll(() => accountHeading.evaluate(element => {
+    const box = element.getBoundingClientRect();
+    const visible = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    return visible === element || (visible !== null && element.contains(visible));
+  })).toBe(true);
+  await navigation.getByRole('button', {name: 'App', exact: true}).click();
+  await expect(dialog.getByRole('heading', {name: 'App', exact: true})).toBeInViewport();
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await dialog.screenshot({path: 'test-results/settings-compact.png', animations: 'disabled'});
 });
