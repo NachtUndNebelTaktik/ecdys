@@ -68,7 +68,7 @@ export const VaultSetupSchema = z
     passphrase: z.string().min(12).max(1024),
     memoryMiB: z
       .union([z.literal(1024), z.literal(2048), z.literal(4096), z.literal(8192)])
-      .default(4096),
+      .default(1024),
   })
   .strict();
 export type RouteDraft = z.input<typeof RouteDraftSchema>;

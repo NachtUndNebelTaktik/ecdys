@@ -31,11 +31,18 @@ export function unseal(value: Sealed, key: Buffer, context: string): Buffer {
     decipher.final(),
   ]);
 }
+const MAX_ELECTRON_KDF_MIB = 1024;
 export function deriveKeyInWorker(
   passphrase: string,
   salt: Buffer,
   memoryMiB: number,
 ): Promise<Buffer> {
+  // Electron's allocator aborts the whole process on single allocations of 2 GiB or more.
+  if (memoryMiB > MAX_ELECTRON_KDF_MIB) {
+    return Promise.reject(
+      new Error('This runtime supports key derivation memory of up to 1 GiB. Choose 1 GiB.'),
+    );
+  }
   if (availableMemory() < memoryMiB * 1024 * 1024 + 512 * 1024 * 1024) {
     return Promise.reject(
       new Error(
