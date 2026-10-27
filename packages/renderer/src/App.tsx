@@ -50,7 +50,7 @@ const integrations = [
     name: 'Managed Chromium',
     state: 'PARTIAL',
     detail:
-      'Temporary Linux sessions use system Chromium 154 with private control pipes. Browser provisioning, fingerprint controls and full WebRTC validation remain pending.',
+      'Temporary Linux sessions use system Chromium 156 with private control pipes. Browser provisioning, fingerprint controls and full WebRTC validation remain pending.',
     category: 'BROWSER',
   },
   {
@@ -1186,7 +1186,7 @@ function VaultScreen(props: {
 }) {
   const [passphrase, setPassphrase] = createSignal(''),
     [confirmation, setConfirmation] = createSignal('');
-  const [memory, setMemory] = createSignal<1024 | 2048 | 4096 | 8192>(4096);
+  const [memory, setMemory] = createSignal<1024 | 2048 | 4096 | 8192>(1024);
   const [localError, setLocalError] = createSignal('');
   return (
     <div class="vault-screen">
@@ -1293,15 +1293,22 @@ function VaultScreen(props: {
                   )
                 }
               >
-                <option value="1024">1 GiB</option>
-                <option value="2048">2 GiB</option>
-                <option value="4096">4 GiB — default</option>
-                <option value="8192">8 GiB</option>
+                <option value="1024">1 GiB — default</option>
+                <option value="2048" disabled>
+                  2 GiB — unavailable
+                </option>
+                <option value="4096" disabled>
+                  4 GiB — unavailable
+                </option>
+                <option value="8192" disabled>
+                  8 GiB — unavailable
+                </option>
               </select>
             </label>
             <p class="field-help">
               Memory is allocated during key derivation. The selected cost is never silently
-              reduced.
+              reduced. Settings of 2 GiB or more are unavailable because this Electron runtime
+              cannot allocate a single block that large.
             </p>
           </Show>
           <Show when={props.error || localError()}>

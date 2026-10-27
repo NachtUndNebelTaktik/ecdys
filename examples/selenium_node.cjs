@@ -34,7 +34,10 @@ class BearerClient extends HttpClient {
         this.#nextAllowedAt = performance.now() + 250;
       }
     });
-    this.#pending = result.then(() => undefined, () => undefined);
+    this.#pending = result.then(
+      () => undefined,
+      () => undefined,
+    );
     return result;
   }
 }

@@ -21,7 +21,7 @@ Electron downloads its platform binary on first use. In environments requiring a
 
 - Electron 45 shell with sandboxed renderer, context isolation and typed, origin-checked IPC.
 - SQLCipher-compatible encrypted database and random master key wrapped using Argon2id.
-- Explicit 1/2/4/8 GiB KDF selection, default 4 GiB; production derivation runs in a worker.
+- Explicit KDF memory selection, default 1 GiB; production derivation runs in a worker. 2, 4 and 8 GiB are unavailable because Electron's allocator aborts on single allocations of 2 GiB or more.
 - Local profiles, revisions, search, tags, folder labels, protected-execution policy and route configuration.
 - Temporary Linux Chromium browsing with private network/PID/mount namespaces, an explicit Direct/proxy broker, live viewport, navigation, mouse/keyboard input and WebSockets. Direct uses the device's network identity and DNS.
 - Rounded Browser workspace with interactive local tabs, profile search, keyboard tab navigation and local workspace shortcuts.
@@ -51,7 +51,7 @@ Local configuration operations work offline. Signed commercial offline entitleme
 
 The foundation has been exercised on Linux. Windows/macOS native verification and Windows durable directory publication remain release gates.
 
-Temporary browsing requires Linux user/network namespaces, bubblewrap, util-linux prlimit, system Chromium 154 at the supported Debian path, and disabled swap. It currently supports one Standard session, no downloads or persistent site-state recovery, and a streamed development viewport. See [browser runtime and limitations](docs/BROWSER-RUNTIME.md).
+Temporary browsing requires Linux user/network namespaces, bubblewrap, util-linux prlimit, system Chromium 156 at the supported Debian path, and disabled swap. It currently supports one Standard session, no downloads or persistent site-state recovery, and a streamed development viewport. See [browser runtime and limitations](docs/BROWSER-RUNTIME.md).
 
 ## Verify
 

@@ -38,7 +38,7 @@ describe('profile and route boundaries', () => {
     expect(
       VaultSetupSchema.safeParse({passphrase: 'a strong local phrase', memoryMiB: 64}).success,
     ).toBe(false);
-    expect(VaultSetupSchema.parse({passphrase: 'a strong local phrase'}).memoryMiB).toBe(4096);
+    expect(VaultSetupSchema.parse({passphrase: 'a strong local phrase'}).memoryMiB).toBe(1024);
   });
 });
 

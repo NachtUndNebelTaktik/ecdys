@@ -138,7 +138,7 @@ describe('real Linux temporary browser', () => {
             releases++;
           },
         });
-        expect(session.version).toMatch(/^Chrome\/154\./);
+        expect(session.version).toMatch(/^Chrome\/156\./);
         await runtime
           .navigate(session.id, `http://fixture.ecdys.test:${webPort}/first`)
           .catch((error) => {

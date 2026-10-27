@@ -47,7 +47,7 @@ export class TemporaryBrowserRuntime {
       for (const [path, label] of [
         ['/usr/bin/bwrap', 'bubblewrap'],
         ['/usr/bin/prlimit', 'util-linux process limits'],
-        ['/usr/lib/chromium/chromium', 'Chromium 154'],
+        ['/usr/lib/chromium/chromium', 'Chromium 156'],
       ]) {
         try {
           await access(path!, constants.X_OK);
@@ -201,7 +201,7 @@ export class TemporaryBrowserRuntime {
             reject(
               new WorkspaceError(
                 'BROWSER_START_FAILED',
-                'The isolated browser could not start. Check Linux namespaces and Chromium 154.',
+                'The isolated browser could not start. Check Linux namespaces and Chromium 156.',
               ),
             );
           else if (!this.stopping && this.child === child) {
@@ -229,7 +229,7 @@ export class TemporaryBrowserRuntime {
               const value = JSON.parse(raw.toString());
               if (this.child !== child || context.signal.aborted) continue;
               if (value.type === 'ready' && !ready) {
-                if (value.network === hostNetwork || !/^Chrome\/154\./.test(value.version)) {
+                if (value.network === hostNetwork || !/^Chrome\/156\./.test(value.version)) {
                   failed();
                   child.kill('SIGKILL');
                   continue;
